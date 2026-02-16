@@ -1,16 +1,20 @@
 #!/usr/bin/env node
 
+import { createRequire } from 'node:module';
 import { Command } from 'commander';
 import { executeCommand } from './commands/index.js';
 import { formatOutput } from './utils/formatter.js';
 import { handleError } from './utils/errors.js';
+
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json') as { version: string };
 
 const program = new Command();
 
 program
   .name('agentteams')
   .description('CLI tool for AgentTeams API')
-  .version('1.0.0');
+  .version(pkg.version);
 
 program
   .command('init')

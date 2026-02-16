@@ -1,10 +1,5 @@
-import { createRequire } from 'node:module';
-import { createServer, type Server } from 'node:http';
+import { createServer, type Server, type IncomingMessage, type ServerResponse } from 'node:http';
 import { execFileSync } from 'node:child_process';
-
-const require = createRequire(import.meta.url);
-const expressModule = require('express') as any;
-const express = expressModule.default ?? expressModule;
 
 const DEFAULT_OAUTH_PORT = 7777;
 const OAUTH_PORT_MIN = 7777;
@@ -117,10 +112,26 @@ function isAuthResult(value: unknown): value is AuthResult {
   );
 }
 
+function readRequestBody(request: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    request.on('data', (chunk: Buffer) => chunks.push(chunk));
+    request.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+    request.on('error', reject);
+  });
+}
+
+function sendJson(response: ServerResponse, statusCode: number, payload: unknown): void {
+  const body = JSON.stringify(payload);
+  response.writeHead(statusCode, {
+    'Content-Type': 'application/json',
+    'Content-Length': Buffer.byteLength(body),
+  });
+  response.end(body);
+}
+
 export function startLocalAuthServer(): AuthServerResult {
   const port = findAvailablePortSync();
-  const app = express();
-  app.use(express.json());
 
   let settled = false;
   let timeoutHandle: NodeJS.Timeout | null = null;
@@ -133,8 +144,6 @@ export function startLocalAuthServer(): AuthServerResult {
     resolveCallback = resolve;
     rejectCallback = reject;
   });
-
-  const server = createServer(app);
 
   const stopServer = (): void => {
     if (!server.listening) {
@@ -175,21 +184,31 @@ export function startLocalAuthServer(): AuthServerResult {
     stopServer();
   };
 
-  app.post('/callback', (request: { body: unknown }, response: { status: (code: number) => { json: (payload: unknown) => void } }) => {
+  const server = createServer(async (request: IncomingMessage, response: ServerResponse) => {
+    if (request.method !== 'POST' || request.url !== '/callback') {
+      sendJson(response, 404, { message: 'Not found.' });
+      return;
+    }
+
     if (settled) {
-      response.status(409).json({ message: 'OAuth callback already processed.' });
+      sendJson(response, 409, { message: 'OAuth callback already processed.' });
       return;
     }
 
-    const payload = request.body;
+    try {
+      const rawBody = await readRequestBody(request);
+      const payload: unknown = JSON.parse(rawBody);
 
-    if (!isAuthResult(payload)) {
-      response.status(400).json({ message: 'Invalid OAuth callback payload.' });
-      return;
+      if (!isAuthResult(payload)) {
+        sendJson(response, 400, { message: 'Invalid OAuth callback payload.' });
+        return;
+      }
+
+      sendJson(response, 200, { success: true });
+      resolveAuth(payload);
+    } catch {
+      sendJson(response, 400, { message: 'Invalid JSON body.' });
     }
-
-    response.status(200).json({ success: true });
-    resolveAuth(payload);
   });
 
   server.once('error', (error: Error & { code?: string }) => {

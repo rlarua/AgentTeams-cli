@@ -1,6 +1,6 @@
 {
   "name": "@rlarua/agentteams-cli",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "CLI tool for AgentTeams API",
   "type": "module",
   "main": "dist/index.js",
@@ -24,9 +24,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "commander": "^12.1.0",
     "axios": "^1.7.9",
-    "express": "^4.21.1",
+    "commander": "^12.1.0",
     "open": "^10.1.0"
   },
   "devDependencies": {
