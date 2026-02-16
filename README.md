@@ -1,24 +1,22 @@
-# @agentteams/cli
+# @rlarua/agentteams-cli
 
-Command-line interface for AgentTeams API. Manage agent configurations, conventions, tasks, and status reports from your terminal.
+Command-line interface for managing AI agent teams. Configure agents, sync conventions, track tasks, and report status from your terminal.
+
+## Installation
+
+```bash
+npm install -g @rlarua/agentteams-cli
+```
+
+Or use with npx:
+
+```bash
+npx @rlarua/agentteams-cli init
+```
 
 ## Quick Start
 
-### 1. Install
-
-```bash
-npm install -g @agentteams/cli
-```
-
-Or use directly with npx:
-
-```bash
-npx @agentteams/cli init
-```
-
-### 2. Initialize
-
-Run `init` to authenticate and set up your project:
+### 1. Initialize
 
 ```bash
 agentteams init
@@ -26,20 +24,22 @@ agentteams init
 
 This command:
 - Opens your browser for OAuth authentication
-- Creates `.agentteams/config.json` with your credentials
+- Creates `.agentteams/config.json` with credentials
 - Downloads project conventions to `.agentteams/convention.md`
-- Automatically detects your AI environment (Claude Code, opencode, codex)
+- Detects your AI environment (Claude Code, opencode, codex)
 
 **What gets created:**
 
 ```
 your-project/
 ├── .agentteams/
-│   ├── config.json        # API credentials (gitignored)
+│   ├── config.json        # API credentials
 │   └── convention.md      # Project conventions
 ```
 
-**Important:** Add `.agentteams` to your `.gitignore` to protect API keys:
+### 2. Add to .gitignore
+
+Protect your API keys by adding this to `.gitignore`:
 
 ```gitignore
 # AgentTeams CLI config (contains API keys)
@@ -48,18 +48,13 @@ your-project/
 
 ### 3. Use conventions
 
-After initialization, conventions are automatically available to your AI agent. The CLI detects your environment and provides setup instructions.
-
-**Manual setup (if needed):**
+After initialization, conventions are available to your AI agent. The CLI provides setup instructions based on your environment.
 
 ```bash
-# View downloaded conventions
+# View conventions
 agentteams convention show
 
-# Append reference to CLAUDE.md (for Claude Code)
-agentteams convention append
-
-# Update conventions from server
+# Update from server
 agentteams convention update
 ```
 
@@ -67,20 +62,13 @@ agentteams convention update
 
 ### `init`
 
-Initialize AgentTeams CLI with OAuth authentication.
+Initialize with OAuth authentication.
 
 ```bash
 agentteams init
 ```
 
-**What it does:**
-1. Starts local OAuth server
-2. Opens browser for authentication
-3. Saves config to `.agentteams/config.json`
-4. Downloads conventions to `.agentteams/convention.md`
-
-**SSH/Remote environments:**
-If browser can't open automatically, copy the displayed URL and open it manually.
+Opens browser for authentication, saves config, and downloads conventions. For SSH/remote environments, manually copy the displayed URL if the browser doesn't open automatically.
 
 ### `convention`
 
@@ -90,40 +78,26 @@ Manage project conventions.
 # Show current conventions
 agentteams convention show
 
-# Append reference to CLAUDE.md
-agentteams convention append
-
-# Update conventions from server
+# Update from server
 agentteams convention update
+
+# Append reference to CLAUDE.md (Claude Code)
+agentteams convention append
 ```
-
-**`convention show`**
-- Displays content of `.agentteams/convention.md`
-- Requires prior `init` or `convention update`
-
-**`convention append`**
-- Adds convention reference to `CLAUDE.md`
-- Creates backup at `CLAUDE.md.backup`
-- Prompts for confirmation before modifying
-
-**`convention update`**
-- Downloads latest conventions from server
-- Overwrites `.agentteams/convention.md`
-- Merges all project conventions into single file
 
 ### `agent-config`
 
 Manage agent configurations.
 
 ```bash
-# List all agent configs
+# List all configs
 agentteams agent-config list
 agentteams agent-config list --format text
 
-# Get specific agent config
+# Get specific config
 agentteams agent-config get --id <config-id>
 
-# Delete agent config
+# Delete config
 agentteams agent-config delete --id <config-id>
 ```
 
@@ -132,15 +106,14 @@ agentteams agent-config delete --id <config-id>
 Manage agent status reports.
 
 ```bash
-# Report agent status
+# Report status
 agentteams status report \
   --agent-name "my-agent" \
   --status "IN_PROGRESS" \
   --project-id 1
 
-# List all statuses
+# List statuses
 agentteams status list
-agentteams status list --format text
 
 # Get specific status
 agentteams status get --id <status-id>
@@ -159,11 +132,10 @@ agentteams status delete --id <status-id>
 Manage tasks.
 
 ```bash
-# List all tasks
+# List tasks
 agentteams task list
-agentteams task list --format text
 
-# Get task by ID
+# Get task
 agentteams task get --id 1
 
 # Create task
@@ -175,11 +147,9 @@ agentteams task create \
   --plan-id 1
 
 # Update task
-agentteams task update \
-  --id 1 \
-  --status "IN_PROGRESS"
+agentteams task update --id 1 --status "IN_PROGRESS"
 
-# Assign task to agent
+# Assign task
 agentteams task assign --id 1 --agent "agent-name"
 
 # Delete task
@@ -194,7 +164,6 @@ agentteams task delete --id 1
 Manage task comments.
 
 ```bash
-# Create comment
 agentteams comment create \
   --task-id 1 \
   --content "Great work!" \
@@ -206,13 +175,13 @@ agentteams comment create \
 Create completion reports.
 
 ```bash
-# Create basic report
+# Basic report
 agentteams report create \
   --task-id 1 \
   --summary "Task completed successfully" \
   --agent-id 1
 
-# Create report with details
+# Report with details
 agentteams report create \
   --task-id 1 \
   --summary "Feature implemented" \
@@ -225,25 +194,22 @@ agentteams report create \
 View current configuration.
 
 ```bash
-# Show active config
 agentteams config whoami
 agentteams config whoami --format text
 ```
 
-Displays merged configuration from all sources (see Configuration Priority below).
-
 ## Configuration
 
-### Configuration Priority
+### Priority Order
 
-The CLI merges configuration from multiple sources with the following priority (highest to lowest):
+Configuration is merged from multiple sources (highest to lowest priority):
 
-1. **CLI options** (command-line arguments)
-2. **Environment variables** (`AGENTTEAMS_*`)
-3. **Project config** (`.agentteams/config.json` in current or parent directory)
-4. **Global config** (`~/.agentteams/config.json`)
+1. CLI options (command-line arguments)
+2. Environment variables (`AGENTTEAMS_*`)
+3. Project config (`.agentteams/config.json`)
+4. Global config (`~/.agentteams/config.json`)
 
-### Configuration File Structure
+### Config File
 
 `.agentteams/config.json`:
 
@@ -257,16 +223,7 @@ The CLI merges configuration from multiple sources with the following priority (
 }
 ```
 
-**Required fields:**
-- `teamId`: Team identifier
-- `projectId`: Project identifier
-- `agentName`: Agent name
-- `apiKey`: API authentication key
-- `apiUrl`: API server URL
-
 ### Environment Variables
-
-Override config file values with environment variables:
 
 ```bash
 export AGENTTEAMS_API_KEY="key_your_api_key_here"
@@ -276,47 +233,21 @@ export AGENTTEAMS_PROJECT_ID="proj_xxx"
 export AGENTTEAMS_AGENT_NAME="my-agent"
 ```
 
-**Use case:** CI/CD pipelines, temporary overrides, multi-environment setups.
-
-### Project vs Global Config
-
-**Project config** (`.agentteams/config.json`):
-- Stored in project directory
-- Shared with team (if not gitignored)
-- Automatically found by walking up directory tree
-
-**Global config** (`~/.agentteams/config.json`):
-- Stored in home directory
-- User-specific defaults
-- Lowest priority
-
-**Recommendation:** Use project config for team projects, global config for personal defaults.
+Useful for CI/CD pipelines and temporary overrides.
 
 ## Output Formats
 
 All commands support `--format` option:
 
 ```bash
-# JSON output (default, machine-readable)
+# JSON (default, machine-readable)
 agentteams task list --format json
 
-# Text output (human-friendly)
+# Text (human-friendly tables)
 agentteams task list --format text
 ```
 
-**JSON format:**
-- Structured data
-- Easy to parse with `jq` or scripts
-- Default for most commands
-
-**Text format:**
-- Human-readable tables
-- Better for terminal viewing
-- Formatted with colors (if supported)
-
 ## Error Handling
-
-The CLI provides clear error messages:
 
 | Error | Meaning | Solution |
 |-------|---------|----------|
@@ -326,31 +257,12 @@ The CLI provides clear error messages:
 | **Network errors** | Can't connect to server | Verify `apiUrl` and server status |
 | **Config not found** | No config file or env vars | Run `agentteams init` first |
 
-## .gitignore Setup
-
-**Critical:** Always add `.agentteams` to `.gitignore` to prevent committing API keys:
-
-```gitignore
-# AgentTeams CLI config (contains API keys)
-.agentteams
-```
-
-**What to commit:**
-- Convention files (if you want to share them)
-- Documentation referencing conventions
-
-**What NOT to commit:**
-- `.agentteams/config.json` (contains API keys)
-- Any files with sensitive credentials
-
 ## Development
-
-### Local Development
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/agentteams.git
-cd agentteams/cli
+git clone https://github.com/rlarua/AgentTeams.git
+cd AgentTeams/cli
 
 # Install dependencies
 npm install
@@ -364,64 +276,10 @@ node dist/index.js init
 # Link for global testing
 npm link
 agentteams init
-```
 
-### Run Tests
-
-```bash
+# Run tests
 npm test
 ```
-
-### Build
-
-```bash
-npm run build
-```
-
-Output: `dist/` directory with compiled JavaScript.
-
-## Publishing
-
-To publish a new version to npm:
-
-1. **Update version** in package.json:
-   ```bash
-   npm version patch  # 1.0.0 -> 1.0.1 (bug fixes)
-   npm version minor  # 1.0.0 -> 1.1.0 (new features)
-   npm version major  # 1.0.0 -> 2.0.0 (breaking changes)
-   ```
-
-2. **Publish to npm**:
-   ```bash
-   npm publish --access public
-   ```
-   
-   Note: `--access public` is required for scoped packages (@agentteams/cli)
-
-3. **Push git tag**:
-   ```bash
-   git push --follow-tags
-   ```
-
-### First-time setup
-
-If publishing for the first time:
-
-```bash
-# Login to npm
-npm login
-
-# Verify login
-npm whoami
-```
-
-### Publishing checklist
-
-- [ ] Tests pass: `npm test`
-- [ ] Build succeeds: `npm run build`
-- [ ] Version updated: `npm version [patch|minor|major]`
-- [ ] Publish: `npm publish --access public`
-- [ ] Git tag pushed: `git push --follow-tags`
 
 ## License
 
