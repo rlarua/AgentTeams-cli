@@ -12,7 +12,7 @@ export type AuthResult = {
   agentName: string;
   apiKey: string;
   apiUrl: string;
-  configId: number;
+  configId: string;
   environment: string;
   convention: {
     fileName: string;
@@ -104,7 +104,7 @@ function isAuthResult(value: unknown): value is AuthResult {
     typeof candidate.agentName === 'string' &&
     typeof candidate.apiKey === 'string' &&
     typeof candidate.apiUrl === 'string' &&
-    typeof candidate.configId === 'number' &&
+    typeof candidate.configId === 'string' &&
     typeof candidate.environment === 'string' &&
     !!convention &&
     typeof convention.fileName === 'string' &&
@@ -121,8 +121,15 @@ function readRequestBody(request: IncomingMessage): Promise<string> {
   });
 }
 
+function setCorsHeaders(response: ServerResponse): void {
+  response.setHeader('Access-Control-Allow-Origin', '*');
+  response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
 function sendJson(response: ServerResponse, statusCode: number, payload: unknown): void {
   const body = JSON.stringify(payload);
+  setCorsHeaders(response);
   response.writeHead(statusCode, {
     'Content-Type': 'application/json',
     'Content-Length': Buffer.byteLength(body),
@@ -185,6 +192,13 @@ export function startLocalAuthServer(): AuthServerResult {
   };
 
   const server = createServer(async (request: IncomingMessage, response: ServerResponse) => {
+    if (request.method === 'OPTIONS') {
+      setCorsHeaders(response);
+      response.writeHead(204);
+      response.end();
+      return;
+    }
+
     if (request.method !== 'POST' || request.url !== '/callback') {
       sendJson(response, 404, { message: 'Not found.' });
       return;
@@ -205,7 +219,10 @@ export function startLocalAuthServer(): AuthServerResult {
       }
 
       sendJson(response, 200, { success: true });
-      resolveAuth(payload);
+      
+      setTimeout(() => {
+        resolveAuth(payload);
+      }, 100);
     } catch {
       sendJson(response, 400, { message: 'Invalid JSON body.' });
     }

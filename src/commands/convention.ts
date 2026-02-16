@@ -5,7 +5,7 @@ import axios from "axios";
 import { loadConfig, findProjectConfig } from "../utils/config.js";
 
 const CONVENTION_DIR = ".agentteams";
-const CONVENTION_FILE = "convention.md";
+const CONVENTION_FILE = "reporting.md";
 const CLAUDE_MD = "CLAUDE.md";
 const CLAUDE_MD_BACKUP = "CLAUDE.md.backup";
 
@@ -65,7 +65,7 @@ export async function conventionAppend(): Promise<string> {
 
   const claudeMdPath = join(projectRoot, CLAUDE_MD);
   const backupPath = join(projectRoot, CLAUDE_MD_BACKUP);
-  const conventionRef = `\n\n<!-- AgentTeams Convention -->\nSee .agentteams/convention.md for project conventions.\n`;
+  const conventionRef = `\n\n<!-- AgentTeams Convention -->\nSee .agentteams/reporting.md for project conventions.\n`;
 
   if (existsSync(claudeMdPath)) {
     const existingContent = readFileSync(claudeMdPath, "utf-8");

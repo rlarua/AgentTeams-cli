@@ -8,7 +8,7 @@ import type { Config } from '../types/index.js';
 const AUTH_BASE_URL = process.env.AGENTTEAMS_WEB_URL || 'https://agent-web.justin-mk.me';
 const CONFIG_DIR = '.agentteams';
 const CONFIG_FILE = 'config.json';
-const CONVENTION_FILE = 'convention.md';
+const CONVENTION_FILE = 'reporting.md';
 
 type InitOptions = {
   cwd?: string;
