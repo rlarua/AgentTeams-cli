@@ -104,6 +104,49 @@ Build:
 npm run build
 ```
 
+## Publishing
+
+To publish a new version to npm:
+
+1. **Update version** in package.json:
+   ```bash
+   npm version patch  # 1.0.0 -> 1.0.1 (bug fixes)
+   npm version minor  # 1.0.0 -> 1.1.0 (new features)
+   npm version major  # 1.0.0 -> 2.0.0 (breaking changes)
+   ```
+
+2. **Publish to npm**:
+   ```bash
+   npm publish --access public
+   ```
+   
+   Note: `--access public` is required for scoped packages (@agentteams/cli)
+
+3. **Push git tag**:
+   ```bash
+   git push --follow-tags
+   ```
+
+### First-time setup
+
+If publishing for the first time:
+
+```bash
+# Login to npm
+npm login
+
+# Verify login
+npm whoami
+```
+
+### Publishing checklist
+
+- [ ] Tests pass: `npm test`
+- [ ] Build succeeds: `npm run build`
+- [ ] Version updated: `npm version [patch|minor|major]`
+- [ ] Publish: `npm publish --access public`
+- [ ] Git tag pushed: `git push --follow-tags`
+
 ## License
 
 MIT
