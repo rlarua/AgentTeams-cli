@@ -13,7 +13,6 @@ export type AuthResult = {
   apiKey: string;
   apiUrl: string;
   configId: string;
-  environment: string;
   convention: {
     fileName: string;
     content: string;
@@ -105,7 +104,6 @@ function isAuthResult(value: unknown): value is AuthResult {
     typeof candidate.apiKey === 'string' &&
     typeof candidate.apiUrl === 'string' &&
     typeof candidate.configId === 'string' &&
-    typeof candidate.environment === 'string' &&
     !!convention &&
     typeof convention.fileName === 'string' &&
     typeof convention.content === 'string'

@@ -31,8 +31,6 @@ export interface Config {
 export interface AuthResult extends Config {
   /** Agent config ID from API */
   configId: string;
-  /** Agent environment (CLAUDE_CODE, OPENCODE, CODEX) */
-  environment: AgentEnvironment;
   /** Convention file content and metadata */
   convention: ConventionFile;
 }

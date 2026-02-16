@@ -22,7 +22,6 @@ type InitResult = {
   teamId: string;
   projectId: string;
   agentName: string;
-  environment: string;
 };
 
 function isSshEnvironment(): boolean {
@@ -100,7 +99,6 @@ export async function executeInitCommand(options?: InitOptions): Promise<InitRes
       teamId: authResult.teamId,
       projectId: authResult.projectId,
       agentName: authResult.agentName,
-      environment: authResult.environment,
     };
   } catch (error) {
     if (authContext.server.listening) {

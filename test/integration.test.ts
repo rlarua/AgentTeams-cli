@@ -50,7 +50,6 @@ describe('CLI Integration Tests', () => {
         apiKey: 'key_oauth_123',
         apiUrl: 'http://localhost:3001',
         configId: 7,
-        environment: 'codex',
         convention: {
           fileName: 'convention.md',
           content: '# team convention\n- follow rules\n',
@@ -86,7 +85,6 @@ describe('CLI Integration Tests', () => {
         teamId: 'team_1',
         projectId: 'project_1',
         agentName: 'test-agent',
-        environment: 'codex',
       });
 
       const savedConfig = JSON.parse(readFileSync(result.configPath, 'utf-8'));
