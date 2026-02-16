@@ -18,7 +18,7 @@ cd api
 docker-compose up
 ```
 
-API will be available at `http://localhost:5001`
+API will be available at `http://localhost:3001`
 
 ### 2. Install CLI Dependencies
 
@@ -32,14 +32,14 @@ npm install
 Create a `.env` file or export environment variables:
 
 ```bash
-export AGENTTEAMS_API_URL="http://localhost:5001"
+export AGENTTEAMS_API_URL="http://localhost:3001"
 export AGENTTEAMS_WEB_URL="http://localhost:3000"  # For OAuth init flow
 export AGENTTEAMS_API_KEY="dev-test-key"  # Optional for testing
 ```
 
 Or create `cli/.env`:
 ```env
-AGENTTEAMS_API_URL=http://localhost:5001
+AGENTTEAMS_API_URL=http://localhost:3001
 AGENTTEAMS_WEB_URL=http://localhost:3000
 ```
 
@@ -81,7 +81,7 @@ node dist/index.js init
 node dist/index.js status list --format text
 
 # Test with environment variable override
-AGENTTEAMS_API_URL=http://localhost:5001 node dist/index.js config whoami
+AGENTTEAMS_API_URL=http://localhost:3001 node dist/index.js config whoami
 ```
 
 ## Configuration Priority (Development)
@@ -97,7 +97,7 @@ When developing, you can override config with environment variables:
 
 ```bash
 # Test against local server
-AGENTTEAMS_API_URL=http://localhost:5001 \
+AGENTTEAMS_API_URL=http://localhost:3001 \
 AGENTTEAMS_WEB_URL=http://localhost:3000 \
 node dist/index.js status list
 
@@ -168,7 +168,7 @@ node --inspect dist/index.js status list
 ### Testing OAuth Flow
 
 OAuth `init` command requires:
-- Local API server running at `http://localhost:5001`
+- Local API server running at `http://localhost:3001`
 - Available port for OAuth callback (default: 7777)
 
 ```bash
@@ -193,7 +193,7 @@ agentteams --version  # Should show current version from package.json
 
 Check if local API is running:
 ```bash
-curl http://localhost:5001/api/health
+curl http://localhost:3001/api/health
 # Expected: {"status":"ok"}
 ```
 
@@ -206,7 +206,7 @@ The CLI looks for config in this order:
 
 For development, use environment variables:
 ```bash
-export AGENTTEAMS_API_URL=http://localhost:5001
+export AGENTTEAMS_API_URL=http://localhost:3001
 export AGENTTEAMS_API_KEY=test-key
 ```
 
