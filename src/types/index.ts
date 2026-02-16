@@ -1,0 +1,282 @@
+/**
+ * CLI Type Definitions
+ * Defines all TypeScript types used across the CLI application
+ */
+
+// ============================================================
+// Configuration Types
+// ============================================================
+
+/**
+ * CLI Configuration stored in .agentteams/config.json
+ * Contains credentials and project context for API communication
+ */
+export interface Config {
+  /** Team ID from AgentTeams */
+  teamId: string;
+  /** Project ID from AgentTeams */
+  projectId: string;
+  /** Agent name (e.g., "claude-main", "opencode-agent") */
+  agentName: string;
+  /** API Key for authentication (stored securely) */
+  apiKey: string;
+  /** API URL (e.g., "http://localhost:3001") */
+  apiUrl: string;
+}
+
+/**
+ * OAuth callback result from web authorization flow
+ * Extends Config with additional metadata from OAuth callback
+ */
+export interface AuthResult extends Config {
+  /** Agent config ID from API */
+  configId: string;
+  /** Agent environment (CLAUDE_CODE, OPENCODE, CODEX) */
+  environment: AgentEnvironment;
+  /** Convention file content and metadata */
+  convention: ConventionFile;
+}
+
+// ============================================================
+// Convention Types
+// ============================================================
+
+/**
+ * Convention file structure returned from API
+ * Contains the convention markdown content and filename
+ */
+export interface ConventionFile {
+  /** Filename of the convention (e.g., "CLAUDE.md", "AGENTS.md") */
+  fileName: string;
+  /** Full markdown content of the convention */
+  content: string;
+}
+
+// ============================================================
+// Agent Configuration Types
+// ============================================================
+
+/** Supported agent environments */
+export type AgentEnvironment = "CLAUDE_CODE" | "OPENCODE" | "CODEX";
+
+/**
+ * Agent configuration from API
+ * Represents a registered agent in the system
+ */
+export interface AgentConfig {
+  /** Unique identifier */
+  id: string;
+  /** Agent name */
+  name: string;
+  /** Environment type */
+  environment: AgentEnvironment;
+  /** Creation timestamp (ISO 8601) */
+  createdAt: string;
+  /** Last update timestamp (ISO 8601) */
+  updatedAt: string;
+  /** Soft delete timestamp (ISO 8601 or null) */
+  deletedAt: string | null;
+  /** Whether API key has been generated */
+  hasApiKey?: boolean;
+}
+
+// ============================================================
+// Task Types
+// ============================================================
+
+/**
+ * Task from API
+ * Represents a work item or assignment
+ */
+export interface Task {
+  /** Unique identifier */
+  id: string;
+  /** Associated plan ID */
+  planId: string;
+  /** Task title */
+  title: string;
+  /** Detailed description */
+  description: string;
+  /** Current status (e.g., "PENDING", "IN_PROGRESS", "DONE") */
+  status: string;
+  /** ID of assigned agent/user (null if unassigned) */
+  assignedTo: string | null;
+  /** Priority level (e.g., "LOW", "MEDIUM", "HIGH") */
+  priority: string;
+  /** ID of user who created the task */
+  createdBy: string;
+  /** Creation timestamp (ISO 8601) */
+  createdAt: string;
+  /** Last update timestamp (ISO 8601) */
+  updatedAt: string;
+  /** Soft delete timestamp (ISO 8601 or null) */
+  deletedAt: string | null;
+}
+
+/**
+ * Task dependency relationship
+ * Represents blocking/dependent relationships between tasks
+ */
+export interface TaskDependency {
+  /** Unique identifier */
+  id: string;
+  /** ID of task that depends on another */
+  dependentTaskId: string;
+  /** ID of task that blocks the dependent */
+  blockingTaskId: string;
+  /** Creation timestamp (ISO 8601) */
+  createdAt: string;
+}
+
+/**
+ * Task dependencies container
+ * Groups blocking and dependent tasks for a given task
+ */
+export interface TaskDependencies {
+  /** Tasks that block the current task */
+  blocking: Task[];
+  /** Tasks that depend on the current task */
+  dependents: Task[];
+}
+
+// ============================================================
+// Comment Types
+// ============================================================
+
+/**
+ * Comment on a task
+ * Represents feedback, notes, or status updates
+ */
+export interface Comment {
+  /** Unique identifier */
+  id: string;
+  /** Associated task ID */
+  taskId: string;
+  /** Author identifier */
+  author: string;
+  /** Comment type (e.g., "NOTE", "FEEDBACK", "STATUS_UPDATE") */
+  type: string;
+  /** Comment content (markdown supported) */
+  content: string;
+  /** List of affected file paths */
+  affectedFiles: string[];
+  /** Creation timestamp (ISO 8601) */
+  createdAt: string;
+  /** Last update timestamp (ISO 8601) */
+  updatedAt: string;
+  /** Soft delete timestamp (ISO 8601 or null) */
+  deletedAt: string | null;
+}
+
+// ============================================================
+// Completion Report Types
+// ============================================================
+
+/**
+ * Completion report for task or work session
+ * Captures metrics and details about completed work
+ */
+export interface CompletionReport {
+  /** Unique identifier */
+  id: string;
+  /** Project ID */
+  projectId: string;
+  /** Associated task ID (null if not task-specific) */
+  taskId: string | null;
+  /** Report title */
+  title: string;
+  /** Report content (markdown supported) */
+  content: string;
+  /** Report type (e.g., "TASK_COMPLETION", "SESSION_SUMMARY") */
+  reportType: string;
+  /** Git commit hash (null if not applicable) */
+  commitHash: string | null;
+  /** Git commit range start (null if not applicable) */
+  commitStart: string | null;
+  /** Git commit range end (null if not applicable) */
+  commitEnd: string | null;
+  /** Git branch name (null if not applicable) */
+  branchName: string | null;
+  /** Pull request ID (null if not applicable) */
+  pullRequestId: string | null;
+  /** Duration in seconds (null if not tracked) */
+  durationSeconds: number | null;
+  /** Number of files modified (null if not tracked) */
+  filesModified: number | null;
+  /** Number of lines added (null if not tracked) */
+  linesAdded: number | null;
+  /** Number of lines deleted (null if not tracked) */
+  linesDeleted: number | null;
+  /** Report status (e.g., "DRAFT", "SUBMITTED", "REVIEWED") */
+  status: string;
+  /** Quality score 0-100 (null if not scored) */
+  qualityScore: number | null;
+  /** ID of user who created the report */
+  createdBy: string;
+  /** Creation timestamp (ISO 8601) */
+  createdAt: string;
+  /** Last update timestamp (ISO 8601) */
+  updatedAt: string;
+  /** Soft delete timestamp (ISO 8601 or null) */
+  deletedAt: string | null;
+}
+
+// ============================================================
+// API Response Envelope Types
+// ============================================================
+
+/**
+ * Generic API response envelope for single resource
+ */
+export interface ApiResponse<T> {
+  /** Response data */
+  data: T;
+}
+
+/**
+ * Generic API response envelope for list of resources
+ */
+export interface ApiListResponse<T> {
+  /** Array of resources */
+  data: T[];
+  /** Total count of resources (for pagination) */
+  total?: number;
+  /** Current page number (for pagination) */
+  page?: number;
+  /** Items per page (for pagination) */
+  limit?: number;
+}
+
+/**
+ * API error response
+ */
+export interface ApiError {
+  /** HTTP status code */
+  statusCode: number;
+  /** Error type/name */
+  error: string;
+  /** Human-readable error message */
+  message: string;
+}
+
+// ============================================================
+// CLI Command Option Types
+// ============================================================
+
+/**
+ * Common CLI output format options
+ */
+export type OutputFormat = "json" | "text";
+
+/**
+ * CLI command context
+ * Passed to all command handlers
+ */
+export interface CliContext {
+  /** Loaded configuration */
+  config: Config;
+  /** Output format preference */
+  format: OutputFormat;
+  /** Verbose logging enabled */
+  verbose?: boolean;
+}
