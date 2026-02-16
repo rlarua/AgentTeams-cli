@@ -219,7 +219,7 @@ Configuration is merged from multiple sources (highest to lowest priority):
   "projectId": "proj_xxx",
   "agentName": "my-agent",
   "apiKey": "key_xxx",
-  "apiUrl": "http://localhost:3001"
+  "apiUrl": "https://agent-api.justin-mk.me"
 }
 ```
 
@@ -227,7 +227,7 @@ Configuration is merged from multiple sources (highest to lowest priority):
 
 ```bash
 export AGENTTEAMS_API_KEY="key_your_api_key_here"
-export AGENTTEAMS_API_URL="http://localhost:3001"
+export AGENTTEAMS_API_URL="https://agent-api.justin-mk.me"
 export AGENTTEAMS_TEAM_ID="team_xxx"
 export AGENTTEAMS_PROJECT_ID="proj_xxx"
 export AGENTTEAMS_AGENT_NAME="my-agent"
@@ -259,27 +259,9 @@ agentteams task list --format text
 
 ## Development
 
-```bash
-# Clone repository
-git clone https://github.com/rlarua/AgentTeams.git
-cd AgentTeams/cli
+For contributors and developers who want to work on the CLI:
 
-# Install dependencies
-npm install
-
-# Build
-npm run build
-
-# Run locally
-node dist/index.js init
-
-# Link for global testing
-npm link
-agentteams init
-
-# Run tests
-npm test
-```
+**See [DEVELOPMENT.md](https://github.com/rlarua/AgentTeams/blob/main/cli/DEVELOPMENT.md)** for detailed development setup, testing, and contribution guidelines.
 
 ## License
 
