@@ -668,10 +668,8 @@ describe('CLI Integration Tests', () => {
 
       await executeCommand('postmortem', 'list', {});
       await executeCommand('postmortem', 'create', {
-        summary: 'Summary',
-        rootCause: 'Root cause',
-        timeline: 'Timeline',
-        impact: 'Impact',
+        title: 'Title',
+        content: 'Content',
         actionItems: 'item1,item2',
         lessonsLearned: 'Lesson',
       });
@@ -683,10 +681,8 @@ describe('CLI Integration Tests', () => {
       expect(axiosPostSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/post-mortems`,
         expect.objectContaining({
-          summary: 'Summary',
-          rootCause: 'Root cause',
-          timeline: 'Timeline',
-          impact: 'Impact',
+          title: 'Title',
+          content: 'Content',
           actionItems: ['item1', 'item2'],
           lessonsLearned: 'Lesson',
           createdBy: 'test-agent',

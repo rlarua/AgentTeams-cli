@@ -440,10 +440,8 @@ async function executePostMortemCommand(
       return response.data;
     }
     case 'create': {
-      if (!options.summary) throw new Error('--summary is required for postmortem create');
-      if (!options.rootCause) throw new Error('--root-cause is required for postmortem create');
-      if (!options.timeline) throw new Error('--timeline is required for postmortem create');
-      if (!options.impact) throw new Error('--impact is required for postmortem create');
+      if (!options.title) throw new Error('--title is required for postmortem create');
+      if (!options.content) throw new Error('--content is required for postmortem create');
       if (options.actionItems === undefined) throw new Error('--action-items is required for postmortem create');
       if (!options.lessonsLearned) throw new Error('--lessons-learned is required for postmortem create');
 
@@ -451,10 +449,8 @@ async function executePostMortemCommand(
         baseUrl,
         {
           planId: options.planId,
-          summary: options.summary,
-          rootCause: options.rootCause,
-          timeline: options.timeline,
-          impact: options.impact,
+          title: options.title,
+          content: options.content,
           actionItems: splitCsv(options.actionItems),
           lessonsLearned: options.lessonsLearned,
           status: options.status,
@@ -471,10 +467,8 @@ async function executePostMortemCommand(
       if (Object.prototype.hasOwnProperty.call(options, 'planId')) {
         body.planId = options.planId;
       }
-      if (options.summary) body.summary = options.summary;
-      if (options.rootCause) body.rootCause = options.rootCause;
-      if (options.timeline) body.timeline = options.timeline;
-      if (options.impact) body.impact = options.impact;
+      if (options.title) body.title = options.title;
+      if (options.content) body.content = options.content;
       if (options.actionItems !== undefined) body.actionItems = splitCsv(options.actionItems);
       if (options.lessonsLearned) body.lessonsLearned = options.lessonsLearned;
       if (options.status) body.status = options.status;

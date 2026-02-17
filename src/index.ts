@@ -186,10 +186,8 @@ program
   .argument('<action>', 'Action to perform (list, get, create, update, delete)')
   .option('--id <id>', 'Post mortem ID')
   .option('--plan-id <id>', 'Plan ID (optional)')
-  .option('--summary <summary>', 'Post mortem summary')
-  .option('--root-cause <rootCause>', 'Root cause analysis')
-  .option('--timeline <timeline>', 'Incident timeline')
-  .option('--impact <impact>', 'Impact analysis')
+  .option('--title <title>', 'Post mortem title')
+  .option('--content <content>', 'Post mortem content')
   .option('--action-items <csv>', 'Action items (comma-separated)')
   .option('--lessons-learned <lessonsLearned>', 'Lessons learned')
   .option('--status <status>', 'Post mortem status (OPEN, IN_PROGRESS, RESOLVED)')
@@ -205,10 +203,8 @@ program
       const result = await executeCommand('postmortem', action, {
         id: options.id,
         planId: options.planId,
-        summary: options.summary,
-        rootCause: options.rootCause,
-        timeline: options.timeline,
-        impact: options.impact,
+        title: options.title,
+        content: options.content,
         actionItems: options.actionItems,
         lessonsLearned: options.lessonsLearned,
         status: options.status,
