@@ -89,6 +89,7 @@ export async function conventionList(): Promise<any> {
       id: item.id,
       title: item.title,
       category: item.category,
+      fileName: item.fileName,
       updatedAt: item.updatedAt,
       createdAt: item.createdAt,
     })),
@@ -109,7 +110,10 @@ function toSafeDirectoryName(input: string): string {
   return normalized.length > 0 ? normalized : "uncategorized";
 }
 
-function buildConventionFileName(convention: { id: string; title?: string }): string {
+function buildConventionFileName(convention: { id: string; title?: string; fileName?: string | null }): string {
+  if (convention.fileName && convention.fileName.trim().length > 0) {
+    return convention.fileName.trim();
+  }
   const titleSegment = convention.title ? toSafeFileName(convention.title) : "";
   const prefix = titleSegment.length > 0 ? titleSegment : "convention";
   return `${prefix}.md`;
