@@ -32,6 +32,27 @@ program
   });
 
 program
+  .command('sync')
+  .description('Sync local convention files from API')
+  .option('--format <format>', 'Output format (json, text)', 'text')
+  .action(async (options) => {
+    try {
+      const result = await executeCommand('sync', 'download', {
+        cwd: process.cwd(),
+      });
+
+      if (typeof result === 'string') {
+        console.log(result);
+      } else {
+        console.log(formatOutput(result, options.format));
+      }
+    } catch (error) {
+      console.error(handleError(error));
+      process.exit(1);
+    }
+  });
+
+program
   .command('status')
   .description('Manage agent statuses')
   .argument('<action>', 'Action to perform (report, list, get, update, delete)')

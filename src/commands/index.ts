@@ -18,7 +18,9 @@ export async function executeCommand(
     case 'init':
       return executeInitCommand(options);
     case 'convention':
-      return executeConventionCommand(action);
+      return executeConventionCommand(action, options);
+    case 'sync':
+      return executeSyncCommand(action, options);
     case 'status':
     case 'task':
     case 'comment':
@@ -397,16 +399,25 @@ function toDetailsAsMarkdown(details: unknown): string | undefined {
   }
 }
 
-async function executeConventionCommand(action: string): Promise<any> {
+async function executeConventionCommand(action: string, options: any): Promise<any> {
   switch (action) {
     case 'list':
       return conventionList();
     case 'show':
       return conventionShow();
     case 'download':
-      return conventionDownload();
+      return conventionDownload({ cwd: options?.cwd });
     default:
       throw new Error(`Unknown convention action: ${action}. Use list, show, or download.`);
+  }
+}
+
+async function executeSyncCommand(action: string, options: any): Promise<any> {
+  switch (action) {
+    case 'download':
+      return conventionDownload({ cwd: options?.cwd });
+    default:
+      throw new Error(`Unknown sync action: ${action}. Use download.`);
   }
 }
 

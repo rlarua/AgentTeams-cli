@@ -96,7 +96,7 @@ describe('CLI Integration Tests', () => {
           success: true,
           authUrl: expect.stringContaining('/cli/authorize?port=7779'),
           configPath: join(tempCwd, '.agentteams', 'config.json'),
-          conventionPath: join(tempCwd, '.agentteams', 'reporting.md'),
+          conventionPath: join(tempCwd, '.agentteams', 'convention.md'),
           teamId: 'team_1',
           projectId: PROJECT_ID,
           agentName: 'test-agent',
@@ -116,6 +116,58 @@ describe('CLI Integration Tests', () => {
       expect(savedConvention).toBe('# team convention\n- follow rules\n');
 
       rmSync(tempCwd, { recursive: true, force: true });
+    });
+
+    it('sync download: should download conventions by category', async () => {
+      axiosGetSpy
+        .mockResolvedValueOnce({ data: { data: [{ id: 'ag-1' }] } } as any)
+        .mockResolvedValueOnce({ data: { data: { content: '# reporting from sync\n' } } } as any)
+        .mockResolvedValueOnce({
+          data: {
+            data: [
+              { id: 'cv-1', title: 'Core Rules', category: 'rules' },
+              { id: 'cv-2', title: 'API Rules', category: 'rules' },
+            ],
+          },
+        } as any)
+        .mockResolvedValueOnce({ data: '# core rules' } as any)
+        .mockResolvedValueOnce({ data: '# api rules' } as any);
+
+      const originalCwd = process.cwd();
+      const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-sync-download-'));
+
+      try {
+        const agentteamsDir = join(tempCwd, '.agentteams');
+        mkdirSync(agentteamsDir, { recursive: true });
+        writeFileSync(
+          join(agentteamsDir, 'config.json'),
+          JSON.stringify(
+            {
+              teamId: 'team_1',
+              projectId: PROJECT_ID,
+              agentName: 'test-agent',
+              apiKey: 'key_test123',
+              apiUrl: API_URL,
+            },
+            null,
+            2
+          ) + '\n',
+          'utf-8'
+        );
+
+        process.chdir(tempCwd);
+        await executeCommand('sync', 'download', { cwd: tempCwd });
+
+        const downloadedCore = readFileSync(join(agentteamsDir, 'rules', 'core-rules.md'), 'utf-8');
+        const downloadedApi = readFileSync(join(agentteamsDir, 'rules', 'api-rules.md'), 'utf-8');
+      const reporting = readFileSync(join(agentteamsDir, 'convention.md'), 'utf-8');
+        expect(downloadedCore).toBe('# core rules');
+        expect(downloadedApi).toBe('# api rules');
+        expect(reporting).toBe('# reporting from sync\n');
+      } finally {
+        process.chdir(originalCwd);
+        rmSync(tempCwd, { recursive: true, force: true });
+      }
     });
 
     it('status report: should POST project-scoped path with required payload', async () => {
@@ -350,8 +402,10 @@ describe('CLI Integration Tests', () => {
       );
     });
 
-    it('convention download: should write convention files and keep reporting.md intact', async () => {
+    it('convention download: should write convention files and update convention.md', async () => {
       axiosGetSpy
+        .mockResolvedValueOnce({ data: { data: [{ id: 'ag-1' }] } } as any)
+        .mockResolvedValueOnce({ data: { data: { content: '# reporting template\n' } } } as any)
         .mockResolvedValueOnce({ data: { data: [{ id: 'cv-1', title: 'Core Rules', category: 'rules' }, { id: 'cv-2', title: 'API Rule', category: 'rules' }] } } as any)
         .mockResolvedValueOnce({ data: '# downloaded convention 1' } as any)
         .mockResolvedValueOnce({ data: '# downloaded convention 2' } as any);
@@ -378,18 +432,18 @@ describe('CLI Integration Tests', () => {
           ) + '\n',
           'utf-8'
         );
-        writeFileSync(join(agentteamsDir, 'reporting.md'), '# reporting baseline\n', 'utf-8');
+        writeFileSync(join(agentteamsDir, 'convention.md'), '# convention baseline\n', 'utf-8');
 
         process.chdir(tempCwd);
         await executeCommand('convention', 'download', {});
 
         const downloadedFile1 = readFileSync(join(agentteamsDir, 'rules', 'core-rules.md'), 'utf-8');
         const downloadedFile2 = readFileSync(join(agentteamsDir, 'rules', 'api-rule.md'), 'utf-8');
-        const reportingContent = readFileSync(join(agentteamsDir, 'reporting.md'), 'utf-8');
+        const reportingContent = readFileSync(join(agentteamsDir, 'convention.md'), 'utf-8');
 
         expect(downloadedFile1).toBe('# downloaded convention 1');
         expect(downloadedFile2).toBe('# downloaded convention 2');
-        expect(reportingContent).toBe('# reporting baseline\n');
+        expect(reportingContent).toBe('# reporting template\n');
       } finally {
         process.chdir(originalCwd);
         rmSync(tempCwd, { recursive: true, force: true });
@@ -411,8 +465,51 @@ describe('CLI Integration Tests', () => {
       }
     });
 
+    it('convention download: should update reporting even when no project conventions', async () => {
+      axiosGetSpy
+        .mockResolvedValueOnce({ data: { data: [{ id: 'ag-1' }] } } as any)
+        .mockResolvedValueOnce({ data: { data: { content: '# reporting template only\n' } } } as any)
+        .mockResolvedValueOnce({ data: { data: [] } } as any);
+
+      const originalCwd = process.cwd();
+      const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-convention-template-only-'));
+
+      try {
+        const agentteamsDir = join(tempCwd, '.agentteams');
+        mkdirSync(agentteamsDir, { recursive: true });
+        writeFileSync(
+          join(agentteamsDir, 'config.json'),
+          JSON.stringify(
+            {
+              teamId: 'team_1',
+              projectId: PROJECT_ID,
+              agentName: 'test-agent',
+              apiKey: 'key_test123',
+              apiUrl: API_URL,
+            },
+            null,
+            2
+          ) + '\n',
+          'utf-8'
+        );
+
+        process.chdir(tempCwd);
+        const result = await executeCommand('convention', 'download', {});
+        const reporting = readFileSync(join(agentteamsDir, 'convention.md'), 'utf-8');
+
+        expect(typeof result).toBe('string');
+        expect(result).toContain('No project conventions found');
+        expect(reporting).toBe('# reporting template only\n');
+      } finally {
+        process.chdir(originalCwd);
+        rmSync(tempCwd, { recursive: true, force: true });
+      }
+    });
+
     it('convention download: should add numeric suffix for duplicated names', async () => {
       axiosGetSpy
+        .mockResolvedValueOnce({ data: { data: [{ id: 'ag-1' }] } } as any)
+        .mockResolvedValueOnce({ data: { data: { content: '# reporting template\n' } } } as any)
         .mockResolvedValueOnce({ data: { data: [{ id: 'cv-1', title: 'Rules', category: 'rules' }, { id: 'cv-2', title: 'Rules', category: 'rules' }] } } as any)
         .mockResolvedValueOnce({ data: '# rules 1' } as any)
         .mockResolvedValueOnce({ data: '# rules 2' } as any);
@@ -456,6 +553,8 @@ describe('CLI Integration Tests', () => {
 
     it('convention download: should cleanup existing conventions directory before writing', async () => {
       axiosGetSpy
+        .mockResolvedValueOnce({ data: { data: [{ id: 'ag-1' }] } } as any)
+        .mockResolvedValueOnce({ data: { data: { content: '# reporting template\n' } } } as any)
         .mockResolvedValueOnce({ data: { data: [{ id: 'cv-1', title: 'Rules', category: 'rules' }] } } as any)
         .mockResolvedValueOnce({ data: '# latest rules' } as any);
 
@@ -549,6 +648,9 @@ describe('CLI Integration Tests', () => {
       await expect(executeCommand('convention', 'append', {})).rejects.toThrow(
         'Unknown convention action: append. Use list, show, or download.'
       );
+      await expect(executeCommand('sync', 'list', {})).rejects.toThrow(
+        'Unknown sync action: list. Use download.'
+      );
     });
 
     it('CLI definitions: should include new options and remove legacy options', () => {
@@ -559,6 +661,8 @@ describe('CLI Integration Tests', () => {
       expect(cliIndex).toContain("--remaining <csv>");
       expect(cliIndex).toContain("--type <type>");
       expect(cliIndex).toContain("--blocking-task-id <id>");
+      expect(cliIndex).toContain(".command('sync')");
+      expect(cliIndex).not.toContain("Action to perform (download)");
 
       expect(cliIndex).not.toContain("--metadata <json>");
       expect(cliIndex).not.toContain("--author-id <id>");

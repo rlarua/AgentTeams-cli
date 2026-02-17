@@ -2,12 +2,19 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import axios from "axios";
 import { loadConfig, findProjectConfig } from "../utils/config.js";
+import type { Config } from "../types/index.js";
 
 const CONVENTION_DIR = ".agentteams";
 const LEGACY_CONVENTION_DOWNLOAD_DIR = "conventions";
+const CONVENTION_INDEX_FILE = "convention.md";
 
-function findProjectRoot(): string | null {
-  const configPath = findProjectConfig(process.cwd());
+type ConventionCommandOptions = {
+  cwd?: string;
+  config?: Config;
+};
+
+function findProjectRoot(cwd?: string): string | null {
+  const configPath = findProjectConfig(cwd ?? process.cwd());
   if (!configPath) return null;
   // configPath = /path/.agentteams/config.json → resolve up 2 levels to project root
   return resolve(configPath, "..", "..");
@@ -17,8 +24,8 @@ function getApiBaseUrl(apiUrl: string): string {
   return apiUrl.endsWith("/") ? apiUrl.slice(0, -1) : apiUrl;
 }
 
-function getApiConfigOrThrow() {
-  const config = loadConfig();
+function getApiConfigOrThrow(options?: ConventionCommandOptions) {
+  const config = options?.config ?? loadConfig();
   if (!config) {
     throw new Error(
       "Configuration not found. Run 'agentteams init' first or set AGENTTEAMS_* environment variables."
@@ -108,10 +115,46 @@ function buildConventionFileName(convention: { id: string; title?: string }): st
   return `${prefix}.md`;
 }
 
-export async function conventionDownload(): Promise<string> {
-  const { config, apiUrl, headers } = getApiConfigOrThrow();
+async function downloadReportingTemplate(
+  projectRoot: string,
+  config: Config,
+  apiUrl: string,
+  headers: Record<string, string>
+): Promise<boolean> {
+  const agentConfigResponse = await axios.get(
+    `${apiUrl}/api/projects/${config.projectId}/agent-configs`,
+    { headers }
+  );
 
-  const projectRoot = findProjectRoot();
+  const agentConfigs = agentConfigResponse.data?.data;
+  if (!Array.isArray(agentConfigs) || agentConfigs.length === 0) {
+    return false;
+  }
+
+  const firstAgentConfig = agentConfigs[0];
+  if (!firstAgentConfig?.id || typeof firstAgentConfig.id !== "string") {
+    return false;
+  }
+
+  const templateResponse = await axios.get(
+    `${apiUrl}/api/projects/${config.projectId}/agent-configs/${firstAgentConfig.id}/convention`,
+    { headers }
+  );
+
+  const content = templateResponse.data?.data?.content;
+  if (typeof content !== "string") {
+    return false;
+  }
+
+  const conventionPath = join(projectRoot, CONVENTION_DIR, CONVENTION_INDEX_FILE);
+  writeFileSync(conventionPath, content, "utf-8");
+  return true;
+}
+
+export async function conventionDownload(options?: ConventionCommandOptions): Promise<string> {
+  const { config, apiUrl, headers } = getApiConfigOrThrow(options);
+
+  const projectRoot = findProjectRoot(options?.cwd);
   if (!projectRoot) {
     throw new Error(
       "No .agentteams directory found. Run 'agentteams init' first."
@@ -125,6 +168,8 @@ export async function conventionDownload(): Promise<string> {
     );
   }
 
+  const hasReportingTemplate = await downloadReportingTemplate(projectRoot, config, apiUrl, headers);
+
   const listResponse = await axios.get(
     `${apiUrl}/api/projects/${config.projectId}/conventions`,
     { headers }
@@ -132,6 +177,10 @@ export async function conventionDownload(): Promise<string> {
 
   const conventions = listResponse.data?.data;
   if (!conventions || conventions.length === 0) {
+    if (hasReportingTemplate) {
+      return `Convention sync completed.\nUpdated ${CONVENTION_DIR}/${CONVENTION_INDEX_FILE}\nNo project conventions found.`;
+    }
+
     throw new Error(
       "No conventions found for this project. Create one via the web dashboard first."
     );
@@ -174,5 +223,9 @@ export async function conventionDownload(): Promise<string> {
     writeFileSync(filePath, downloadResponse.data, "utf-8");
   }
 
-  return `Convention download completed.\nDownloaded ${conventions.length} file(s) into category directories under ${CONVENTION_DIR}`;
+  const reportingLine = hasReportingTemplate
+    ? `Updated ${CONVENTION_DIR}/${CONVENTION_INDEX_FILE}\n`
+    : "";
+
+  return `Convention sync completed.\n${reportingLine}Downloaded ${conventions.length} file(s) into category directories under ${CONVENTION_DIR}`;
 }

@@ -25,8 +25,10 @@ agentteams init
 This command:
 - Opens your browser for OAuth authentication
 - Creates `.agentteams/config.json` with credentials
-- Downloads reporting rule to `.agentteams/reporting.md`
+- Downloads convention index to `.agentteams/convention.md`
 - Detects your AI environment (Claude Code, opencode, codex)
+
+Then run `agentteams sync` when you want to refresh convention files.
 
 **What gets created:**
 
@@ -34,7 +36,7 @@ This command:
 your-project/
 ├── .agentteams/
 │   ├── config.json        # API credentials
-│   └── reporting.md       # Init reporting rule
+│   └── convention.md      # Convention index template
 ```
 
 ### 2. Add to .gitignore
@@ -91,6 +93,17 @@ agentteams convention download
 `convention download` saves files by category directory (for example: `.agentteams/rules/<name>.md`).
 If duplicate names exist in the same category, numeric suffixes are added (for example: `rules.md`, `rules-2.md`).
 Before saving, the CLI cleans up existing files in each target category directory.
+
+### `sync`
+
+Sync local convention files from API.
+
+```bash
+# Download conventions by category into .agentteams/<category>/*.md
+agentteams sync
+```
+
+`sync` also refreshes `.agentteams/convention.md` template.
 
 ### `agent-config`
 
