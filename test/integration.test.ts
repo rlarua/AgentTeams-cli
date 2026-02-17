@@ -62,12 +62,21 @@ describe('CLI Integration Tests', () => {
         agentName: 'test-agent',
         apiKey: 'key_oauth_123',
         apiUrl: API_URL,
-        configId: 7,
-        convention: {
-          fileName: 'convention.md',
-          content: '# team convention\n- follow rules\n',
-        },
+        configId: '7',
       };
+
+      axiosGetSpy.mockResolvedValueOnce({
+        data: {
+          data: {
+            fileName: 'convention.md',
+            content: '# team convention\n- follow rules\n',
+          },
+        },
+      } as any);
+      axiosGetSpy
+        .mockResolvedValueOnce({ data: { data: [{ id: 'ag-1' }] } } as any)
+        .mockResolvedValueOnce({ data: { data: { content: '# team convention\n- follow rules\n' } } } as any)
+        .mockResolvedValueOnce({ data: { data: [] } } as any);
 
       const mockStartLocalAuthServer = jest.fn().mockReturnValue({
         server: {
@@ -114,6 +123,33 @@ describe('CLI Integration Tests', () => {
 
       const savedConvention = readFileSync(result.conventionPath, 'utf-8');
       expect(savedConvention).toBe('# team convention\n- follow rules\n');
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/agent-configs/7/convention`,
+        {
+          headers: {
+            'X-API-Key': 'key_oauth_123',
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/agent-configs`,
+        {
+          headers: {
+            'X-API-Key': 'key_oauth_123',
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/conventions`,
+        {
+          headers: {
+            'X-API-Key': 'key_oauth_123',
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
       rmSync(tempCwd, { recursive: true, force: true });
     });

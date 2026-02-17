@@ -13,10 +13,6 @@ export type AuthResult = {
   apiKey: string;
   apiUrl: string;
   configId: string;
-  convention: {
-    fileName: string;
-    content: string;
-  };
 };
 
 type AuthServerResult = {
@@ -95,18 +91,13 @@ function isAuthResult(value: unknown): value is AuthResult {
   }
 
   const candidate = value as Record<string, unknown>;
-  const convention = candidate.convention as Record<string, unknown> | undefined;
-
   return (
     typeof candidate.teamId === 'string' &&
     typeof candidate.projectId === 'string' &&
     typeof candidate.agentName === 'string' &&
     typeof candidate.apiKey === 'string' &&
     typeof candidate.apiUrl === 'string' &&
-    typeof candidate.configId === 'string' &&
-    !!convention &&
-    typeof convention.fileName === 'string' &&
-    typeof convention.content === 'string'
+    typeof candidate.configId === 'string'
   );
 }
 

@@ -1,8 +1,10 @@
 import { writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import axios from 'axios';
 import open from 'open';
 import { startLocalAuthServer } from '../utils/authServer.js';
 import { saveConfig } from '../utils/config.js';
+import { conventionDownload } from './convention.js';
 import type { Config } from '../types/index.js';
 
 const AUTH_BASE_URL = process.env.AGENTTEAMS_WEB_URL || 'https://agent-web.justin-mk.me';
@@ -66,6 +68,34 @@ function toConfig(authResult: {
   };
 }
 
+async function fetchConventionTemplate(authResult: {
+  projectId: string;
+  apiKey: string;
+  apiUrl: string;
+  configId: string;
+}): Promise<string> {
+  const apiUrl = authResult.apiUrl.endsWith('/')
+    ? authResult.apiUrl.slice(0, -1)
+    : authResult.apiUrl;
+
+  const response = await axios.get(
+    `${apiUrl}/api/projects/${authResult.projectId}/agent-configs/${authResult.configId}/convention`,
+    {
+      headers: {
+        'X-API-Key': authResult.apiKey,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  const content = response.data?.data?.content;
+  if (typeof content !== 'string') {
+    throw new Error('Invalid convention template response from server.');
+  }
+
+  return content;
+}
+
 export async function executeInitCommand(options?: InitOptions): Promise<InitResult> {
   const cwd = resolve(options?.cwd ?? process.cwd());
   const configPath = join(cwd, CONFIG_DIR, CONFIG_FILE);
@@ -87,9 +117,11 @@ export async function executeInitCommand(options?: InitOptions): Promise<InitRes
   try {
     const authResult = await authContext.waitForCallback();
     const config = toConfig(authResult);
+    const conventionContent = await fetchConventionTemplate(authResult);
 
     saveConfig(configPath, config);
-    writeFileSync(conventionPath, authResult.convention.content, 'utf-8');
+    writeFileSync(conventionPath, conventionContent, 'utf-8');
+    await conventionDownload({ cwd, config });
 
     return {
       success: true,

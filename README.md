@@ -26,9 +26,10 @@ This command:
 - Opens your browser for OAuth authentication
 - Creates `.agentteams/config.json` with credentials
 - Downloads convention index to `.agentteams/convention.md`
+- Runs sync to download category conventions into `.agentteams/<category>/*.md`
 - Detects your AI environment (Claude Code, opencode, codex)
 
-Then run `agentteams sync` when you want to refresh convention files.
+You can run `agentteams sync` later to refresh them again.
 
 **What gets created:**
 
