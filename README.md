@@ -156,45 +156,44 @@ Examples:
 - `--remaining "add tests,write docs"`
 - empty list: `--issues ""`
 
-### `task`
+### `plan`
 
-Manage tasks.
+Manage plans.
 
 ```bash
-# List tasks
-agentteams task list
+# List plans
+agentteams plan list
 
-# Get task
-agentteams task get --id 1
+# Get plan
+agentteams plan get --id 1
 
-# Create task
-agentteams task create \
+# Create plan
+agentteams plan create \
   --title "Implement feature X" \
   --description "Details here" \
   --status "PENDING" \
-  --priority "HIGH" \
-  --plan-id 1
+  --priority "HIGH"
 
-# Update task
-agentteams task update --id 1 --status "IN_PROGRESS"
+# Update plan
+agentteams plan update --id 1 --status "IN_PROGRESS"
 
-# Assign task
-agentteams task assign --id 1 --agent "agent-name"
+# Assign plan
+agentteams plan assign --id 1 --agent "agent-name"
 
-# Delete task
-agentteams task delete --id 1
+# Delete plan
+agentteams plan delete --id 1
 ```
 
-**Task statuses:** `PENDING`, `IN_PROGRESS`, `DONE`, `CANCELLED`  
+**Plan statuses:** `PENDING`, `IN_PROGRESS`, `DONE`, `CANCELLED`  
 **Priorities:** `LOW`, `MEDIUM`, `HIGH`
 
 ### `comment`
 
-Manage task comments.
+Manage plan comments.
 
 ```bash
 agentteams comment create \
-  --task-id <task-id> \
+  --plan-id <plan-id> \
   --type GENERAL \
   --content "Great work!"
 
@@ -203,17 +202,17 @@ agentteams comment create \
 
 ### `dependency`
 
-Manage task dependencies.
+Manage plan dependencies.
 
 ```bash
-# List dependencies for a task
-agentteams dependency list --task-id <task-id>
+# List dependencies for a plan
+agentteams dependency list --plan-id <plan-id>
 
 # Add dependency
-agentteams dependency create --task-id <task-id> --blocking-task-id <blocking-task-id>
+agentteams dependency create --plan-id <plan-id> --blocking-plan-id <blocking-plan-id>
 
 # Delete dependency
-agentteams dependency delete --task-id <task-id> --dep-id <dependency-id>
+agentteams dependency delete --plan-id <plan-id> --dep-id <dependency-id>
 ```
 
 ### `report`
@@ -281,10 +280,10 @@ All commands support `--format` option:
 
 ```bash
 # JSON (default, machine-readable)
-agentteams task list --format json
+agentteams plan list --format json
 
 # Text (human-friendly tables)
-agentteams task list --format text
+agentteams plan list --format text
 ```
 
 ## Error Handling

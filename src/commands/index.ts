@@ -22,7 +22,7 @@ export async function executeCommand(
     case 'sync':
       return executeSyncCommand(action, options);
     case 'status':
-    case 'task':
+    case 'plan':
     case 'comment':
       {
       const config = loadConfig();
@@ -44,8 +44,8 @@ export async function executeCommand(
         return executeStatusCommand(apiUrl, config.projectId, headers, action, options);
       }
 
-      if (resource === 'task') {
-        return executeTaskCommand(apiUrl, config.projectId, headers, action, options);
+      if (resource === 'plan') {
+        return executePlanCommand(apiUrl, config.projectId, headers, action, options);
       }
 
       if (resource === 'comment') {
@@ -163,14 +163,14 @@ async function executeStatusCommand(
   }
 }
 
-async function executeTaskCommand(
+async function executePlanCommand(
   apiUrl: string,
   projectId: string,
   headers: any,
   action: string,
   options: any
 ): Promise<any> {
-  const baseUrl = `${apiUrl}/api/projects/${projectId}/tasks`;
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
 
   switch (action) {
     case 'list': {
@@ -178,16 +178,16 @@ async function executeTaskCommand(
       return response.data;
     }
     case 'get': {
-      if (!options.id) throw new Error('--id is required for task get');
+      if (!options.id) throw new Error('--id is required for plan get');
       const response = await axios.get(`${baseUrl}/${options.id}`, {
         headers,
       });
       return response.data;
     }
     case 'create': {
-      if (!options.title) throw new Error('--title is required for task create');
+      if (!options.title) throw new Error('--title is required for plan create');
       if (!options.description || options.description.trim().length === 0) {
-        throw new Error('--description is required for task create');
+        throw new Error('--description is required for plan create');
       }
       const response = await axios.post(
         baseUrl,
@@ -196,14 +196,13 @@ async function executeTaskCommand(
           description: options.description,
           priority: options.priority ?? 'MEDIUM',
           status: options.status,
-          planId: options.planId,
         },
         { headers }
       );
       return response.data;
     }
     case 'update': {
-      if (!options.id) throw new Error('--id is required for task update');
+      if (!options.id) throw new Error('--id is required for plan update');
       const body: Record<string, string> = {};
       if (options.title) body.title = options.title;
       if (options.description) body.description = options.description;
@@ -218,13 +217,13 @@ async function executeTaskCommand(
       return response.data;
     }
     case 'delete': {
-      if (!options.id) throw new Error('--id is required for task delete');
+      if (!options.id) throw new Error('--id is required for plan delete');
       await axios.delete(`${baseUrl}/${options.id}`, { headers });
-      return { message: `Task ${options.id} deleted successfully` };
+      return { message: `Plan ${options.id} deleted successfully` };
     }
     case 'assign': {
-      if (!options.id) throw new Error('--id is required for task assign');
-      if (!options.agent) throw new Error('--agent is required for task assign');
+      if (!options.id) throw new Error('--id is required for plan assign');
+      if (!options.agent) throw new Error('--agent is required for plan assign');
       const response = await axios.post(
         `${baseUrl}/${options.id}/assign`,
         { assignedTo: options.agent },
@@ -244,14 +243,14 @@ async function executeCommentCommand(
   action: string,
   options: any
 ): Promise<any> {
-  const taskBaseUrl = `${apiUrl}/api/projects/${projectId}/tasks`;
+  const planBaseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
   const commentBaseUrl = `${apiUrl}/api/projects/${projectId}/comments`;
 
   switch (action) {
     case 'list': {
-      if (!options.taskId) throw new Error('--task-id is required for comment list');
+      if (!options.planId) throw new Error('--plan-id is required for comment list');
       const response = await axios.get(
-        `${taskBaseUrl}/${options.taskId}/comments`,
+        `${planBaseUrl}/${options.planId}/comments`,
         { headers }
       );
       return response.data;
@@ -265,11 +264,11 @@ async function executeCommentCommand(
       return response.data;
     }
     case 'create': {
-      if (!options.taskId) throw new Error('--task-id is required for comment create');
+      if (!options.planId) throw new Error('--plan-id is required for comment create');
       if (!options.type) throw new Error('--type is required for comment create');
       if (!options.content) throw new Error('--content is required for comment create');
       const response = await axios.post(
-        `${taskBaseUrl}/${options.taskId}/comments`,
+        `${planBaseUrl}/${options.planId}/comments`,
         {
           type: options.type,
           content: options.content,
@@ -345,7 +344,7 @@ async function executeReportCommand(
       const response = await axios.post(
         baseUrl,
         {
-          taskId: options.taskId,
+          planId: options.planId,
           title,
           content,
           reportType,
@@ -447,18 +446,18 @@ async function executeDependencyCommand(
 ): Promise<any> {
   switch (action) {
     case 'list': {
-      if (!options.taskId) throw new Error('--task-id is required for dependency list');
-      return dependencyList(options.taskId);
+      if (!options.planId) throw new Error('--plan-id is required for dependency list');
+      return dependencyList(options.planId);
     }
     case 'create': {
-      if (!options.taskId) throw new Error('--task-id is required for dependency create');
-      if (!options.blockingTaskId) throw new Error('--blocking-task-id is required for dependency create');
-      return dependencyCreate(options.taskId, options.blockingTaskId);
+      if (!options.planId) throw new Error('--plan-id is required for dependency create');
+      if (!options.blockingPlanId) throw new Error('--blocking-plan-id is required for dependency create');
+      return dependencyCreate(options.planId, options.blockingPlanId);
     }
     case 'delete': {
-      if (!options.taskId) throw new Error('--task-id is required for dependency delete');
+      if (!options.planId) throw new Error('--plan-id is required for dependency delete');
       if (!options.depId) throw new Error('--dep-id is required for dependency delete');
-      return dependencyDelete(options.taskId, options.depId);
+      return dependencyDelete(options.planId, options.depId);
     }
     default:
       throw new Error(`Unknown dependency action: ${action}. Use list, create, or delete.`);

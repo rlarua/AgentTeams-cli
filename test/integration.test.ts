@@ -90,6 +90,9 @@ describe('CLI Integration Tests', () => {
       if (typeof (jest as any).resetModules === 'function') {
         (jest as any).resetModules();
       }
+      (jest as any).unstable_mockModule('axios', () => ({
+        default: axios,
+      }));
       (jest as any).unstable_mockModule('../src/utils/authServer.js', () => ({
         startLocalAuthServer: mockStartLocalAuthServer,
       }));
@@ -273,28 +276,28 @@ describe('CLI Integration Tests', () => {
       );
     });
 
-    it('task CRUD/assign: should use project-scoped task endpoints', async () => {
+    it('plan CRUD/assign: should use project-scoped plan endpoints', async () => {
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
       axiosGetSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
       axiosPutSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
       axiosDeleteSpy.mockResolvedValue({ status: 204 } as any);
 
-      await executeCommand('task', 'create', {
-        title: 'Task 1',
+      await executeCommand('plan', 'create', {
+        title: 'Plan 1',
         description: 'desc',
         priority: 'HIGH',
       });
-      await executeCommand('task', 'list', {});
-      await executeCommand('task', 'get', { id: 'task-1' });
-      await executeCommand('task', 'update', { id: 'task-1', status: 'IN_PROGRESS' });
-      await executeCommand('task', 'assign', { id: 'task-1', agent: 'agent-a' });
-      await executeCommand('task', 'delete', { id: 'task-1' });
+      await executeCommand('plan', 'list', {});
+      await executeCommand('plan', 'get', { id: 'plan-1' });
+      await executeCommand('plan', 'update', { id: 'plan-1', status: 'IN_PROGRESS' });
+      await executeCommand('plan', 'assign', { id: 'plan-1', agent: 'agent-a' });
+      await executeCommand('plan', 'delete', { id: 'plan-1' });
 
       expect(axiosPostSpy).toHaveBeenNthCalledWith(
         1,
-        `${API_URL}/api/projects/${PROJECT_ID}/tasks`,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans`,
         expect.objectContaining({
-          title: 'Task 1',
+          title: 'Plan 1',
           description: 'desc',
           priority: 'HIGH',
         }),
@@ -302,27 +305,27 @@ describe('CLI Integration Tests', () => {
       );
       expect(axiosGetSpy).toHaveBeenNthCalledWith(
         1,
-        `${API_URL}/api/projects/${PROJECT_ID}/tasks`,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans`,
         { headers: authHeaders() }
       );
       expect(axiosGetSpy).toHaveBeenNthCalledWith(
         2,
-        `${API_URL}/api/projects/${PROJECT_ID}/tasks/task-1`,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
         { headers: authHeaders() }
       );
       expect(axiosPutSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/tasks/task-1`,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
         { status: 'IN_PROGRESS' },
         { headers: authHeaders() }
       );
       expect(axiosPostSpy).toHaveBeenNthCalledWith(
         2,
-        `${API_URL}/api/projects/${PROJECT_ID}/tasks/task-1/assign`,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/assign`,
         { assignedTo: 'agent-a' },
         { headers: authHeaders() }
       );
       expect(axiosDeleteSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/tasks/task-1`,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
         { headers: authHeaders() }
       );
     });
@@ -333,10 +336,10 @@ describe('CLI Integration Tests', () => {
       axiosPutSpy.mockResolvedValue({ data: { data: { id: 'c1' } } } as any);
       axiosDeleteSpy.mockResolvedValue({ status: 204 } as any);
 
-      await executeCommand('comment', 'list', { taskId: 'task-1' });
+      await executeCommand('comment', 'list', { planId: 'plan-1' });
       await executeCommand('comment', 'get', { id: 'comment-1' });
       await executeCommand('comment', 'create', {
-        taskId: 'task-1',
+        planId: 'plan-1',
         type: 'GENERAL',
         content: 'Test comment',
       });
@@ -348,7 +351,7 @@ describe('CLI Integration Tests', () => {
 
       expect(axiosGetSpy).toHaveBeenNthCalledWith(
         1,
-        `${API_URL}/api/projects/${PROJECT_ID}/tasks/task-1/comments`,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/comments`,
         { headers: authHeaders() }
       );
       expect(axiosGetSpy).toHaveBeenNthCalledWith(
@@ -357,7 +360,7 @@ describe('CLI Integration Tests', () => {
         { headers: authHeaders() }
       );
       expect(axiosPostSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/tasks/task-1/comments`,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/comments`,
         {
           type: 'GENERAL',
           content: 'Test comment',
@@ -375,29 +378,29 @@ describe('CLI Integration Tests', () => {
       );
     });
 
-    it('dependency commands: should use project-scoped URL and blockingTaskId', async () => {
+    it('dependency commands: should use project-scoped URL and blockingPlanId', async () => {
       axiosGetSpy.mockResolvedValue({ data: { data: { blocking: [], dependents: [] } } } as any);
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 'dep-1' } } } as any);
       axiosDeleteSpy.mockResolvedValue({ status: 204 } as any);
 
-      const taskId = '5cc7f9eb-f3f3-40af-9a1e-4f8ef2db2e65';
-      const blockingTaskId = '255090be-80b0-4a5d-9bf0-0fd4d8c6616f';
+      const planId = '5cc7f9eb-f3f3-40af-9a1e-4f8ef2db2e65';
+      const blockingPlanId = '255090be-80b0-4a5d-9bf0-0fd4d8c6616f';
 
-      await executeCommand('dependency', 'list', { taskId });
-      await executeCommand('dependency', 'create', { taskId, blockingTaskId });
-      await executeCommand('dependency', 'delete', { taskId, depId: 'dep-1' });
+      await executeCommand('dependency', 'list', { planId });
+      await executeCommand('dependency', 'create', { planId, blockingPlanId });
+      await executeCommand('dependency', 'delete', { planId, depId: 'dep-1' });
 
       expect(axiosGetSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/tasks/${taskId}/dependencies`,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/${planId}/dependencies`,
         { headers: authHeaders() }
       );
       expect(axiosPostSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/tasks/${taskId}/dependencies`,
-        { blockingTaskId },
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/${planId}/dependencies`,
+        { blockingPlanId },
         { headers: authHeaders() }
       );
       expect(axiosDeleteSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/tasks/${taskId}/dependencies/dep-1`,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/${planId}/dependencies/dep-1`,
         { headers: authHeaders() }
       );
       expect(axiosPostSpy.mock.calls[0]?.[0]).not.toContain('NaN');
@@ -673,14 +676,14 @@ describe('CLI Integration Tests', () => {
         '--task is required for status report'
       );
       await expect(
-        executeCommand('task', 'create', { title: 'no desc' })
-      ).rejects.toThrow('--description is required for task create');
+        executeCommand('plan', 'create', { title: 'no desc' })
+      ).rejects.toThrow('--description is required for plan create');
       await expect(
-        executeCommand('comment', 'create', { taskId: 'task-1', content: 'x' })
+        executeCommand('comment', 'create', { planId: 'plan-1', content: 'x' })
       ).rejects.toThrow('--type is required for comment create');
       await expect(
-        executeCommand('dependency', 'create', { taskId: 'task-1' })
-      ).rejects.toThrow('--blocking-task-id is required for dependency create');
+        executeCommand('dependency', 'create', { planId: 'plan-1' })
+      ).rejects.toThrow('--blocking-plan-id is required for dependency create');
       await expect(executeCommand('convention', 'append', {})).rejects.toThrow(
         'Unknown convention action: append. Use list, show, or download.'
       );
@@ -696,7 +699,7 @@ describe('CLI Integration Tests', () => {
       expect(cliIndex).toContain("--issues <csv>");
       expect(cliIndex).toContain("--remaining <csv>");
       expect(cliIndex).toContain("--type <type>");
-      expect(cliIndex).toContain("--blocking-task-id <id>");
+      expect(cliIndex).toContain("--blocking-plan-id <id>");
       expect(cliIndex).toContain(".command('sync')");
       expect(cliIndex).not.toContain("Action to perform (download)");
 

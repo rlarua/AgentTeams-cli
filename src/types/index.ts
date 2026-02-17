@@ -79,19 +79,17 @@ export interface AgentConfig {
 }
 
 // ============================================================
-// Task Types
+// Plan Types
 // ============================================================
 
 /**
- * Task from API
+ * Plan from API
  * Represents a work item or assignment
  */
-export interface Task {
+export interface Plan {
   /** Unique identifier */
   id: string;
-  /** Associated plan ID */
-  planId: string;
-  /** Task title */
+  /** Plan title */
   title: string;
   /** Detailed description */
   description: string;
@@ -101,7 +99,7 @@ export interface Task {
   assignedTo: string | null;
   /** Priority level (e.g., "LOW", "MEDIUM", "HIGH") */
   priority: string;
-  /** ID of user who created the task */
+  /** ID of user who created the plan */
   createdBy: string;
   /** Creation timestamp (ISO 8601) */
   createdAt: string;
@@ -112,29 +110,29 @@ export interface Task {
 }
 
 /**
- * Task dependency relationship
- * Represents blocking/dependent relationships between tasks
+ * Plan dependency relationship
+ * Represents blocking/dependent relationships between plans
  */
-export interface TaskDependency {
+export interface PlanDependency {
   /** Unique identifier */
   id: string;
-  /** ID of task that depends on another */
-  dependentTaskId: string;
-  /** ID of task that blocks the dependent */
-  blockingTaskId: string;
+  /** ID of plan that depends on another */
+  dependentPlanId: string;
+  /** ID of plan that blocks the dependent */
+  blockingPlanId: string;
   /** Creation timestamp (ISO 8601) */
   createdAt: string;
 }
 
 /**
- * Task dependencies container
- * Groups blocking and dependent tasks for a given task
+ * Plan dependencies container
+ * Groups blocking and dependent plans for a given plan
  */
-export interface TaskDependencies {
-  /** Tasks that block the current task */
-  blocking: Task[];
-  /** Tasks that depend on the current task */
-  dependents: Task[];
+export interface PlanDependencies {
+  /** Plans that block the current plan */
+  blocking: Plan[];
+  /** Plans that depend on the current plan */
+  dependents: Plan[];
 }
 
 // ============================================================
@@ -142,14 +140,14 @@ export interface TaskDependencies {
 // ============================================================
 
 /**
- * Comment on a task
+ * Comment on a plan
  * Represents feedback, notes, or status updates
  */
 export interface Comment {
   /** Unique identifier */
   id: string;
-  /** Associated task ID */
-  taskId: string;
+  /** Associated plan ID */
+  planId: string;
   /** Author identifier */
   author: string;
   /** Comment type (e.g., "NOTE", "FEEDBACK", "STATUS_UPDATE") */
@@ -171,7 +169,7 @@ export interface Comment {
 // ============================================================
 
 /**
- * Completion report for task or work session
+ * Completion report for plan or work session
  * Captures metrics and details about completed work
  */
 export interface CompletionReport {
@@ -179,8 +177,8 @@ export interface CompletionReport {
   id: string;
   /** Project ID */
   projectId: string;
-  /** Associated task ID (null if not task-specific) */
-  taskId: string | null;
+  /** Associated plan ID (null if not plan-specific) */
+  planId: string | null;
   /** Report title */
   title: string;
   /** Report content (markdown supported) */

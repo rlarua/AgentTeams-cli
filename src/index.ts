@@ -82,26 +82,24 @@ program
   });
 
 program
-  .command('task')
-  .description('Manage tasks')
+  .command('plan')
+  .description('Manage plans')
   .argument('<action>', 'Action to perform (list, get, create, update, delete, assign)')
-  .option('--id <id>', 'Task ID')
-  .option('--title <title>', 'Task title')
-  .option('--description <description>', 'Task description')
-  .option('--status <status>', 'Task status (PENDING, IN_PROGRESS, DONE, CANCELLED)')
-  .option('--priority <priority>', 'Task priority (LOW, MEDIUM, HIGH)')
-  .option('--plan-id <planId>', 'Plan ID')
+  .option('--id <id>', 'Plan ID')
+  .option('--title <title>', 'Plan title')
+  .option('--description <description>', 'Plan description')
+  .option('--status <status>', 'Plan status (PENDING, IN_PROGRESS, DONE, CANCELLED)')
+  .option('--priority <priority>', 'Plan priority (LOW, MEDIUM, HIGH)')
   .option('--agent <agent>', 'Agent name or ID to assign')
   .option('--format <format>', 'Output format (json, text)', 'json')
   .action(async (action, options) => {
     try {
-      const result = await executeCommand('task', action, {
+      const result = await executeCommand('plan', action, {
         id: options.id,
         title: options.title,
         description: options.description,
         status: options.status,
         priority: options.priority,
-        planId: options.planId,
         agent: options.agent,
       });
 
@@ -114,10 +112,10 @@ program
 
 program
   .command('comment')
-  .description('Manage task comments')
+  .description('Manage plan comments')
   .argument('<action>', 'Action to perform (list, get, create, update, delete)')
   .option('--id <id>', 'Comment ID')
-  .option('--task-id <id>', 'Task ID')
+  .option('--plan-id <id>', 'Plan ID')
   .option('--type <type>', 'Comment type (RISK, MODIFICATION, GENERAL)')
   .option('--content <content>', 'Comment content')
   .option('--format <format>', 'Output format (json, text)', 'json')
@@ -125,7 +123,7 @@ program
     try {
       const result = await executeCommand('comment', action, {
         id: options.id,
-        taskId: options.taskId,
+        planId: options.planId,
         type: options.type,
         content: options.content,
       });
@@ -142,7 +140,7 @@ program
   .description('Manage completion reports')
   .argument('<action>', 'Action to perform (list, get, create, update, delete)')
   .option('--id <id>', 'Report ID')
-  .option('--task-id <id>', 'Task ID (optional)')
+  .option('--plan-id <id>', 'Plan ID (optional)')
   .option('--title <title>', 'Report title')
   .option('--content <content>', 'Report markdown content')
   .option('--report-type <type>', 'Report type (IMPL_PLAN, COMMIT_RANGE, TASK_COMPLETION)')
@@ -160,7 +158,7 @@ program
     try {
       const result = await executeCommand('report', action, {
         id: options.id,
-        taskId: options.taskId,
+        planId: options.planId,
         title: options.title,
         content: options.content,
         reportType: options.reportType,
@@ -203,17 +201,17 @@ program
 
 program
   .command('dependency')
-  .description('Manage task dependencies')
+  .description('Manage plan dependencies')
   .argument('<action>', 'Action to perform (list, create, delete)')
-  .option('--task-id <id>', 'Task ID')
-  .option('--blocking-task-id <id>', 'Blocking task ID')
+  .option('--plan-id <id>', 'Plan ID')
+  .option('--blocking-plan-id <id>', 'Blocking plan ID')
   .option('--dep-id <id>', 'Dependency ID to delete')
   .option('--format <format>', 'Output format (json, text)', 'json')
   .action(async (action, options) => {
     try {
       const result = await executeCommand('dependency', action, {
-        taskId: options.taskId,
-        blockingTaskId: options.blockingTaskId,
+        planId: options.planId,
+        blockingPlanId: options.blockingPlanId,
         depId: options.depId,
       });
 

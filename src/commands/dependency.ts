@@ -22,42 +22,42 @@ function getApiBaseUrl(apiUrl: string): string {
   return apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
 }
 
-export async function dependencyList(taskId: string): Promise<any> {
+export async function dependencyList(planId: string): Promise<any> {
   const config = getConfigOrThrow();
   const apiBaseUrl = getApiBaseUrl(config.apiUrl);
   const response = await axios.get(
-    `${apiBaseUrl}/api/projects/${config.projectId}/tasks/${taskId}/dependencies`,
+    `${apiBaseUrl}/api/projects/${config.projectId}/plans/${planId}/dependencies`,
     { headers: getHeaders(config.apiKey) }
   );
   return response.data;
 }
 
 export async function dependencyCreate(
-  taskId: string,
-  blockingTaskId: string
+  planId: string,
+  blockingPlanId: string
 ): Promise<any> {
   const config = getConfigOrThrow();
   const apiBaseUrl = getApiBaseUrl(config.apiUrl);
   const response = await axios.post(
-    `${apiBaseUrl}/api/projects/${config.projectId}/tasks/${taskId}/dependencies`,
-    { blockingTaskId },
+    `${apiBaseUrl}/api/projects/${config.projectId}/plans/${planId}/dependencies`,
+    { blockingPlanId },
     { headers: getHeaders(config.apiKey) }
   );
   return response.data;
 }
 
 export async function dependencyDelete(
-  taskId: string,
+  planId: string,
   depId: string
 ): Promise<any> {
   const config = getConfigOrThrow();
   const apiBaseUrl = getApiBaseUrl(config.apiUrl);
   const response = await axios.delete(
-    `${apiBaseUrl}/api/projects/${config.projectId}/tasks/${taskId}/dependencies/${depId}`,
+    `${apiBaseUrl}/api/projects/${config.projectId}/plans/${planId}/dependencies/${depId}`,
     { headers: getHeaders(config.apiKey) }
   );
   if (response.status === 204) {
-    return { message: `Dependency ${depId} deleted from task ${taskId}.` };
+    return { message: `Dependency ${depId} deleted from plan ${planId}.` };
   }
   return response.data;
 }
