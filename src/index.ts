@@ -181,6 +181,53 @@ program
   });
 
 program
+  .command('postmortem')
+  .description('Manage post mortems')
+  .argument('<action>', 'Action to perform (list, get, create, update, delete)')
+  .option('--id <id>', 'Post mortem ID')
+  .option('--plan-id <id>', 'Plan ID (optional)')
+  .option('--summary <summary>', 'Post mortem summary')
+  .option('--root-cause <rootCause>', 'Root cause analysis')
+  .option('--timeline <timeline>', 'Incident timeline')
+  .option('--impact <impact>', 'Impact analysis')
+  .option('--action-items <csv>', 'Action items (comma-separated)')
+  .option('--lessons-learned <lessonsLearned>', 'Lessons learned')
+  .option('--status <status>', 'Post mortem status (OPEN, IN_PROGRESS, RESOLVED)')
+  .option('--created-by <name>', 'Created by (defaults to agentName from config)')
+  .option('--api-url <url>', 'Override API URL (optional)')
+  .option('--api-key <key>', 'Override API key (optional)')
+  .option('--project-id <id>', 'Override project ID (optional)')
+  .option('--team-id <id>', 'Override team ID (optional)')
+  .option('--agent-name <name>', 'Override agent name (optional)')
+  .option('--format <format>', 'Output format (json, text)', 'json')
+  .action(async (action, options) => {
+    try {
+      const result = await executeCommand('postmortem', action, {
+        id: options.id,
+        planId: options.planId,
+        summary: options.summary,
+        rootCause: options.rootCause,
+        timeline: options.timeline,
+        impact: options.impact,
+        actionItems: options.actionItems,
+        lessonsLearned: options.lessonsLearned,
+        status: options.status,
+        createdBy: options.createdBy,
+        apiUrl: options.apiUrl,
+        apiKey: options.apiKey,
+        projectId: options.projectId,
+        teamId: options.teamId,
+        agentName: options.agentName,
+      });
+
+      console.log(formatOutput(result, options.format));
+    } catch (error) {
+      console.error(handleError(error));
+      process.exit(1);
+    }
+  });
+
+program
   .command('convention')
   .description('Manage project conventions')
   .argument('<action>', 'Action to perform (list, show, download)')

@@ -662,6 +662,39 @@ describe('CLI Integration Tests', () => {
       );
     });
 
+    it('postmortem command: should remain project-scoped post mortem path', async () => {
+      axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
+      axiosPostSpy.mockResolvedValue({ data: { data: { id: 'pm1' } } } as any);
+
+      await executeCommand('postmortem', 'list', {});
+      await executeCommand('postmortem', 'create', {
+        summary: 'Summary',
+        rootCause: 'Root cause',
+        timeline: 'Timeline',
+        impact: 'Impact',
+        actionItems: 'item1,item2',
+        lessonsLearned: 'Lesson',
+      });
+
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/post-mortems`,
+        { headers: authHeaders() }
+      );
+      expect(axiosPostSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/post-mortems`,
+        expect.objectContaining({
+          summary: 'Summary',
+          rootCause: 'Root cause',
+          timeline: 'Timeline',
+          impact: 'Impact',
+          actionItems: ['item1', 'item2'],
+          lessonsLearned: 'Lesson',
+          createdBy: 'test-agent',
+        }),
+        { headers: authHeaders() }
+      );
+    });
+
     it('config whoami: should display current API key info', async () => {
       const result = await executeCommand('config', 'whoami', {});
 
@@ -701,6 +734,7 @@ describe('CLI Integration Tests', () => {
       expect(cliIndex).toContain("--type <type>");
       expect(cliIndex).toContain("--blocking-plan-id <id>");
       expect(cliIndex).toContain(".command('sync')");
+      expect(cliIndex).toContain(".command('postmortem')");
       expect(cliIndex).not.toContain("Action to perform (download)");
 
       expect(cliIndex).not.toContain("--metadata <json>");

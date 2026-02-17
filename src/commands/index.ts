@@ -83,6 +83,35 @@ export async function executeCommand(
         createdBy: options.createdBy ?? config.agentName
       });
     }
+    case 'postmortem': {
+      const configOverrides: Record<string, string> = {
+        ...(typeof options.apiKey === 'string' && options.apiKey.length > 0 ? { apiKey: options.apiKey } : {}),
+        ...(typeof options.apiUrl === 'string' && options.apiUrl.length > 0 ? { apiUrl: options.apiUrl } : {}),
+        ...(typeof options.teamId === 'string' && options.teamId.length > 0 ? { teamId: options.teamId } : {}),
+        ...(typeof options.projectId === 'string' && options.projectId.length > 0 ? { projectId: options.projectId } : {}),
+        ...(typeof options.agentName === 'string' && options.agentName.length > 0 ? { agentName: options.agentName } : {})
+      };
+
+      const config = loadConfig(configOverrides);
+
+      if (!config) {
+        throw new Error(
+          "Configuration not found. Run 'agentteams init' first or set AGENTTEAMS_* environment variables."
+        );
+      }
+
+      const apiUrl = config.apiUrl.endsWith('/') ? config.apiUrl.slice(0, -1) : config.apiUrl;
+      const headers = {
+        'X-API-Key': config.apiKey,
+        'Content-Type': 'application/json'
+      };
+
+      return executePostMortemCommand(apiUrl, headers, action, {
+        ...options,
+        projectId: config.projectId,
+        createdBy: options.createdBy ?? config.agentName
+      });
+    }
     case 'dependency':
       return executeDependencyCommand(action, options);
     case 'agent-config':
@@ -379,6 +408,91 @@ async function executeReportCommand(
         { headers }
       );
       return { message: `Report ${options.id} deleted successfully` };
+    }
+    default:
+      throw new Error(`Unknown action: ${action}`);
+  }
+}
+
+async function executePostMortemCommand(
+  apiUrl: string,
+  headers: any,
+  action: string,
+  options: any
+): Promise<any> {
+  if (!options.projectId || typeof options.projectId !== 'string') {
+    throw new Error('--project-id is required (or configure AGENTTEAMS_PROJECT_ID / .agentteams/config.json)');
+  }
+
+  const baseUrl = `${apiUrl}/api/projects/${options.projectId}/post-mortems`;
+
+  switch (action) {
+    case 'list': {
+      const response = await axios.get(baseUrl, { headers });
+      return response.data;
+    }
+    case 'get': {
+      if (!options.id) throw new Error('--id is required for postmortem get');
+      const response = await axios.get(
+        `${baseUrl}/${options.id}`,
+        { headers }
+      );
+      return response.data;
+    }
+    case 'create': {
+      if (!options.summary) throw new Error('--summary is required for postmortem create');
+      if (!options.rootCause) throw new Error('--root-cause is required for postmortem create');
+      if (!options.timeline) throw new Error('--timeline is required for postmortem create');
+      if (!options.impact) throw new Error('--impact is required for postmortem create');
+      if (options.actionItems === undefined) throw new Error('--action-items is required for postmortem create');
+      if (!options.lessonsLearned) throw new Error('--lessons-learned is required for postmortem create');
+
+      const response = await axios.post(
+        baseUrl,
+        {
+          planId: options.planId,
+          summary: options.summary,
+          rootCause: options.rootCause,
+          timeline: options.timeline,
+          impact: options.impact,
+          actionItems: splitCsv(options.actionItems),
+          lessonsLearned: options.lessonsLearned,
+          status: options.status,
+          createdBy: options.createdBy
+        },
+        { headers }
+      );
+      return response.data;
+    }
+    case 'update': {
+      if (!options.id) throw new Error('--id is required for postmortem update');
+      const body: Record<string, any> = {};
+
+      if (Object.prototype.hasOwnProperty.call(options, 'planId')) {
+        body.planId = options.planId;
+      }
+      if (options.summary) body.summary = options.summary;
+      if (options.rootCause) body.rootCause = options.rootCause;
+      if (options.timeline) body.timeline = options.timeline;
+      if (options.impact) body.impact = options.impact;
+      if (options.actionItems !== undefined) body.actionItems = splitCsv(options.actionItems);
+      if (options.lessonsLearned) body.lessonsLearned = options.lessonsLearned;
+      if (options.status) body.status = options.status;
+
+      const response = await axios.put(
+        `${baseUrl}/${options.id}`,
+        body,
+        { headers }
+      );
+      return response.data;
+    }
+    case 'delete': {
+      if (!options.id) throw new Error('--id is required for postmortem delete');
+      await axios.delete(
+        `${baseUrl}/${options.id}`,
+        { headers }
+      );
+      return { message: `PostMortem ${options.id} deleted successfully` };
     }
     default:
       throw new Error(`Unknown action: ${action}`);
