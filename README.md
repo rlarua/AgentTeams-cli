@@ -228,6 +228,18 @@ agentteams report create \
   --status COMPLETED
 ```
 
+### `postmortem`
+
+Create post mortems (content supports Markdown).
+
+```bash
+agentteams postmortem create \
+  --title "배포 장애 사후분석" \
+  --content "## 원인\n- 설정 누락" \
+  --action-items "롤백 자동화,사전 점검 체크리스트" \
+  --status RESOLVED
+```
+
 ### `config`
 
 View current configuration.

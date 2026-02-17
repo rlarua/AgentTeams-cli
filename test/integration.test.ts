@@ -671,7 +671,6 @@ describe('CLI Integration Tests', () => {
         title: 'Title',
         content: 'Content',
         actionItems: 'item1,item2',
-        lessonsLearned: 'Lesson',
       });
 
       expect(axiosGetSpy).toHaveBeenCalledWith(
@@ -684,7 +683,6 @@ describe('CLI Integration Tests', () => {
           title: 'Title',
           content: 'Content',
           actionItems: ['item1', 'item2'],
-          lessonsLearned: 'Lesson',
           createdBy: 'test-agent',
         }),
         { headers: authHeaders() }

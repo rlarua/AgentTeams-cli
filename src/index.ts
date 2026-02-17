@@ -187,9 +187,8 @@ program
   .option('--id <id>', 'Post mortem ID')
   .option('--plan-id <id>', 'Plan ID (optional)')
   .option('--title <title>', 'Post mortem title')
-  .option('--content <content>', 'Post mortem content')
+  .option('--content <content>', 'Post mortem markdown content')
   .option('--action-items <csv>', 'Action items (comma-separated)')
-  .option('--lessons-learned <lessonsLearned>', 'Lessons learned')
   .option('--status <status>', 'Post mortem status (OPEN, IN_PROGRESS, RESOLVED)')
   .option('--created-by <name>', 'Created by (defaults to agentName from config)')
   .option('--api-url <url>', 'Override API URL (optional)')
@@ -206,7 +205,6 @@ program
         title: options.title,
         content: options.content,
         actionItems: options.actionItems,
-        lessonsLearned: options.lessonsLearned,
         status: options.status,
         createdBy: options.createdBy,
         apiUrl: options.apiUrl,
