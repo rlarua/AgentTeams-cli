@@ -25,7 +25,7 @@ agentteams init
 This command:
 - Opens your browser for OAuth authentication
 - Creates `.agentteams/config.json` with credentials
-- Downloads project conventions to `.agentteams/convention.md`
+- Downloads reporting rule to `.agentteams/reporting.md`
 - Detects your AI environment (Claude Code, opencode, codex)
 
 **What gets created:**
@@ -34,7 +34,7 @@ This command:
 your-project/
 ├── .agentteams/
 │   ├── config.json        # API credentials
-│   └── convention.md      # Project conventions
+│   └── reporting.md       # Init reporting rule
 ```
 
 ### 2. Add to .gitignore
@@ -51,11 +51,14 @@ Protect your API keys by adding this to `.gitignore`:
 After initialization, conventions are available to your AI agent. The CLI provides setup instructions based on your environment.
 
 ```bash
-# View conventions
+# List conventions
+agentteams convention list
+
+# Show full conventions
 agentteams convention show
 
-# Update from server
-agentteams convention update
+# Download all conventions from server
+agentteams convention download
 ```
 
 ## Commands
@@ -75,15 +78,19 @@ Opens browser for authentication, saves config, and downloads conventions. For S
 Manage project conventions.
 
 ```bash
-# Show current conventions
+# List conventions
+agentteams convention list
+
+# Show all convention markdown in terminal
 agentteams convention show
 
-# Update from server
-agentteams convention update
-
-# Append reference to CLAUDE.md (Claude Code)
-agentteams convention append
+# Download all conventions and save dev files
+agentteams convention download
 ```
+
+`convention download` saves files by category directory (for example: `.agentteams/rules/<name>.md`).
+If duplicate names exist in the same category, numeric suffixes are added (for example: `rules.md`, `rules-2.md`).
+Before saving, the CLI cleans up existing files in each target category directory.
 
 ### `agent-config`
 
@@ -108,9 +115,11 @@ Manage agent status reports.
 ```bash
 # Report status
 agentteams status report \
-  --agent-name "my-agent" \
+  --agent "my-agent" \
   --status "IN_PROGRESS" \
-  --project-id 1
+  --task "작업 중" \
+  --issues "" \
+  --remaining "next step"
 
 # List statuses
 agentteams status list
@@ -119,13 +128,19 @@ agentteams status list
 agentteams status get --id <status-id>
 
 # Update status
-agentteams status update --id <status-id> --status "COMPLETED"
+agentteams status update --id <status-id> --status "DONE"
 
 # Delete status
 agentteams status delete --id <status-id>
 ```
 
-**Status values:** `IDLE`, `IN_PROGRESS`, `COMPLETED`, `ERROR`
+**Status values:** `IN_PROGRESS`, `DONE`, `BLOCKED`
+
+`--issues`, `--remaining` are comma-separated strings.
+Examples:
+- `--issues "api timeout,auth failure"`
+- `--remaining "add tests,write docs"`
+- empty list: `--issues ""`
 
 ### `task`
 
@@ -165,9 +180,26 @@ Manage task comments.
 
 ```bash
 agentteams comment create \
-  --task-id 1 \
-  --content "Great work!" \
-  --author-id 1
+  --task-id <task-id> \
+  --type GENERAL \
+  --content "Great work!"
+
+# Types: RISK, MODIFICATION, GENERAL
+```
+
+### `dependency`
+
+Manage task dependencies.
+
+```bash
+# List dependencies for a task
+agentteams dependency list --task-id <task-id>
+
+# Add dependency
+agentteams dependency create --task-id <task-id> --blocking-task-id <blocking-task-id>
+
+# Delete dependency
+agentteams dependency delete --task-id <task-id> --dep-id <dependency-id>
 ```
 
 ### `report`

@@ -1,41 +1,57 @@
 import { describe, it, expect, beforeEach, afterAll } from '@jest/globals';
-import { validateEnv, normalizeUrl } from '../src/utils/env.js';
+import { loadConfig } from '../src/utils/config.js';
 
-describe('Environment Variables', () => {
+describe('Environment and Config Loading', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
     process.env = { ...originalEnv };
+    delete process.env.AGENTTEAMS_API_KEY;
+    delete process.env.AGENTTEAMS_API_URL;
+    delete process.env.AGENTTEAMS_TEAM_ID;
+    delete process.env.AGENTTEAMS_PROJECT_ID;
+    delete process.env.AGENTTEAMS_AGENT_NAME;
   });
 
   afterAll(() => {
     process.env = originalEnv;
   });
 
-  it('should error when AGENTTEAMS_API_KEY is not set', () => {
-    delete process.env.AGENTTEAMS_API_KEY;
-    process.env.AGENTTEAMS_API_URL = 'http://localhost:3001';
+  it('should prioritize environment variables over file config values', () => {
+    process.env.AGENTTEAMS_API_KEY = 'key_from_env';
+    process.env.AGENTTEAMS_API_URL = 'https://env.example.com';
+    process.env.AGENTTEAMS_TEAM_ID = 'team_from_env';
+    process.env.AGENTTEAMS_PROJECT_ID = 'project_from_env';
+    process.env.AGENTTEAMS_AGENT_NAME = 'agent_from_env';
 
-    expect(() => validateEnv()).toThrow('AGENTTEAMS_API_KEY environment variable is required');
+    const config = loadConfig();
+
+    expect(config).toEqual(
+      expect.objectContaining({
+        apiKey: 'key_from_env',
+        apiUrl: 'https://env.example.com',
+        teamId: 'team_from_env',
+        projectId: 'project_from_env',
+        agentName: 'agent_from_env',
+      })
+    );
   });
 
-  it('should error when AGENTTEAMS_API_URL is not set', () => {
+  it('should load config from environment variables when all required fields exist', () => {
     process.env.AGENTTEAMS_API_KEY = 'key_test123';
-    delete process.env.AGENTTEAMS_API_URL;
-
-    expect(() => validateEnv()).toThrow('AGENTTEAMS_API_URL environment variable is required');
-  });
-
-  it('should pass when both environment variables are set', () => {
-    process.env.AGENTTEAMS_API_KEY = 'key_test123';
     process.env.AGENTTEAMS_API_URL = 'http://localhost:3001';
+    process.env.AGENTTEAMS_TEAM_ID = 'team_1';
+    process.env.AGENTTEAMS_PROJECT_ID = 'project_1';
+    process.env.AGENTTEAMS_AGENT_NAME = 'agent-a';
 
-    expect(() => validateEnv()).not.toThrow();
-  });
+    const config = loadConfig();
 
-  it('should normalize URL with trailing slash', () => {
-    expect(normalizeUrl('http://localhost:3001/')).toBe('http://localhost:3001');
-    expect(normalizeUrl('http://localhost:3001')).toBe('http://localhost:3001');
-    expect(normalizeUrl('https://api.example.com/')).toBe('https://api.example.com');
+    expect(config).toEqual({
+      apiKey: 'key_test123',
+      apiUrl: 'http://localhost:3001',
+      teamId: 'team_1',
+      projectId: 'project_1',
+      agentName: 'agent-a',
+    });
   });
 });

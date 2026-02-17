@@ -36,19 +36,21 @@ program
   .description('Manage agent statuses')
   .argument('<action>', 'Action to perform (report, list, get, update, delete)')
   .option('--id <id>', 'Status ID')
-  .option('--agent-name <name>', 'Agent name')
-  .option('--status <status>', 'Agent status')
-  .option('--project-id <id>', 'Project ID', parseInt)
-  .option('--metadata <json>', 'Metadata as JSON string')
+  .option('--agent <name>', 'Agent name')
+  .option('--status <status>', 'Agent status (IN_PROGRESS, DONE, BLOCKED)')
+  .option('--task <text>', 'Current task summary')
+  .option('--issues <csv>', 'Comma-separated issue list')
+  .option('--remaining <csv>', 'Comma-separated remaining work list')
   .option('--format <format>', 'Output format (json, text)', 'json')
   .action(async (action, options) => {
     try {
       const result = await executeCommand('status', action, {
         id: options.id,
-        agentName: options.agentName,
+        agent: options.agent,
         status: options.status,
-        projectId: options.projectId,
-        metadata: options.metadata ? JSON.parse(options.metadata) : undefined,
+        task: options.task,
+        issues: options.issues,
+        remaining: options.remaining,
       });
 
       console.log(formatOutput(result, options.format));
@@ -93,18 +95,18 @@ program
   .command('comment')
   .description('Manage task comments')
   .argument('<action>', 'Action to perform (list, get, create, update, delete)')
-  .option('--id <id>', 'Comment ID', parseInt)
-  .option('--task-id <id>', 'Task ID', parseInt)
+  .option('--id <id>', 'Comment ID')
+  .option('--task-id <id>', 'Task ID')
+  .option('--type <type>', 'Comment type (RISK, MODIFICATION, GENERAL)')
   .option('--content <content>', 'Comment content')
-  .option('--author-id <id>', 'Author ID', parseInt)
   .option('--format <format>', 'Output format (json, text)', 'json')
   .action(async (action, options) => {
     try {
       const result = await executeCommand('comment', action, {
         id: options.id,
         taskId: options.taskId,
+        type: options.type,
         content: options.content,
-        authorId: options.authorId,
       });
 
       console.log(formatOutput(result, options.format));
@@ -162,7 +164,7 @@ program
 program
   .command('convention')
   .description('Manage project conventions')
-  .argument('<action>', 'Action to perform (show, append, update)')
+  .argument('<action>', 'Action to perform (list, show, download)')
   .action(async (action) => {
     try {
       const result = await executeCommand('convention', action, {});
@@ -183,14 +185,14 @@ program
   .description('Manage task dependencies')
   .argument('<action>', 'Action to perform (list, create, delete)')
   .option('--task-id <id>', 'Task ID')
-  .option('--depends-on <id>', 'Dependency target task ID')
+  .option('--blocking-task-id <id>', 'Blocking task ID')
   .option('--dep-id <id>', 'Dependency ID to delete')
   .option('--format <format>', 'Output format (json, text)', 'json')
   .action(async (action, options) => {
     try {
       const result = await executeCommand('dependency', action, {
         taskId: options.taskId,
-        dependsOn: options.dependsOn,
+        blockingTaskId: options.blockingTaskId,
         depId: options.depId,
       });
 

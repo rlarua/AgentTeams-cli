@@ -1,7 +1,10 @@
 import axios from 'axios';
-import { getApiConfig } from '../utils/env.js';
 import { executeInitCommand } from './init.js';
-import { conventionShow, conventionAppend, conventionUpdate } from './convention.js';
+import {
+  conventionList,
+  conventionShow,
+  conventionDownload,
+} from './convention.js';
 import { agentConfigList, agentConfigGet, agentConfigDelete } from './agentConfig.js';
 import { dependencyList, dependencyCreate, dependencyDelete } from './dependency.js';
 import { loadConfig } from '../utils/config.js';
@@ -15,28 +18,36 @@ export async function executeCommand(
     case 'init':
       return executeInitCommand(options);
     case 'convention':
-      return executeConventionLocalCommand(action);
+      return executeConventionCommand(action);
     case 'status':
     case 'task':
     case 'comment':
       {
-      const { apiKey, apiUrl } = getApiConfig();
+      const config = loadConfig();
+
+      if (!config) {
+        throw new Error(
+          "Configuration not found. Run 'agentteams init' first or set AGENTTEAMS_* environment variables."
+        );
+      }
+
+      const apiUrl = config.apiUrl.endsWith('/') ? config.apiUrl.slice(0, -1) : config.apiUrl;
 
       const headers = {
-        'X-API-Key': apiKey,
+        'X-API-Key': config.apiKey,
         'Content-Type': 'application/json',
       };
 
       if (resource === 'status') {
-        return executeStatusCommand(apiUrl, headers, action, options);
+        return executeStatusCommand(apiUrl, config.projectId, headers, action, options);
       }
 
       if (resource === 'task') {
-        return executeTaskCommand(apiUrl, headers, action, options);
+        return executeTaskCommand(apiUrl, config.projectId, headers, action, options);
       }
 
       if (resource === 'comment') {
-        return executeCommentCommand(apiUrl, headers, action, options);
+        return executeCommentCommand(apiUrl, config.projectId, headers, action, options);
       }
 
       throw new Error(`Unknown resource: ${resource}`);
@@ -83,45 +94,56 @@ export async function executeCommand(
 
 async function executeStatusCommand(
   apiUrl: string,
+  projectId: string,
   headers: any,
   action: string,
   options: any
 ): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/agent-statuses`;
+
   switch (action) {
     case 'report': {
+      if (!options.status) throw new Error('--status is required for status report');
+      if (!options.task) throw new Error('--task is required for status report');
+      if (options.issues === undefined) throw new Error('--issues is required for status report');
+      if (options.remaining === undefined) throw new Error('--remaining is required for status report');
+
       const response = await axios.post(
-        `${apiUrl}/agent-statuses`,
+        baseUrl,
         {
-          agentName: options.agentName,
+          agent: options.agent,
           status: options.status,
-          projectId: options.projectId,
-          metadata: options.metadata,
+          task: options.task,
+          issues: splitCsv(options.issues),
+          remaining: splitCsv(options.remaining),
         },
         { headers }
       );
       return response.data;
     }
     case 'list': {
-      const response = await axios.get(`${apiUrl}/agent-statuses`, { headers });
+      const response = await axios.get(baseUrl, { headers });
       return response.data;
     }
     case 'get': {
       if (!options.id) throw new Error('--id is required for status get');
       const response = await axios.get(
-        `${apiUrl}/agent-statuses/${options.id}`,
+        `${baseUrl}/${options.id}`,
         { headers }
       );
       return response.data;
     }
     case 'update': {
       if (!options.id) throw new Error('--id is required for status update');
+      const body: Record<string, unknown> = {};
+      if (options.status !== undefined) body.status = options.status;
+      if (options.task !== undefined) body.task = options.task;
+      if (options.issues !== undefined) body.issues = splitCsv(options.issues);
+      if (options.remaining !== undefined) body.remaining = splitCsv(options.remaining);
+
       const response = await axios.put(
-        `${apiUrl}/agent-statuses/${options.id}`,
-        {
-          agentName: options.agentName,
-          status: options.status,
-          metadata: options.metadata,
-        },
+        `${baseUrl}/${options.id}`,
+        body,
         { headers }
       );
       return response.data;
@@ -129,7 +151,7 @@ async function executeStatusCommand(
     case 'delete': {
       if (!options.id) throw new Error('--id is required for status delete');
       const response = await axios.delete(
-        `${apiUrl}/agent-statuses/${options.id}`,
+        `${baseUrl}/${options.id}`,
         { headers }
       );
       return response.data;
@@ -141,29 +163,35 @@ async function executeStatusCommand(
 
 async function executeTaskCommand(
   apiUrl: string,
+  projectId: string,
   headers: any,
   action: string,
   options: any
 ): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/tasks`;
+
   switch (action) {
     case 'list': {
-      const response = await axios.get(`${apiUrl}/tasks`, { headers });
+      const response = await axios.get(baseUrl, { headers });
       return response.data;
     }
     case 'get': {
       if (!options.id) throw new Error('--id is required for task get');
-      const response = await axios.get(`${apiUrl}/tasks/${options.id}`, {
+      const response = await axios.get(`${baseUrl}/${options.id}`, {
         headers,
       });
       return response.data;
     }
     case 'create': {
       if (!options.title) throw new Error('--title is required for task create');
+      if (!options.description || options.description.trim().length === 0) {
+        throw new Error('--description is required for task create');
+      }
       const response = await axios.post(
-        `${apiUrl}/tasks`,
+        baseUrl,
         {
           title: options.title,
-          description: options.description ?? '',
+          description: options.description,
           priority: options.priority ?? 'MEDIUM',
           status: options.status,
           planId: options.planId,
@@ -181,7 +209,7 @@ async function executeTaskCommand(
       if (options.priority) body.priority = options.priority;
 
       const response = await axios.put(
-        `${apiUrl}/tasks/${options.id}`,
+        `${baseUrl}/${options.id}`,
         body,
         { headers }
       );
@@ -189,14 +217,14 @@ async function executeTaskCommand(
     }
     case 'delete': {
       if (!options.id) throw new Error('--id is required for task delete');
-      await axios.delete(`${apiUrl}/tasks/${options.id}`, { headers });
+      await axios.delete(`${baseUrl}/${options.id}`, { headers });
       return { message: `Task ${options.id} deleted successfully` };
     }
     case 'assign': {
       if (!options.id) throw new Error('--id is required for task assign');
       if (!options.agent) throw new Error('--agent is required for task assign');
       const response = await axios.post(
-        `${apiUrl}/tasks/${options.id}/assign`,
+        `${baseUrl}/${options.id}/assign`,
         { assignedTo: options.agent },
         { headers }
       );
@@ -209,15 +237,19 @@ async function executeTaskCommand(
 
 async function executeCommentCommand(
   apiUrl: string,
+  projectId: string,
   headers: any,
   action: string,
   options: any
 ): Promise<any> {
+  const taskBaseUrl = `${apiUrl}/api/projects/${projectId}/tasks`;
+  const commentBaseUrl = `${apiUrl}/api/projects/${projectId}/comments`;
+
   switch (action) {
     case 'list': {
       if (!options.taskId) throw new Error('--task-id is required for comment list');
       const response = await axios.get(
-        `${apiUrl}/tasks/${options.taskId}/comments`,
+        `${taskBaseUrl}/${options.taskId}/comments`,
         { headers }
       );
       return response.data;
@@ -225,19 +257,20 @@ async function executeCommentCommand(
     case 'get': {
       if (!options.id) throw new Error('--id is required for comment get');
       const response = await axios.get(
-        `${apiUrl}/comments/${options.id}`,
+        `${commentBaseUrl}/${options.id}`,
         { headers }
       );
       return response.data;
     }
     case 'create': {
       if (!options.taskId) throw new Error('--task-id is required for comment create');
+      if (!options.type) throw new Error('--type is required for comment create');
       if (!options.content) throw new Error('--content is required for comment create');
       const response = await axios.post(
-        `${apiUrl}/tasks/${options.taskId}/comments`,
+        `${taskBaseUrl}/${options.taskId}/comments`,
         {
+          type: options.type,
           content: options.content,
-          authorId: options.authorId,
         },
         { headers }
       );
@@ -247,7 +280,7 @@ async function executeCommentCommand(
       if (!options.id) throw new Error('--id is required for comment update');
       if (!options.content) throw new Error('--content is required for comment update');
       const response = await axios.put(
-        `${apiUrl}/comments/${options.id}`,
+        `${commentBaseUrl}/${options.id}`,
         { content: options.content },
         { headers }
       );
@@ -256,7 +289,7 @@ async function executeCommentCommand(
     case 'delete': {
       if (!options.id) throw new Error('--id is required for comment delete');
       await axios.delete(
-        `${apiUrl}/comments/${options.id}`,
+        `${commentBaseUrl}/${options.id}`,
         { headers }
       );
       return { message: `Comment ${options.id} deleted successfully` };
@@ -364,16 +397,16 @@ function toDetailsAsMarkdown(details: unknown): string | undefined {
   }
 }
 
-async function executeConventionLocalCommand(action: string): Promise<any> {
+async function executeConventionCommand(action: string): Promise<any> {
   switch (action) {
+    case 'list':
+      return conventionList();
     case 'show':
       return conventionShow();
-    case 'append':
-      return conventionAppend();
-    case 'update':
-      return conventionUpdate();
+    case 'download':
+      return conventionDownload();
     default:
-      throw new Error(`Unknown convention action: ${action}. Use show, append, or update.`);
+      throw new Error(`Unknown convention action: ${action}. Use list, show, or download.`);
   }
 }
 
@@ -408,8 +441,8 @@ async function executeDependencyCommand(
     }
     case 'create': {
       if (!options.taskId) throw new Error('--task-id is required for dependency create');
-      if (!options.dependsOn) throw new Error('--depends-on is required for dependency create');
-      return dependencyCreate(options.taskId, options.dependsOn);
+      if (!options.blockingTaskId) throw new Error('--blocking-task-id is required for dependency create');
+      return dependencyCreate(options.taskId, options.blockingTaskId);
     }
     case 'delete': {
       if (!options.taskId) throw new Error('--task-id is required for dependency delete');
@@ -419,6 +452,22 @@ async function executeDependencyCommand(
     default:
       throw new Error(`Unknown dependency action: ${action}. Use list, create, or delete.`);
   }
+}
+
+function splitCsv(value: string): string[] {
+  if (typeof value !== 'string') {
+    return [];
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return [];
+  }
+
+  return trimmed
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
 }
 
 async function executeConfigCommand(action: string): Promise<any> {

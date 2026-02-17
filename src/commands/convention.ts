@@ -1,13 +1,10 @@
-import { existsSync, readFileSync, writeFileSync, copyFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { createInterface } from "node:readline";
 import axios from "axios";
 import { loadConfig, findProjectConfig } from "../utils/config.js";
 
 const CONVENTION_DIR = ".agentteams";
-const CONVENTION_FILE = "reporting.md";
-const CLAUDE_MD = "CLAUDE.md";
-const CLAUDE_MD_BACKUP = "CLAUDE.md.backup";
+const LEGACY_CONVENTION_DOWNLOAD_DIR = "conventions";
 
 function findProjectRoot(): string | null {
   const configPath = findProjectConfig(process.cwd());
@@ -16,114 +13,30 @@ function findProjectRoot(): string | null {
   return resolve(configPath, "..", "..");
 }
 
-function confirm(message: string): Promise<boolean> {
-  const rl = createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  return new Promise((resolve) => {
-    rl.question(`${message} (y/N): `, (answer) => {
-      rl.close();
-      resolve(answer.trim().toLowerCase() === "y");
-    });
-  });
+function getApiBaseUrl(apiUrl: string): string {
+  return apiUrl.endsWith("/") ? apiUrl.slice(0, -1) : apiUrl;
 }
 
-export async function conventionShow(): Promise<string> {
-  const projectRoot = findProjectRoot();
-  if (!projectRoot) {
-    throw new Error(
-      "No .agentteams directory found. Run 'agentteams init' first."
-    );
-  }
-
-  const conventionPath = join(projectRoot, CONVENTION_DIR, CONVENTION_FILE);
-  if (!existsSync(conventionPath)) {
-    throw new Error(
-      `Convention file not found: ${conventionPath}\nRun 'agentteams convention update' to download it.`
-    );
-  }
-
-  return readFileSync(conventionPath, "utf-8");
-}
-
-export async function conventionAppend(): Promise<string> {
-  const projectRoot = findProjectRoot();
-  if (!projectRoot) {
-    throw new Error(
-      "No .agentteams directory found. Run 'agentteams init' first."
-    );
-  }
-
-  const conventionPath = join(projectRoot, CONVENTION_DIR, CONVENTION_FILE);
-  if (!existsSync(conventionPath)) {
-    throw new Error(
-      `Convention file not found: ${conventionPath}\nRun 'agentteams convention update' first.`
-    );
-  }
-
-  const claudeMdPath = join(projectRoot, CLAUDE_MD);
-  const backupPath = join(projectRoot, CLAUDE_MD_BACKUP);
-  const conventionRef = `\n\n<!-- AgentTeams Convention -->\nSee .agentteams/reporting.md for project conventions.\n`;
-
-  if (existsSync(claudeMdPath)) {
-    const existingContent = readFileSync(claudeMdPath, "utf-8");
-    if (existingContent.includes("<!-- AgentTeams Convention -->")) {
-      return "Convention reference already exists in CLAUDE.md. No changes made.";
-    }
-  }
-
-  const confirmed = await confirm(
-    `This will modify ${CLAUDE_MD} and create a backup at ${CLAUDE_MD_BACKUP}. Continue?`
-  );
-
-  if (!confirmed) {
-    return "Operation cancelled by user.";
-  }
-
-  if (existsSync(claudeMdPath)) {
-    copyFileSync(claudeMdPath, backupPath);
-    const content = readFileSync(claudeMdPath, "utf-8");
-    writeFileSync(claudeMdPath, content + conventionRef, "utf-8");
-  } else {
-    writeFileSync(
-      claudeMdPath,
-      `# Project Conventions${conventionRef}`,
-      "utf-8"
-    );
-  }
-
-  const backupMsg = existsSync(backupPath)
-    ? `Backup created: ${CLAUDE_MD_BACKUP}`
-    : "New CLAUDE.md created (no previous file to backup).";
-
-  return `Convention reference appended to ${CLAUDE_MD}.\n${backupMsg}`;
-}
-
-export async function conventionUpdate(): Promise<string> {
+function getApiConfigOrThrow() {
   const config = loadConfig();
   if (!config) {
     throw new Error(
-      "Configuration not found. Run 'agentteams init' first or set environment variables."
+      "Configuration not found. Run 'agentteams init' first or set AGENTTEAMS_* environment variables."
     );
   }
 
-  const projectRoot = findProjectRoot();
-  if (!projectRoot) {
-    throw new Error(
-      "No .agentteams directory found. Run 'agentteams init' first."
-    );
-  }
-
-  const apiUrl = config.apiUrl.endsWith("/")
-    ? config.apiUrl.slice(0, -1)
-    : config.apiUrl;
-
-  const headers = {
-    "X-API-Key": config.apiKey,
-    "Content-Type": "application/json",
+  return {
+    config,
+    apiUrl: getApiBaseUrl(config.apiUrl),
+    headers: {
+      "X-API-Key": config.apiKey,
+      "Content-Type": "application/json",
+    },
   };
+}
+
+export async function conventionShow(): Promise<any> {
+  const { config, apiUrl, headers } = getApiConfigOrThrow();
 
   const listResponse = await axios.get(
     `${apiUrl}/api/projects/${config.projectId}/conventions`,
@@ -137,20 +50,129 @@ export async function conventionUpdate(): Promise<string> {
     );
   }
 
-  const markdownParts: string[] = [];
+  const sections: string[] = [];
+  for (const convention of conventions) {
+    const downloadResponse = await axios.get(
+      `${apiUrl}/api/projects/${config.projectId}/conventions/${convention.id}/download`,
+      { headers, responseType: "text" }
+    );
+
+    const sectionHeader = `# ${convention.title ?? "untitled"}\ncategory: ${convention.category ?? "uncategorized"}\nid: ${convention.id}`;
+    sections.push(`${sectionHeader}\n\n${downloadResponse.data}`);
+  }
+
+  return sections.join("\n\n---\n\n");
+}
+
+export async function conventionList(): Promise<any> {
+  const { config, apiUrl, headers } = getApiConfigOrThrow();
+
+  const response = await axios.get(
+    `${apiUrl}/api/projects/${config.projectId}/conventions`,
+    { headers }
+  );
+
+  const conventions = response.data?.data;
+  if (!Array.isArray(conventions)) {
+    return response.data;
+  }
+
+  return {
+    data: conventions.map((item) => ({
+      id: item.id,
+      title: item.title,
+      category: item.category,
+      updatedAt: item.updatedAt,
+      createdAt: item.createdAt,
+    })),
+    meta: response.data?.meta,
+  };
+}
+
+function toSafeFileName(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+function toSafeDirectoryName(input: string): string {
+  const normalized = toSafeFileName(input);
+  return normalized.length > 0 ? normalized : "uncategorized";
+}
+
+function buildConventionFileName(convention: { id: string; title?: string }): string {
+  const titleSegment = convention.title ? toSafeFileName(convention.title) : "";
+  const prefix = titleSegment.length > 0 ? titleSegment : "convention";
+  return `${prefix}.md`;
+}
+
+export async function conventionDownload(): Promise<string> {
+  const { config, apiUrl, headers } = getApiConfigOrThrow();
+
+  const projectRoot = findProjectRoot();
+  if (!projectRoot) {
+    throw new Error(
+      "No .agentteams directory found. Run 'agentteams init' first."
+    );
+  }
+
+  const conventionRoot = join(projectRoot, CONVENTION_DIR);
+  if (!existsSync(conventionRoot)) {
+    throw new Error(
+      `Convention directory not found: ${conventionRoot}\nRun 'agentteams init' first.`
+    );
+  }
+
+  const listResponse = await axios.get(
+    `${apiUrl}/api/projects/${config.projectId}/conventions`,
+    { headers }
+  );
+
+  const conventions = listResponse.data?.data;
+  if (!conventions || conventions.length === 0) {
+    throw new Error(
+      "No conventions found for this project. Create one via the web dashboard first."
+    );
+  }
+
+  const legacyDir = join(projectRoot, CONVENTION_DIR, LEGACY_CONVENTION_DOWNLOAD_DIR);
+  rmSync(legacyDir, { recursive: true, force: true });
+
+  const categoryDirs = new Set<string>();
+  for (const convention of conventions) {
+    const categoryName = typeof convention.category === "string" ? convention.category : "";
+    categoryDirs.add(toSafeDirectoryName(categoryName));
+  }
+
+  for (const categoryDir of categoryDirs) {
+    rmSync(join(projectRoot, CONVENTION_DIR, categoryDir), { recursive: true, force: true });
+    mkdirSync(join(projectRoot, CONVENTION_DIR, categoryDir), { recursive: true });
+  }
+
+  const fileNameCount = new Map<string, number>();
 
   for (const convention of conventions) {
     const downloadResponse = await axios.get(
       `${apiUrl}/api/projects/${config.projectId}/conventions/${convention.id}/download`,
       { headers, responseType: "text" }
     );
-    markdownParts.push(downloadResponse.data);
+
+    const baseFileName = buildConventionFileName(convention);
+    const categoryName = typeof convention.category === "string" ? convention.category : "";
+    const categoryDir = toSafeDirectoryName(categoryName);
+    const duplicateKey = `${categoryDir}/${baseFileName}`;
+
+    const seenCount = fileNameCount.get(duplicateKey) ?? 0;
+    fileNameCount.set(duplicateKey, seenCount + 1);
+
+    const fileName = seenCount === 0
+      ? baseFileName
+      : baseFileName.replace(/\.md$/, `-${seenCount + 1}.md`);
+    const filePath = join(projectRoot, CONVENTION_DIR, categoryDir, fileName);
+    writeFileSync(filePath, downloadResponse.data, "utf-8");
   }
 
-  const fullMarkdown = markdownParts.join("\n\n---\n\n");
-
-  const conventionPath = join(projectRoot, CONVENTION_DIR, CONVENTION_FILE);
-  writeFileSync(conventionPath, fullMarkdown, "utf-8");
-
-  return `Convention updated successfully.\nDownloaded ${conventions.length} convention(s) to ${CONVENTION_DIR}/${CONVENTION_FILE}`;
+  return `Convention download completed.\nDownloaded ${conventions.length} file(s) into category directories under ${CONVENTION_DIR}`;
 }
