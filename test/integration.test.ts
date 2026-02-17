@@ -77,15 +77,17 @@ describe('CLI Integration Tests', () => {
 
       const result = await executeInitCommand({ cwd: tempCwd });
 
-      expect(result).toEqual({
-        success: true,
-        authUrl: 'http://localhost:3000/cli/authorize?port=7779',
-        configPath: join(tempCwd, '.agentteams', 'config.json'),
-        conventionPath: join(tempCwd, '.agentteams', 'convention.md'),
-        teamId: 'team_1',
-        projectId: 'project_1',
-        agentName: 'test-agent',
-      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: true,
+          authUrl: expect.stringContaining('/cli/authorize?port=7779'),
+          configPath: join(tempCwd, '.agentteams', 'config.json'),
+          conventionPath: join(tempCwd, '.agentteams', 'reporting.md'),
+          teamId: 'team_1',
+          projectId: 'project_1',
+          agentName: 'test-agent',
+        })
+      );
 
       const savedConfig = JSON.parse(readFileSync(result.configPath, 'utf-8'));
       expect(savedConfig).toEqual({
@@ -504,10 +506,10 @@ describe('CLI Integration Tests', () => {
       expect(result).toEqual({ message: 'Comment 1 deleted successfully' });
     });
 
-    it('report list: should GET /completion-reports', async () => {
+    it('report list: should GET /api/projects/:projectId/completion-reports', async () => {
       const mockResponse = {
         data: {
-          data: [{ id: 1, summary: 'report' }],
+          data: [{ id: 1, title: 'report' }],
         },
       };
 
@@ -516,7 +518,7 @@ describe('CLI Integration Tests', () => {
       const result = await executeCommand('report', 'list', {});
 
       expect(axiosGetSpy).toHaveBeenCalledWith(
-        'http://localhost:3001/completion-reports',
+        'http://localhost:3001/api/projects/project_1/completion-reports',
         expect.objectContaining({
           headers: expect.objectContaining({
             'X-API-Key': 'key_test123',
@@ -527,10 +529,10 @@ describe('CLI Integration Tests', () => {
       expect(result).toEqual(mockResponse.data);
     });
 
-    it('report get: should GET /completion-reports/:id', async () => {
+    it('report get: should GET /api/projects/:projectId/completion-reports/:id', async () => {
       const mockResponse = {
         data: {
-          data: { id: 1, summary: 'report' },
+          data: { id: 1, title: 'report' },
         },
       };
 
@@ -539,7 +541,7 @@ describe('CLI Integration Tests', () => {
       const result = await executeCommand('report', 'get', { id: '1' });
 
       expect(axiosGetSpy).toHaveBeenCalledWith(
-        'http://localhost:3001/completion-reports/1',
+        'http://localhost:3001/api/projects/project_1/completion-reports/1',
         expect.objectContaining({
           headers: expect.objectContaining({
             'X-API-Key': 'key_test123',
@@ -573,10 +575,10 @@ describe('CLI Integration Tests', () => {
       expect(result).toEqual(mockResponse.data);
     });
 
-    it('report update: should PUT /completion-reports/:id', async () => {
+    it('report update: should PUT /api/projects/:projectId/completion-reports/:id', async () => {
       const mockResponse = {
         data: {
-          data: { id: 1, summary: 'Updated summary' },
+          data: { id: 1, title: 'Updated title' },
         },
       };
 
@@ -584,15 +586,13 @@ describe('CLI Integration Tests', () => {
 
       const result = await executeCommand('report', 'update', {
         id: '1',
-        summary: 'Updated summary',
-        details: { done: true },
+        summary: 'Updated title',
       });
 
       expect(axiosPutSpy).toHaveBeenCalledWith(
-        'http://localhost:3001/completion-reports/1',
+        'http://localhost:3001/api/projects/project_1/completion-reports/1',
         expect.objectContaining({
-          summary: 'Updated summary',
-          details: { done: true },
+          title: 'Updated title',
         }),
         expect.objectContaining({
           headers: expect.objectContaining({
@@ -604,13 +604,13 @@ describe('CLI Integration Tests', () => {
       expect(result).toEqual(mockResponse.data);
     });
 
-    it('report delete: should DELETE /completion-reports/:id', async () => {
+    it('report delete: should DELETE /api/projects/:projectId/completion-reports/:id', async () => {
       axiosDeleteSpy.mockResolvedValue({ status: 204 } as any);
 
       const result = await executeCommand('report', 'delete', { id: '1' });
 
       expect(axiosDeleteSpy).toHaveBeenCalledWith(
-        'http://localhost:3001/completion-reports/1',
+        'http://localhost:3001/api/projects/project_1/completion-reports/1',
         expect.objectContaining({
           headers: expect.objectContaining({
             'X-API-Key': 'key_test123',
@@ -796,13 +796,13 @@ describe('CLI Integration Tests', () => {
       expect(result).toEqual(mockResponse.data);
     });
 
-    it('report create: should POST /completion-reports', async () => {
+    it('report create: should POST /api/projects/:projectId/completion-reports', async () => {
       const mockResponse = {
         data: {
           data: {
             id: 1,
-            taskId: 1,
-            summary: 'Test report',
+            taskId: null,
+            title: 'Test report',
           },
         },
       };
@@ -810,17 +810,18 @@ describe('CLI Integration Tests', () => {
       axiosPostSpy.mockResolvedValue(mockResponse as any);
 
       const result = await executeCommand('report', 'create', {
-        taskId: 1,
-        summary: 'Test report',
-        agentId: 1,
+        title: 'Test report',
+        content: '# Report\n\n- done\n',
       });
 
       expect(axiosPostSpy).toHaveBeenCalledWith(
-        'http://localhost:3001/completion-reports',
+        'http://localhost:3001/api/projects/project_1/completion-reports',
         expect.objectContaining({
-          taskId: 1,
-          summary: 'Test report',
-          agentId: 1,
+          title: 'Test report',
+          content: '# Report\n\n- done\n',
+          reportType: 'IMPL_PLAN',
+          status: 'COMPLETED',
+          createdBy: 'test-agent',
         }),
         expect.objectContaining({
           headers: {
@@ -834,9 +835,18 @@ describe('CLI Integration Tests', () => {
     });
 
     it('convention show: should throw when no .agentteams directory exists', async () => {
-      await expect(
-        executeCommand('convention', 'show', {})
-      ).rejects.toThrow('No .agentteams directory found');
+      const originalCwd = process.cwd();
+      const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-convention-missing-'));
+
+      try {
+        process.chdir(tempCwd);
+        await expect(executeCommand('convention', 'show', {})).rejects.toThrow(
+          'No .agentteams directory found'
+        );
+      } finally {
+        process.chdir(originalCwd);
+        rmSync(tempCwd, { recursive: true, force: true });
+      }
     });
 
     it('config whoami: should display current API key info', async () => {

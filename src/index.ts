@@ -119,19 +119,37 @@ program
   .description('Manage completion reports')
   .argument('<action>', 'Action to perform (list, get, create, update, delete)')
   .option('--id <id>', 'Report ID')
-  .option('--task-id <id>', 'Task ID', parseInt)
-  .option('--summary <summary>', 'Report summary')
-  .option('--agent-id <id>', 'Agent ID', parseInt)
-  .option('--details <json>', 'Details as JSON string')
+  .option('--task-id <id>', 'Task ID (optional)')
+  .option('--title <title>', 'Report title')
+  .option('--content <content>', 'Report markdown content')
+  .option('--report-type <type>', 'Report type (IMPL_PLAN, COMMIT_RANGE, TASK_COMPLETION)')
+  .option('--status <status>', 'Report status (COMPLETED, FAILED, PARTIAL)')
+  .option('--created-by <name>', 'Created by (defaults to agentName from config)')
+  .option('--summary <summary>', '[Deprecated] Alias for --title')
+  .option('--details <details>', '[Deprecated] Will be embedded in content as JSON')
+  .option('--api-url <url>', 'Override API URL (optional)')
+  .option('--api-key <key>', 'Override API key (optional)')
+  .option('--project-id <id>', 'Override project ID (optional)')
+  .option('--team-id <id>', 'Override team ID (optional)')
+  .option('--agent-name <name>', 'Override agent name (optional)')
   .option('--format <format>', 'Output format (json, text)', 'json')
   .action(async (action, options) => {
     try {
       const result = await executeCommand('report', action, {
         id: options.id,
         taskId: options.taskId,
+        title: options.title,
+        content: options.content,
+        reportType: options.reportType,
+        status: options.status,
+        createdBy: options.createdBy,
         summary: options.summary,
-        agentId: options.agentId,
-        details: options.details ? JSON.parse(options.details) : undefined,
+        details: options.details,
+        apiUrl: options.apiUrl,
+        apiKey: options.apiKey,
+        projectId: options.projectId,
+        teamId: options.teamId,
+        agentName: options.agentName,
       });
 
       console.log(formatOutput(result, options.format));

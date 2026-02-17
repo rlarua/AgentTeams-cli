@@ -4,6 +4,7 @@ import { executeInitCommand } from './init.js';
 import { conventionShow, conventionAppend, conventionUpdate } from './convention.js';
 import { agentConfigList, agentConfigGet, agentConfigDelete } from './agentConfig.js';
 import { dependencyList, dependencyCreate, dependencyDelete } from './dependency.js';
+import { loadConfig } from '../utils/config.js';
 
 export async function executeCommand(
   resource: string,
@@ -18,7 +19,7 @@ export async function executeCommand(
     case 'status':
     case 'task':
     case 'comment':
-    case 'report': {
+      {
       const { apiKey, apiUrl } = getApiConfig();
 
       const headers = {
@@ -38,7 +39,36 @@ export async function executeCommand(
         return executeCommentCommand(apiUrl, headers, action, options);
       }
 
-      return executeReportCommand(apiUrl, headers, action, options);
+      throw new Error(`Unknown resource: ${resource}`);
+    }
+    case 'report': {
+      const configOverrides: Record<string, string> = {
+        ...(typeof options.apiKey === 'string' && options.apiKey.length > 0 ? { apiKey: options.apiKey } : {}),
+        ...(typeof options.apiUrl === 'string' && options.apiUrl.length > 0 ? { apiUrl: options.apiUrl } : {}),
+        ...(typeof options.teamId === 'string' && options.teamId.length > 0 ? { teamId: options.teamId } : {}),
+        ...(typeof options.projectId === 'string' && options.projectId.length > 0 ? { projectId: options.projectId } : {}),
+        ...(typeof options.agentName === 'string' && options.agentName.length > 0 ? { agentName: options.agentName } : {})
+      };
+
+      const config = loadConfig(configOverrides);
+
+      if (!config) {
+        throw new Error(
+          "Configuration not found. Run 'agentteams init' first or set AGENTTEAMS_* environment variables."
+        );
+      }
+
+      const apiUrl = config.apiUrl.endsWith('/') ? config.apiUrl.slice(0, -1) : config.apiUrl;
+      const headers = {
+        'X-API-Key': config.apiKey,
+        'Content-Type': 'application/json'
+      };
+
+      return executeReportCommand(apiUrl, headers, action, {
+        ...options,
+        projectId: config.projectId,
+        createdBy: options.createdBy ?? config.agentName
+      });
     }
     case 'dependency':
       return executeDependencyCommand(action, options);
@@ -242,27 +272,50 @@ async function executeReportCommand(
   action: string,
   options: any
 ): Promise<any> {
+  if (!options.projectId || typeof options.projectId !== 'string') {
+    throw new Error('--project-id is required (or configure AGENTTEAMS_PROJECT_ID / .agentteams/config.json)');
+  }
+
+  const baseUrl = `${apiUrl}/api/projects/${options.projectId}/completion-reports`;
+
   switch (action) {
     case 'list': {
-      const response = await axios.get(`${apiUrl}/completion-reports`, { headers });
+      const response = await axios.get(baseUrl, { headers });
       return response.data;
     }
     case 'get': {
       if (!options.id) throw new Error('--id is required for report get');
       const response = await axios.get(
-        `${apiUrl}/completion-reports/${options.id}`,
+        `${baseUrl}/${options.id}`,
         { headers }
       );
       return response.data;
     }
     case 'create': {
+      const title = (options.title ?? options.summary) as string | undefined;
+      if (!title || title.trim().length === 0) {
+        throw new Error('--title is required for report create (or use --summary)');
+      }
+
+      const rawContent = options.content as string | undefined;
+      const content = rawContent ?? toDetailsAsMarkdown(options.details);
+      if (!content || content.trim().length === 0) {
+        throw new Error('--content is required for report create (or use --details)');
+      }
+
+      const reportType = (options.reportType as string | undefined) ?? 'IMPL_PLAN';
+      const status = (options.status as string | undefined) ?? 'COMPLETED';
+      const createdBy = (options.createdBy as string | undefined) ?? '__cli__';
+
       const response = await axios.post(
-        `${apiUrl}/completion-reports`,
+        baseUrl,
         {
           taskId: options.taskId,
-          summary: options.summary,
-          agentId: options.agentId,
-          details: options.details,
+          title,
+          content,
+          reportType,
+          status,
+          createdBy
         },
         { headers }
       );
@@ -271,11 +324,15 @@ async function executeReportCommand(
     case 'update': {
       if (!options.id) throw new Error('--id is required for report update');
       const body: Record<string, any> = {};
-      if (options.summary) body.summary = options.summary;
-      if (options.details) body.details = options.details;
+
+      if (options.title ?? options.summary) body.title = options.title ?? options.summary;
+      if (options.content) body.content = options.content;
+      if (options.reportType) body.reportType = options.reportType;
+      if (options.status) body.status = options.status;
+      if (options.qualityScore !== undefined) body.qualityScore = options.qualityScore;
 
       const response = await axios.put(
-        `${apiUrl}/completion-reports/${options.id}`,
+        `${baseUrl}/${options.id}`,
         body,
         { headers }
       );
@@ -284,13 +341,26 @@ async function executeReportCommand(
     case 'delete': {
       if (!options.id) throw new Error('--id is required for report delete');
       await axios.delete(
-        `${apiUrl}/completion-reports/${options.id}`,
+        `${baseUrl}/${options.id}`,
         { headers }
       );
       return { message: `Report ${options.id} deleted successfully` };
     }
     default:
       throw new Error(`Unknown action: ${action}`);
+  }
+}
+
+function toDetailsAsMarkdown(details: unknown): string | undefined {
+  if (typeof details !== 'string' || details.trim().length === 0) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(details) as unknown;
+    return `\n\n## Details\n\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\`\n`;
+  } catch {
+    return `\n\n## Details\n\n${details}\n`;
   }
 }
 

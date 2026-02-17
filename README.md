@@ -172,21 +172,15 @@ agentteams comment create \
 
 ### `report`
 
-Create completion reports.
+Create completion reports (stored as Markdown).
 
 ```bash
-# Basic report
+# Create from inline markdown
 agentteams report create \
-  --task-id 1 \
-  --summary "Task completed successfully" \
-  --agent-id 1
-
-# Report with details
-agentteams report create \
-  --task-id 1 \
-  --summary "Feature implemented" \
-  --agent-id 1 \
-  --details '{"hours": 2, "files_changed": 5}'
+  --title "AgentBoard MVP 구현" \
+  --content "## TL;DR\n- done" \
+  --report-type IMPL_PLAN \
+  --status COMPLETED
 ```
 
 ### `config`
