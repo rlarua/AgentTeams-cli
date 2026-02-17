@@ -186,14 +186,14 @@ async function executePlanCommand(
     }
     case 'create': {
       if (!options.title) throw new Error('--title is required for plan create');
-      if (!options.description || options.description.trim().length === 0) {
-        throw new Error('--description is required for plan create');
+      if (!options.content || options.content.trim().length === 0) {
+        throw new Error('--content is required for plan create');
       }
       const response = await axios.post(
         baseUrl,
         {
           title: options.title,
-          description: options.description,
+          content: options.content,
           priority: options.priority ?? 'MEDIUM',
           status: options.status,
         },
@@ -205,7 +205,7 @@ async function executePlanCommand(
       if (!options.id) throw new Error('--id is required for plan update');
       const body: Record<string, string> = {};
       if (options.title) body.title = options.title;
-      if (options.description) body.description = options.description;
+      if (options.content) body.content = options.content;
       if (options.status) body.status = options.status;
       if (options.priority) body.priority = options.priority;
 

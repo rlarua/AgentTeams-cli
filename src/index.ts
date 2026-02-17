@@ -87,7 +87,7 @@ program
   .argument('<action>', 'Action to perform (list, get, create, update, delete, assign)')
   .option('--id <id>', 'Plan ID')
   .option('--title <title>', 'Plan title')
-  .option('--description <description>', 'Plan description')
+  .option('--content <content>', 'Plan content (plain text or Tiptap JSON)')
   .option('--status <status>', 'Plan status (PENDING, IN_PROGRESS, DONE, CANCELLED)')
   .option('--priority <priority>', 'Plan priority (LOW, MEDIUM, HIGH)')
   .option('--agent <agent>', 'Agent name or ID to assign')
@@ -97,7 +97,7 @@ program
       const result = await executeCommand('plan', action, {
         id: options.id,
         title: options.title,
-        description: options.description,
+        content: options.content,
         status: options.status,
         priority: options.priority,
         agent: options.agent,

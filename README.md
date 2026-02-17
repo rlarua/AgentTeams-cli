@@ -167,12 +167,12 @@ agentteams plan list
 # Get plan
 agentteams plan get --id 1
 
-# Create plan
-agentteams plan create \
-  --title "Implement feature X" \
-  --description "Details here" \
-  --status "PENDING" \
-  --priority "HIGH"
+	# Create plan
+	agentteams plan create \
+	  --title "Implement feature X" \
+	  --content "Details here" \
+	  --status "PENDING" \
+	  --priority "HIGH"
 
 # Update plan
 agentteams plan update --id 1 --status "IN_PROGRESS"

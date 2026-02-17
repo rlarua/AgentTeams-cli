@@ -284,7 +284,7 @@ describe('CLI Integration Tests', () => {
 
       await executeCommand('plan', 'create', {
         title: 'Plan 1',
-        description: 'desc',
+        content: 'content',
         priority: 'HIGH',
       });
       await executeCommand('plan', 'list', {});
@@ -298,7 +298,7 @@ describe('CLI Integration Tests', () => {
         `${API_URL}/api/projects/${PROJECT_ID}/plans`,
         expect.objectContaining({
           title: 'Plan 1',
-          description: 'desc',
+          content: 'content',
           priority: 'HIGH',
         }),
         { headers: authHeaders() }
@@ -677,7 +677,7 @@ describe('CLI Integration Tests', () => {
       );
       await expect(
         executeCommand('plan', 'create', { title: 'no desc' })
-      ).rejects.toThrow('--description is required for plan create');
+      ).rejects.toThrow('--content is required for plan create');
       await expect(
         executeCommand('comment', 'create', { planId: 'plan-1', content: 'x' })
       ).rejects.toThrow('--type is required for comment create');
