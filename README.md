@@ -1,6 +1,7 @@
 # @rlarua/agentteams-cli
 
-Command-line interface for managing AI agent teams. Configure agents, sync conventions, track tasks, and report status from your terminal.
+A CLI for working with the AgentTeams API from your terminal.
+It supports convention sync, status reporting, and plan/comment/report management.
 
 ## Installation
 
@@ -8,7 +9,7 @@ Command-line interface for managing AI agent teams. Configure agents, sync conve
 npm install -g @rlarua/agentteams-cli
 ```
 
-Or use with npx:
+Or run with `npx`:
 
 ```bash
 npx @rlarua/agentteams-cli init
@@ -22,247 +23,229 @@ npx @rlarua/agentteams-cli init
 agentteams init
 ```
 
-This command:
-- Opens your browser for OAuth authentication
-- Creates `.agentteams/config.json` with credentials
-- Downloads convention index to `.agentteams/convention.md`
-- Runs sync to download category conventions into `.agentteams/<category>/*.md`
-- Detects your AI environment (Claude Code, opencode, codex)
+The `init` command:
 
-You can run `agentteams sync` later to refresh them again.
+- Opens a browser for OAuth authentication
+- Creates `.agentteams/config.json`
+- Saves the convention template to `.agentteams/convention.md`
+- Syncs convention files into `.agentteams/<category>/*.md`
 
-**What gets created:**
+In SSH/remote environments, open the URL printed in the terminal manually.
 
+### Service URLs (Defaults and Overrides)
+
+The CLI talks to two services:
+
+- Web app (OAuth flow): defaults to `https://agent-web.justin-mk.me`
+- API: no hardcoded default; it is read from `.agentteams/config.json` (created by `init`) or overridden via `AGENTTEAMS_API_URL` (commonly `https://agent-api.justin-mk.me`)
+
+Typical usage:
+
+- Production: run `agentteams init` and do not set any URL overrides.
+- If you need to point the CLI to a different environment, override URLs with environment variables.
+
+Override examples (production):
+
+```bash
+export AGENTTEAMS_API_URL="https://agent-api.justin-mk.me"
 ```
-your-project/
-├── .agentteams/
-│   ├── config.json        # API credentials
-│   └── convention.md      # Convention index template
+
+Override examples (advanced):
+
+```bash
+# Override the web app used by `agentteams init` (OAuth authorize page)
+export AGENTTEAMS_WEB_URL="https://your-agentteams-web.example.com"
+
+# Override the API base URL used by all API calls
+export AGENTTEAMS_API_URL="https://your-agentteams-api.example.com"
 ```
 
-### 2. Add to .gitignore
+### 2. Protect Sensitive Data
 
-Protect your API keys by adding this to `.gitignore`:
+`.agentteams` may contain API keys, so do not commit it to git.
 
 ```gitignore
 # AgentTeams CLI config (contains API keys)
 .agentteams
 ```
 
-### 3. Use conventions
-
-After initialization, conventions are available to your AI agent. The CLI provides setup instructions based on your environment.
+### 3. Use Conventions
 
 ```bash
-# List conventions
 agentteams convention list
-
-# Show full conventions
 agentteams convention show
-
-# Download all conventions from server
 agentteams convention download
 ```
 
-## Commands
+## Core Commands
 
 ### `init`
 
-Initialize with OAuth authentication.
+Initialize the CLI via OAuth and download conventions.
 
 ```bash
 agentteams init
 ```
 
-Opens browser for authentication, saves config, and downloads conventions. For SSH/remote environments, manually copy the displayed URL if the browser doesn't open automatically.
-
 ### `convention`
 
-Manage project conventions.
+View and download project conventions.
 
 ```bash
-# List conventions
 agentteams convention list
-
-# Show all convention markdown in terminal
 agentteams convention show
-
-# Download all conventions and save dev files
 agentteams convention download
 ```
 
-`convention download` saves files by category directory (for example: `.agentteams/rules/<name>.md`).
-If duplicate names exist in the same category, numeric suffixes are added (for example: `rules.md`, `rules-2.md`).
-Before saving, the CLI cleans up existing files in each target category directory.
+`convention download` saves files by category in `.agentteams/<category>/`.
+If file names collide within the same category, suffixes like `-2`, `-3` are added.
 
 ### `sync`
 
-Sync local convention files from API.
+Resync convention files.
 
 ```bash
-# Download conventions by category into .agentteams/<category>/*.md
 agentteams sync
-```
-
-`sync` also refreshes `.agentteams/convention.md` template.
-
-### `agent-config`
-
-Manage agent configurations.
-
-```bash
-# List all configs
-agentteams agent-config list
-agentteams agent-config list --format text
-
-# Get specific config
-agentteams agent-config get --id <config-id>
-
-# Delete config
-agentteams agent-config delete --id <config-id>
 ```
 
 ### `status`
 
-Manage agent status reports.
+Manage agent statuses.
 
 ```bash
-# Report status
 agentteams status report \
   --agent "my-agent" \
   --status "IN_PROGRESS" \
-  --task "작업 중" \
+  --task "Working on task" \
   --issues "" \
   --remaining "next step"
 
-# List statuses
 agentteams status list
-
-# Get specific status
 agentteams status get --id <status-id>
-
-# Update status
 agentteams status update --id <status-id> --status "DONE"
-
-# Delete status
 agentteams status delete --id <status-id>
 ```
 
-**Status values:** `IN_PROGRESS`, `DONE`, `BLOCKED`
+Note: `--agent` is optional, but your server may require it depending on your setup.
 
-`--issues`, `--remaining` are comma-separated strings.
-Examples:
-- `--issues "api timeout,auth failure"`
-- `--remaining "add tests,write docs"`
-- empty list: `--issues ""`
+Status values: `IN_PROGRESS`, `DONE`, `BLOCKED`
 
 ### `plan`
 
 Manage plans.
 
 ```bash
-# List plans
 agentteams plan list
+agentteams plan get --id <plan-id>
 
-# Get plan
-agentteams plan get --id 1
+agentteams plan create \
+  --title "Implement feature" \
+  --content "Detailed content" \
+  --status "PENDING" \
+  --priority "HIGH"
 
-	# Create plan
-	agentteams plan create \
-	  --title "Implement feature X" \
-	  --content "Details here" \
-	  --status "PENDING" \
-	  --priority "HIGH"
-
-# Update plan
-agentteams plan update --id 1 --status "IN_PROGRESS"
-
-# Assign plan
-agentteams plan assign --id 1 --agent "agent-name"
-
-# Delete plan
-agentteams plan delete --id 1
+agentteams plan update --id <plan-id> --status "IN_PROGRESS"
+agentteams plan assign --id <plan-id> --agent "agent-name"
+agentteams plan download --id <plan-id>
+agentteams plan cleanup --id <plan-id>
+agentteams plan delete --id <plan-id>
 ```
 
-**Plan statuses:** `DRAFT`, `PENDING`, `IN_PROGRESS`, `DONE`, `CANCELLED`  
-**Priorities:** `LOW`, `MEDIUM`, `HIGH`
+Status values: `DRAFT`, `PENDING`, `ASSIGNED`, `IN_PROGRESS`, `BLOCKED`, `DONE`, `CANCELLED`
+
+Priorities: `LOW`, `MEDIUM`, `HIGH`
 
 ### `comment`
 
 Manage plan comments.
 
 ```bash
+agentteams comment list --plan-id <plan-id>
+
 agentteams comment create \
   --plan-id <plan-id> \
   --type GENERAL \
-  --content "Great work!"
+  --content "Work completed"
 
-# Types: RISK, MODIFICATION, GENERAL
+agentteams comment update --id <comment-id> --content "Updated content"
+agentteams comment delete --id <comment-id>
 ```
+
+Types: `RISK`, `MODIFICATION`, `GENERAL`
 
 ### `dependency`
 
 Manage plan dependencies.
 
 ```bash
-# List dependencies for a plan
 agentteams dependency list --plan-id <plan-id>
-
-# Add dependency
 agentteams dependency create --plan-id <plan-id> --blocking-plan-id <blocking-plan-id>
-
-# Delete dependency
 agentteams dependency delete --plan-id <plan-id> --dep-id <dependency-id>
+```
+
+### `agent-config`
+
+View or delete agent configurations.
+
+```bash
+agentteams agent-config list
+agentteams agent-config get --id <config-id>
+agentteams agent-config delete --id <config-id>
 ```
 
 ### `report`
 
-Create completion reports (stored as Markdown).
+Manage completion reports.
 
 ```bash
-# Create from inline markdown
+agentteams report list
+
 agentteams report create \
-  --title "AgentBoard MVP 구현" \
+  --title "AgentTeams completion report" \
   --content "## TL;DR\n- done" \
   --report-type IMPL_PLAN \
   --status COMPLETED
 ```
 
+Report types: `IMPL_PLAN`, `COMMIT_RANGE`, `TASK_COMPLETION`
+
+Status values: `COMPLETED`, `FAILED`, `PARTIAL`
+
 ### `postmortem`
 
-Create post mortems (content supports Markdown).
+Manage post mortems.
 
 ```bash
+agentteams postmortem list
+
 agentteams postmortem create \
-  --title "배포 장애 사후분석" \
-  --content "## 원인\n- 설정 누락" \
-  --action-items "롤백 자동화,사전 점검 체크리스트" \
+  --title "Deployment incident analysis" \
+  --content "## Root cause\n- Missing configuration" \
+  --action-items "Automate rollback,Pre-release checklist" \
   --status RESOLVED
 ```
 
-### `config`
+Status values: `OPEN`, `IN_PROGRESS`, `RESOLVED`
 
-View current configuration.
+### `config`
 
 ```bash
 agentteams config whoami
 agentteams config whoami --format text
 ```
 
+`config whoami` prints current environment variable values for `AGENTTEAMS_API_KEY` and `AGENTTEAMS_API_URL`.
+
 ## Configuration
 
-### Priority Order
+Configuration is merged in this priority order (highest first):
 
-Configuration is merged from multiple sources (highest to lowest priority):
-
-1. CLI options (command-line arguments)
+1. CLI options
 2. Environment variables (`AGENTTEAMS_*`)
 3. Project config (`.agentteams/config.json`)
 4. Global config (`~/.agentteams/config.json`)
 
-### Config File
-
-`.agentteams/config.json`:
+### Config File Example
 
 ```json
 {
@@ -274,7 +257,7 @@ Configuration is merged from multiple sources (highest to lowest priority):
 }
 ```
 
-### Environment Variables
+### Environment Variable Example
 
 ```bash
 export AGENTTEAMS_API_KEY="key_your_api_key_here"
@@ -284,36 +267,30 @@ export AGENTTEAMS_PROJECT_ID="proj_xxx"
 export AGENTTEAMS_AGENT_NAME="my-agent"
 ```
 
-Useful for CI/CD pipelines and temporary overrides.
+## Output Format
 
-## Output Formats
-
-All commands support `--format` option:
+Most resource commands support `--format json|text`.
 
 ```bash
-# JSON (default, machine-readable)
 agentteams plan list --format json
-
-# Text (human-friendly tables)
 agentteams plan list --format text
 ```
 
-## Error Handling
+Note: `convention` does not support `--format`.
 
-| Error | Meaning | Solution |
-|-------|---------|----------|
-| **401 Unauthorized** | Invalid API key | Check `apiKey` in config or `AGENTTEAMS_API_KEY` |
-| **403 Forbidden** | Cross-project access denied | Verify `projectId` matches resource |
-| **404 Not Found** | Resource doesn't exist | Check ID or create resource first |
-| **Network errors** | Can't connect to server | Verify `apiUrl` and server status |
-| **Config not found** | No config file or env vars | Run `agentteams init` first |
+## Error Guide
 
-## Development
-
-For contributors and developers who want to work on the CLI:
-
-**See [DEVELOPMENT.md](https://github.com/rlarua/AgentTeams/blob/main/cli/DEVELOPMENT.md)** for detailed development setup, testing, and contribution guidelines.
+| Error | Meaning | Resolution |
+|---|---|---|
+| `401 Unauthorized` | Invalid API key | Check `apiKey` or `AGENTTEAMS_API_KEY` |
+| `403 Forbidden` | No access to project | Verify `projectId` |
+| `404 Not Found` | Resource does not exist | Verify ID or create the resource |
+| Network error | Cannot reach server | Check `apiUrl` and server status |
+| Missing config | Config file/env vars not found | Run `agentteams init` |
 
 ## License
 
-MIT
+Apache-2.0
+
+This license applies to the CLI code distributed in this package.
+Use of the AgentTeams service/API may require credentials and is governed by separate service terms/policies.
