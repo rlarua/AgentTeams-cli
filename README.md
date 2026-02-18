@@ -184,7 +184,7 @@ agentteams plan assign --id 1 --agent "agent-name"
 agentteams plan delete --id 1
 ```
 
-**Plan statuses:** `PENDING`, `IN_PROGRESS`, `DONE`, `CANCELLED`  
+**Plan statuses:** `DRAFT`, `PENDING`, `IN_PROGRESS`, `DONE`, `CANCELLED`  
 **Priorities:** `LOW`, `MEDIUM`, `HIGH`
 
 ### `comment`
