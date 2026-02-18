@@ -76,6 +76,15 @@ describe('CLI Integration Tests', () => {
       axiosGetSpy
         .mockResolvedValueOnce({ data: { data: [{ id: 'ag-1' }] } } as any)
         .mockResolvedValueOnce({ data: { data: { content: '# team convention\n- follow rules\n' } } } as any)
+        .mockResolvedValueOnce({
+          data: {
+            data: [
+              { fileName: 'plan-guide.md', content: '# plan guide\n' },
+              { fileName: 'completion-report-guide.md', content: '# completion report guide\n' },
+              { fileName: 'post-mortem-guide.md', content: '# post mortem guide\n' },
+            ],
+          },
+        } as any)
         .mockResolvedValueOnce({ data: { data: [] } } as any);
 
       const mockStartLocalAuthServer = jest.fn().mockReturnValue({
@@ -164,6 +173,15 @@ describe('CLI Integration Tests', () => {
         .mockResolvedValueOnce({
           data: {
             data: [
+              { fileName: 'plan-guide.md', content: '# plan guide\n' },
+              { fileName: 'completion-report-guide.md', content: '# completion report guide\n' },
+              { fileName: 'post-mortem-guide.md', content: '# post mortem guide\n' },
+            ],
+          },
+        } as any)
+        .mockResolvedValueOnce({
+          data: {
+            data: [
               { id: 'cv-1', title: 'Core Rules', category: 'rules' },
               { id: 'cv-2', title: 'API Rules', category: 'rules' },
             ],
@@ -197,17 +215,19 @@ describe('CLI Integration Tests', () => {
         process.chdir(tempCwd);
         await executeCommand('sync', 'download', { cwd: tempCwd });
 
-        const downloadedCore = readFileSync(join(agentteamsDir, 'rules', 'core-rules.md'), 'utf-8');
-        const downloadedApi = readFileSync(join(agentteamsDir, 'rules', 'api-rules.md'), 'utf-8');
-      const reporting = readFileSync(join(agentteamsDir, 'convention.md'), 'utf-8');
-        expect(downloadedCore).toBe('# core rules');
-        expect(downloadedApi).toBe('# api rules');
-        expect(reporting).toBe('# reporting from sync\n');
-      } finally {
-        process.chdir(originalCwd);
-        rmSync(tempCwd, { recursive: true, force: true });
-      }
-    });
+         const downloadedCore = readFileSync(join(agentteamsDir, 'rules', 'core-rules.md'), 'utf-8');
+         const downloadedApi = readFileSync(join(agentteamsDir, 'rules', 'api-rules.md'), 'utf-8');
+       const reporting = readFileSync(join(agentteamsDir, 'convention.md'), 'utf-8');
+         const planGuide = readFileSync(join(agentteamsDir, 'platform', 'guides', 'plan-guide.md'), 'utf-8');
+         expect(downloadedCore).toBe('# core rules');
+         expect(downloadedApi).toBe('# api rules');
+         expect(reporting).toBe('# reporting from sync\n');
+         expect(planGuide).toBe('# plan guide\n');
+       } finally {
+         process.chdir(originalCwd);
+         rmSync(tempCwd, { recursive: true, force: true });
+       }
+     });
 
     it('status report: should POST project-scoped path with required payload', async () => {
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 's1' } } } as any);
@@ -445,6 +465,15 @@ describe('CLI Integration Tests', () => {
       axiosGetSpy
         .mockResolvedValueOnce({ data: { data: [{ id: 'ag-1' }] } } as any)
         .mockResolvedValueOnce({ data: { data: { content: '# reporting template\n' } } } as any)
+        .mockResolvedValueOnce({
+          data: {
+            data: [
+              { fileName: 'plan-guide.md', content: '# plan guide\n' },
+              { fileName: 'completion-report-guide.md', content: '# completion report guide\n' },
+              { fileName: 'post-mortem-guide.md', content: '# post mortem guide\n' },
+            ],
+          },
+        } as any)
         .mockResolvedValueOnce({ data: { data: [{ id: 'cv-1', title: 'Core Rules', category: 'rules' }, { id: 'cv-2', title: 'API Rule', category: 'rules' }] } } as any)
         .mockResolvedValueOnce({ data: '# downloaded convention 1' } as any)
         .mockResolvedValueOnce({ data: '# downloaded convention 2' } as any);
@@ -479,10 +508,12 @@ describe('CLI Integration Tests', () => {
         const downloadedFile1 = readFileSync(join(agentteamsDir, 'rules', 'core-rules.md'), 'utf-8');
         const downloadedFile2 = readFileSync(join(agentteamsDir, 'rules', 'api-rule.md'), 'utf-8');
         const reportingContent = readFileSync(join(agentteamsDir, 'convention.md'), 'utf-8');
+        const planGuide = readFileSync(join(agentteamsDir, 'platform', 'guides', 'plan-guide.md'), 'utf-8');
 
         expect(downloadedFile1).toBe('# downloaded convention 1');
         expect(downloadedFile2).toBe('# downloaded convention 2');
         expect(reportingContent).toBe('# reporting template\n');
+        expect(planGuide).toBe('# plan guide\n');
       } finally {
         process.chdir(originalCwd);
         rmSync(tempCwd, { recursive: true, force: true });
@@ -508,6 +539,15 @@ describe('CLI Integration Tests', () => {
       axiosGetSpy
         .mockResolvedValueOnce({ data: { data: [{ id: 'ag-1' }] } } as any)
         .mockResolvedValueOnce({ data: { data: { content: '# reporting template only\n' } } } as any)
+        .mockResolvedValueOnce({
+          data: {
+            data: [
+              { fileName: 'plan-guide.md', content: '# plan guide\n' },
+              { fileName: 'completion-report-guide.md', content: '# completion report guide\n' },
+              { fileName: 'post-mortem-guide.md', content: '# post mortem guide\n' },
+            ],
+          },
+        } as any)
         .mockResolvedValueOnce({ data: { data: [] } } as any);
 
       const originalCwd = process.cwd();
@@ -535,10 +575,12 @@ describe('CLI Integration Tests', () => {
         process.chdir(tempCwd);
         const result = await executeCommand('convention', 'download', {});
         const reporting = readFileSync(join(agentteamsDir, 'convention.md'), 'utf-8');
+        const planGuide = readFileSync(join(agentteamsDir, 'platform', 'guides', 'plan-guide.md'), 'utf-8');
 
         expect(typeof result).toBe('string');
         expect(result).toContain('No project conventions found');
         expect(reporting).toBe('# reporting template only\n');
+        expect(planGuide).toBe('# plan guide\n');
       } finally {
         process.chdir(originalCwd);
         rmSync(tempCwd, { recursive: true, force: true });
@@ -549,6 +591,7 @@ describe('CLI Integration Tests', () => {
       axiosGetSpy
         .mockResolvedValueOnce({ data: { data: [{ id: 'ag-1' }] } } as any)
         .mockResolvedValueOnce({ data: { data: { content: '# reporting template\n' } } } as any)
+        .mockResolvedValueOnce({ data: { data: [] } } as any)
         .mockResolvedValueOnce({ data: { data: [{ id: 'cv-1', title: 'Rules', category: 'rules' }, { id: 'cv-2', title: 'Rules', category: 'rules' }] } } as any)
         .mockResolvedValueOnce({ data: '# rules 1' } as any)
         .mockResolvedValueOnce({ data: '# rules 2' } as any);
@@ -594,6 +637,7 @@ describe('CLI Integration Tests', () => {
       axiosGetSpy
         .mockResolvedValueOnce({ data: { data: [{ id: 'ag-1' }] } } as any)
         .mockResolvedValueOnce({ data: { data: { content: '# reporting template\n' } } } as any)
+        .mockResolvedValueOnce({ data: { data: [] } } as any)
         .mockResolvedValueOnce({ data: { data: [{ id: 'cv-1', title: 'Rules', category: 'rules' }] } } as any)
         .mockResolvedValueOnce({ data: '# latest rules' } as any);
 

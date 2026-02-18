@@ -13,6 +13,13 @@ type ConventionCommandOptions = {
   config?: Config;
 };
 
+type PlatformGuide = {
+  title?: string;
+  fileName?: string;
+  category?: string;
+  content?: string;
+};
+
 function findProjectRoot(cwd?: string): string | null {
   const configPath = findProjectConfig(cwd ?? process.cwd());
   if (!configPath) return null;
@@ -119,6 +126,80 @@ function buildConventionFileName(convention: { id: string; title?: string; fileN
   return `${prefix}.md`;
 }
 
+function normalizeMarkdownFileName(input: string): string {
+  const trimmed = input.trim();
+  const base = trimmed.toLowerCase().endsWith('.md')
+    ? trimmed.slice(0, -3)
+    : trimmed;
+
+  const safeBase = toSafeFileName(base);
+  const resolvedBase = safeBase.length > 0 ? safeBase : 'guide';
+  return `${resolvedBase}.md`;
+}
+
+function buildPlatformGuideFileName(guide: PlatformGuide): string {
+  if (typeof guide.fileName === 'string' && guide.fileName.trim().length > 0) {
+    return normalizeMarkdownFileName(guide.fileName);
+  }
+
+  if (typeof guide.title === 'string' && guide.title.trim().length > 0) {
+    return `${toSafeFileName(guide.title)}.md`;
+  }
+
+  return 'guide.md';
+}
+
+async function downloadPlatformGuides(
+  projectRoot: string,
+  apiUrl: string,
+  headers: Record<string, string>
+): Promise<number> {
+  try {
+    const response = await axios.get(
+      `${apiUrl}/api/platform/guides`,
+      { headers }
+    );
+
+    const guides = response.data?.data;
+    if (!Array.isArray(guides) || guides.length === 0) {
+      return 0;
+    }
+
+    const baseDir = join(projectRoot, CONVENTION_DIR, 'platform', 'guides');
+    rmSync(baseDir, { recursive: true, force: true });
+    mkdirSync(baseDir, { recursive: true });
+
+    const fileNameCount = new Map<string, number>();
+    let written = 0;
+
+    for (const guide of guides as PlatformGuide[]) {
+      if (!guide || typeof guide.content !== 'string') {
+        continue;
+      }
+
+      const baseFileName = buildPlatformGuideFileName(guide);
+      const seenCount = fileNameCount.get(baseFileName) ?? 0;
+      fileNameCount.set(baseFileName, seenCount + 1);
+
+      const fileName = seenCount === 0
+        ? baseFileName
+        : baseFileName.replace(/\.md$/, `-${seenCount + 1}.md`);
+
+      const filePath = join(baseDir, fileName);
+      writeFileSync(filePath, guide.content, 'utf-8');
+      written += 1;
+    }
+
+    return written;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return 0;
+    }
+
+    throw error;
+  }
+}
+
 async function downloadReportingTemplate(
   projectRoot: string,
   config: Config,
@@ -173,6 +254,7 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
   }
 
   const hasReportingTemplate = await downloadReportingTemplate(projectRoot, config, apiUrl, headers);
+  const platformGuideCount = await downloadPlatformGuides(projectRoot, apiUrl, headers);
 
   const listResponse = await axios.get(
     `${apiUrl}/api/projects/${config.projectId}/conventions`,
@@ -182,7 +264,10 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
   const conventions = listResponse.data?.data;
   if (!conventions || conventions.length === 0) {
     if (hasReportingTemplate) {
-      return `Convention sync completed.\nUpdated ${CONVENTION_DIR}/${CONVENTION_INDEX_FILE}\nNo project conventions found.`;
+      const platformLine = platformGuideCount > 0
+        ? `\nDownloaded ${platformGuideCount} platform guide file(s) into ${CONVENTION_DIR}/platform/guides`
+        : '';
+      return `Convention sync completed.\nUpdated ${CONVENTION_DIR}/${CONVENTION_INDEX_FILE}\nNo project conventions found.${platformLine}`;
     }
 
     throw new Error(
@@ -231,5 +316,9 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
     ? `Updated ${CONVENTION_DIR}/${CONVENTION_INDEX_FILE}\n`
     : "";
 
-  return `Convention sync completed.\n${reportingLine}Downloaded ${conventions.length} file(s) into category directories under ${CONVENTION_DIR}`;
+  const platformLine = platformGuideCount > 0
+    ? `Downloaded ${platformGuideCount} platform guide file(s) into ${CONVENTION_DIR}/platform/guides\n`
+    : "";
+
+  return `Convention sync completed.\n${reportingLine}${platformLine}Downloaded ${conventions.length} file(s) into category directories under ${CONVENTION_DIR}`;
 }
