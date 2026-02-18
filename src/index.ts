@@ -88,11 +88,12 @@ program
 program
   .command('plan')
   .description('Manage plans')
-  .argument('<action>', 'Action to perform (list, get, create, update, delete, assign)')
+  .argument('<action>', 'Action to perform (list, get, create, update, delete, assign, download, cleanup)')
   .option('--id <id>', 'Plan ID')
   .option('--title <title>', 'Plan title')
   .option('--search <text>', 'Plan title/ID search keyword (list only)')
   .option('--content <content>', 'Plan content (plain text or Tiptap JSON)')
+  .option('--file <path>', 'Read plan content from a local file (create/update)')
   .option('--status <status>', 'Plan status (DRAFT, PENDING, ASSIGNED, IN_PROGRESS, BLOCKED, DONE, CANCELLED)')
   .option('--priority <priority>', 'Plan priority (LOW, MEDIUM, HIGH)')
   .option('--assigned-to <id>', 'Assigned agent config ID (list filter)')
@@ -107,6 +108,7 @@ program
         title: options.title,
         search: options.search,
         content: options.content,
+        file: options.file,
         status: options.status,
         priority: options.priority,
         assignedTo: options.assignedTo,
