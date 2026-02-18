@@ -296,6 +296,17 @@ describe('CLI Integration Tests', () => {
       );
     });
 
+    it('status list: should pass pagination query params', async () => {
+      axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
+
+      await executeCommand('status', 'list', { page: '2', pageSize: '50' });
+
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/agent-statuses`,
+        { headers: authHeaders(), params: { page: 2, pageSize: 50 } }
+      );
+    });
+
     it('plan CRUD/assign: should use project-scoped plan endpoints', async () => {
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
       axiosGetSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
@@ -350,6 +361,43 @@ describe('CLI Integration Tests', () => {
       );
     });
 
+    it('plan list: should pass status filter as query params', async () => {
+      axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
+
+      await executeCommand('plan', 'list', { status: 'PENDING' });
+
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans`,
+        { headers: authHeaders(), params: { status: 'PENDING' } }
+      );
+    });
+
+    it('plan list: should pass extended filters and pagination', async () => {
+      axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
+
+      await executeCommand('plan', 'list', {
+        title: 'CLI bug',
+        search: 'pending',
+        assignedTo: 'acfg-1',
+        page: '3',
+        pageSize: '25',
+      });
+
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans`,
+        {
+          headers: authHeaders(),
+          params: {
+            title: 'CLI bug',
+            search: 'pending',
+            assignedTo: 'acfg-1',
+            page: 3,
+            pageSize: 25,
+          },
+        }
+      );
+    });
+
     it('comment CRUD: should use project-scoped endpoints and required type', async () => {
       axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 'c1' } } } as any);
@@ -395,6 +443,25 @@ describe('CLI Integration Tests', () => {
       expect(axiosDeleteSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/comments/comment-1`,
         { headers: authHeaders() }
+      );
+    });
+
+    it('comment list: should pass type and pagination filters', async () => {
+      axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
+
+      await executeCommand('comment', 'list', {
+        planId: 'plan-1',
+        type: 'RISK',
+        page: '2',
+        pageSize: '20',
+      });
+
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/comments`,
+        {
+          headers: authHeaders(),
+          params: { type: 'RISK', page: 2, pageSize: 20 },
+        }
       );
     });
 
@@ -706,6 +773,34 @@ describe('CLI Integration Tests', () => {
       );
     });
 
+    it('report list: should pass query filters and pagination', async () => {
+      axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
+
+      await executeCommand('report', 'list', {
+        planId: 'plan-1',
+        reportType: 'TASK_COMPLETION',
+        status: 'COMPLETED',
+        createdBy: 'tester',
+        page: '2',
+        pageSize: '10',
+      });
+
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/completion-reports`,
+        {
+          headers: authHeaders(),
+          params: {
+            planId: 'plan-1',
+            reportType: 'TASK_COMPLETION',
+            status: 'COMPLETED',
+            createdBy: 'tester',
+            page: 2,
+            pageSize: 10,
+          },
+        }
+      );
+    });
+
     it('postmortem command: should remain project-scoped post mortem path', async () => {
       axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 'pm1' } } } as any);
@@ -730,6 +825,32 @@ describe('CLI Integration Tests', () => {
           createdBy: 'test-agent',
         }),
         { headers: authHeaders() }
+      );
+    });
+
+    it('postmortem list: should pass query filters and pagination', async () => {
+      axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
+
+      await executeCommand('postmortem', 'list', {
+        planId: 'plan-1',
+        status: 'RESOLVED',
+        createdBy: 'tester',
+        page: '4',
+        pageSize: '5',
+      });
+
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/post-mortems`,
+        {
+          headers: authHeaders(),
+          params: {
+            planId: 'plan-1',
+            status: 'RESOLVED',
+            createdBy: 'tester',
+            page: 4,
+            pageSize: 5,
+          },
+        }
       );
     });
 
@@ -773,6 +894,10 @@ describe('CLI Integration Tests', () => {
       expect(cliIndex).toContain("--blocking-plan-id <id>");
       expect(cliIndex).toContain(".command('sync')");
       expect(cliIndex).toContain(".command('postmortem')");
+      expect(cliIndex).toContain("--search <text>");
+      expect(cliIndex).toContain("--assigned-to <id>");
+      expect(cliIndex).toContain("--page <number>");
+      expect(cliIndex).toContain("--page-size <number>");
       expect(cliIndex).not.toContain("Action to perform (download)");
 
       expect(cliIndex).not.toContain("--metadata <json>");

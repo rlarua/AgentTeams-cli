@@ -80,7 +80,7 @@ export async function executeCommand(
       return executeReportCommand(apiUrl, headers, action, {
         ...options,
         projectId: config.projectId,
-        createdBy: options.createdBy ?? config.agentName
+        defaultCreatedBy: config.agentName
       });
     }
     case 'postmortem': {
@@ -109,7 +109,7 @@ export async function executeCommand(
       return executePostMortemCommand(apiUrl, headers, action, {
         ...options,
         projectId: config.projectId,
-        createdBy: options.createdBy ?? config.agentName
+        defaultCreatedBy: config.agentName
       });
     }
     case 'dependency':
@@ -153,7 +153,18 @@ async function executeStatusCommand(
       return response.data;
     }
     case 'list': {
-      const response = await axios.get(baseUrl, { headers });
+      const params: Record<string, number> = {};
+      const page = toPositiveInteger(options.page);
+      const pageSize = toPositiveInteger(options.pageSize);
+
+      if (page !== undefined) params.page = page;
+      if (pageSize !== undefined) params.pageSize = pageSize;
+
+      const requestConfig = Object.keys(params).length > 0
+        ? { headers, params }
+        : { headers };
+
+      const response = await axios.get(baseUrl, requestConfig);
       return response.data;
     }
     case 'get': {
@@ -203,7 +214,22 @@ async function executePlanCommand(
 
   switch (action) {
     case 'list': {
-      const response = await axios.get(baseUrl, { headers });
+      const params: Record<string, string | number> = {};
+
+      if (options.title) params.title = options.title;
+      if (options.search) params.search = options.search;
+      if (options.status) params.status = options.status;
+      if (options.assignedTo) params.assignedTo = options.assignedTo;
+      const page = toPositiveInteger(options.page);
+      const pageSize = toPositiveInteger(options.pageSize);
+      if (page !== undefined) params.page = page;
+      if (pageSize !== undefined) params.pageSize = pageSize;
+
+      const requestConfig = Object.keys(params).length > 0
+        ? { headers, params }
+        : { headers };
+
+      const response = await axios.get(baseUrl, requestConfig);
       return response.data;
     }
     case 'get': {
@@ -278,9 +304,21 @@ async function executeCommentCommand(
   switch (action) {
     case 'list': {
       if (!options.planId) throw new Error('--plan-id is required for comment list');
+      const params: Record<string, string | number> = {};
+      if (options.type) params.type = options.type;
+
+      const page = toPositiveInteger(options.page);
+      const pageSize = toPositiveInteger(options.pageSize);
+      if (page !== undefined) params.page = page;
+      if (pageSize !== undefined) params.pageSize = pageSize;
+
+      const requestConfig = Object.keys(params).length > 0
+        ? { headers, params }
+        : { headers };
+
       const response = await axios.get(
         `${planBaseUrl}/${options.planId}/comments`,
-        { headers }
+        requestConfig
       );
       return response.data;
     }
@@ -343,7 +381,22 @@ async function executeReportCommand(
 
   switch (action) {
     case 'list': {
-      const response = await axios.get(baseUrl, { headers });
+      const params: Record<string, string | number> = {};
+      if (options.planId) params.planId = options.planId;
+      if (options.reportType) params.reportType = options.reportType;
+      if (options.status) params.status = options.status;
+      if (options.createdBy) params.createdBy = options.createdBy;
+
+      const page = toPositiveInteger(options.page);
+      const pageSize = toPositiveInteger(options.pageSize);
+      if (page !== undefined) params.page = page;
+      if (pageSize !== undefined) params.pageSize = pageSize;
+
+      const requestConfig = Object.keys(params).length > 0
+        ? { headers, params }
+        : { headers };
+
+      const response = await axios.get(baseUrl, requestConfig);
       return response.data;
     }
     case 'get': {
@@ -368,7 +421,9 @@ async function executeReportCommand(
 
       const reportType = (options.reportType as string | undefined) ?? 'IMPL_PLAN';
       const status = (options.status as string | undefined) ?? 'COMPLETED';
-      const createdBy = (options.createdBy as string | undefined) ?? '__cli__';
+      const createdBy = (options.createdBy as string | undefined)
+        ?? (options.defaultCreatedBy as string | undefined)
+        ?? '__cli__';
 
       const response = await axios.post(
         baseUrl,
@@ -428,7 +483,21 @@ async function executePostMortemCommand(
 
   switch (action) {
     case 'list': {
-      const response = await axios.get(baseUrl, { headers });
+      const params: Record<string, string | number> = {};
+      if (options.planId) params.planId = options.planId;
+      if (options.status) params.status = options.status;
+      if (options.createdBy) params.createdBy = options.createdBy;
+
+      const page = toPositiveInteger(options.page);
+      const pageSize = toPositiveInteger(options.pageSize);
+      if (page !== undefined) params.page = page;
+      if (pageSize !== undefined) params.pageSize = pageSize;
+
+      const requestConfig = Object.keys(params).length > 0
+        ? { headers, params }
+        : { headers };
+
+      const response = await axios.get(baseUrl, requestConfig);
       return response.data;
     }
     case 'get': {
@@ -452,7 +521,9 @@ async function executePostMortemCommand(
           content: options.content,
           actionItems: splitCsv(options.actionItems),
           status: options.status,
-          createdBy: options.createdBy
+          createdBy: (options.createdBy as string | undefined)
+            ?? (options.defaultCreatedBy as string | undefined)
+            ?? '__cli__'
         },
         { headers }
       );
@@ -583,6 +654,19 @@ function splitCsv(value: string): string[] {
     .split(',')
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
+}
+
+function toPositiveInteger(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
+    return value;
+  }
+
+  if (typeof value === 'string' && /^\d+$/.test(value)) {
+    const parsed = Number.parseInt(value, 10);
+    return parsed > 0 ? parsed : undefined;
+  }
+
+  return undefined;
 }
 
 async function executeConfigCommand(action: string): Promise<any> {

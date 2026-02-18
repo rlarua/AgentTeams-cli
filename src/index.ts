@@ -62,6 +62,8 @@ program
   .option('--task <text>', 'Current task summary')
   .option('--issues <csv>', 'Comma-separated issue list')
   .option('--remaining <csv>', 'Comma-separated remaining work list')
+  .option('--page <number>', 'Page number (list only)')
+  .option('--page-size <number>', 'Page size (list only)')
   .option('--format <format>', 'Output format (json, text)', 'json')
   .action(async (action, options) => {
     try {
@@ -72,6 +74,8 @@ program
         task: options.task,
         issues: options.issues,
         remaining: options.remaining,
+        page: options.page,
+        pageSize: options.pageSize,
       });
 
       console.log(formatOutput(result, options.format));
@@ -87,9 +91,13 @@ program
   .argument('<action>', 'Action to perform (list, get, create, update, delete, assign)')
   .option('--id <id>', 'Plan ID')
   .option('--title <title>', 'Plan title')
+  .option('--search <text>', 'Plan title/ID search keyword (list only)')
   .option('--content <content>', 'Plan content (plain text or Tiptap JSON)')
-  .option('--status <status>', 'Plan status (PENDING, IN_PROGRESS, DONE, CANCELLED)')
+  .option('--status <status>', 'Plan status (DRAFT, PENDING, ASSIGNED, IN_PROGRESS, BLOCKED, DONE, CANCELLED)')
   .option('--priority <priority>', 'Plan priority (LOW, MEDIUM, HIGH)')
+  .option('--assigned-to <id>', 'Assigned agent config ID (list filter)')
+  .option('--page <number>', 'Page number (list only)')
+  .option('--page-size <number>', 'Page size (list only)')
   .option('--agent <agent>', 'Agent name or ID to assign')
   .option('--format <format>', 'Output format (json, text)', 'json')
   .action(async (action, options) => {
@@ -97,9 +105,13 @@ program
       const result = await executeCommand('plan', action, {
         id: options.id,
         title: options.title,
+        search: options.search,
         content: options.content,
         status: options.status,
         priority: options.priority,
+        assignedTo: options.assignedTo,
+        page: options.page,
+        pageSize: options.pageSize,
         agent: options.agent,
       });
 
@@ -118,6 +130,8 @@ program
   .option('--plan-id <id>', 'Plan ID')
   .option('--type <type>', 'Comment type (RISK, MODIFICATION, GENERAL)')
   .option('--content <content>', 'Comment content')
+  .option('--page <number>', 'Page number (list only)')
+  .option('--page-size <number>', 'Page size (list only)')
   .option('--format <format>', 'Output format (json, text)', 'json')
   .action(async (action, options) => {
     try {
@@ -126,6 +140,8 @@ program
         planId: options.planId,
         type: options.type,
         content: options.content,
+        page: options.page,
+        pageSize: options.pageSize,
       });
 
       console.log(formatOutput(result, options.format));
@@ -146,6 +162,8 @@ program
   .option('--report-type <type>', 'Report type (IMPL_PLAN, COMMIT_RANGE, TASK_COMPLETION)')
   .option('--status <status>', 'Report status (COMPLETED, FAILED, PARTIAL)')
   .option('--created-by <name>', 'Created by (defaults to agentName from config)')
+  .option('--page <number>', 'Page number (list only)')
+  .option('--page-size <number>', 'Page size (list only)')
   .option('--summary <summary>', '[Deprecated] Alias for --title')
   .option('--details <details>', '[Deprecated] Will be embedded in content as JSON')
   .option('--api-url <url>', 'Override API URL (optional)')
@@ -164,6 +182,8 @@ program
         reportType: options.reportType,
         status: options.status,
         createdBy: options.createdBy,
+        page: options.page,
+        pageSize: options.pageSize,
         summary: options.summary,
         details: options.details,
         apiUrl: options.apiUrl,
@@ -191,6 +211,8 @@ program
   .option('--action-items <csv>', 'Action items (comma-separated)')
   .option('--status <status>', 'Post mortem status (OPEN, IN_PROGRESS, RESOLVED)')
   .option('--created-by <name>', 'Created by (defaults to agentName from config)')
+  .option('--page <number>', 'Page number (list only)')
+  .option('--page-size <number>', 'Page size (list only)')
   .option('--api-url <url>', 'Override API URL (optional)')
   .option('--api-key <key>', 'Override API key (optional)')
   .option('--project-id <id>', 'Override project ID (optional)')
@@ -207,6 +229,8 @@ program
         actionItems: options.actionItems,
         status: options.status,
         createdBy: options.createdBy,
+        page: options.page,
+        pageSize: options.pageSize,
         apiUrl: options.apiUrl,
         apiKey: options.apiKey,
         projectId: options.projectId,
