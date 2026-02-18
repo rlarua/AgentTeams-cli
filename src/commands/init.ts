@@ -4,6 +4,7 @@ import axios from 'axios';
 import open from 'open';
 import { startLocalAuthServer } from '../utils/authServer.js';
 import { saveConfig } from '../utils/config.js';
+import { withSpinner } from '../utils/spinner.js';
 import { conventionDownload } from './convention.js';
 import type { Config } from '../types/index.js';
 
@@ -115,9 +116,15 @@ export async function executeInitCommand(options?: InitOptions): Promise<InitRes
   await tryOpenBrowser(authUrl);
 
   try {
-    const authResult = await authContext.waitForCallback();
+    const authResult = await withSpinner(
+      'Waiting for authentication...',
+      () => authContext.waitForCallback(),
+    );
     const config = toConfig(authResult);
-    const conventionContent = await fetchConventionTemplate(authResult);
+    const conventionContent = await withSpinner(
+      'Fetching convention template...',
+      () => fetchConventionTemplate(authResult),
+    );
 
     saveConfig(configPath, config);
     writeFileSync(conventionPath, conventionContent, 'utf-8');

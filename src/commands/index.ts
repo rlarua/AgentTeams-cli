@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { existsSync, mkdirSync, writeFileSync, rmSync, readdirSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { executeInitCommand } from './init.js';
 import {
   conventionList,
@@ -7,7 +9,22 @@ import {
 } from './convention.js';
 import { agentConfigList, agentConfigGet, agentConfigDelete } from './agentConfig.js';
 import { dependencyList, dependencyCreate, dependencyDelete } from './dependency.js';
-import { loadConfig } from '../utils/config.js';
+import { loadConfig, findProjectConfig } from '../utils/config.js';
+import { withSpinner, printFileInfo } from '../utils/spinner.js';
+
+function findProjectRoot(): string | null {
+  const configPath = findProjectConfig(process.cwd());
+  if (!configPath) return null;
+  return resolve(configPath, '..', '..');
+}
+
+function toSafeFileName(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60);
+}
 
 export async function executeCommand(
   resource: string,
@@ -241,18 +258,33 @@ async function executePlanCommand(
     }
     case 'create': {
       if (!options.title) throw new Error('--title is required for plan create');
-      if (!options.content || options.content.trim().length === 0) {
-        throw new Error('--content is required for plan create');
+
+      let content = options.content;
+      if (options.file) {
+        const filePath = resolve(options.file);
+        if (!existsSync(filePath)) {
+          throw new Error(`File not found: ${options.file}`);
+        }
+        content = readFileSync(filePath, 'utf-8');
+        printFileInfo(options.file, content);
       }
-      const response = await axios.post(
-        baseUrl,
-        {
-          title: options.title,
-          content: options.content,
-          priority: options.priority ?? 'MEDIUM',
-          status: options.status,
-        },
-        { headers }
+      if (!content || content.trim().length === 0) {
+        throw new Error('--content or --file is required for plan create');
+      }
+
+      const response = await withSpinner(
+        'Creating plan...',
+        () => axios.post(
+          baseUrl,
+          {
+            title: options.title,
+            content,
+            priority: options.priority ?? 'MEDIUM',
+            status: options.status,
+          },
+          { headers }
+        ),
+        'Plan created',
       );
       return response.data;
     }
@@ -260,14 +292,27 @@ async function executePlanCommand(
       if (!options.id) throw new Error('--id is required for plan update');
       const body: Record<string, string> = {};
       if (options.title) body.title = options.title;
-      if (options.content) body.content = options.content;
+      if (options.file) {
+        const filePath = resolve(options.file);
+        if (!existsSync(filePath)) {
+          throw new Error(`File not found: ${options.file}`);
+        }
+        body.content = readFileSync(filePath, 'utf-8');
+        printFileInfo(options.file, body.content);
+      } else if (options.content) {
+        body.content = options.content;
+      }
       if (options.status) body.status = options.status;
       if (options.priority) body.priority = options.priority;
 
-      const response = await axios.put(
-        `${baseUrl}/${options.id}`,
-        body,
-        { headers }
+      const response = await withSpinner(
+        'Updating plan...',
+        () => axios.put(
+          `${baseUrl}/${options.id}`,
+          body,
+          { headers }
+        ),
+        'Plan updated',
       );
       return response.data;
     }
@@ -285,6 +330,101 @@ async function executePlanCommand(
         { headers }
       );
       return response.data;
+    }
+    case 'download': {
+      if (!options.id) throw new Error('--id is required for plan download');
+
+      const result = await withSpinner(
+        'Downloading plan...',
+        async () => {
+          const response = await axios.get(`${baseUrl}/${options.id}`, { headers });
+          const plan = response.data.data;
+
+          const projectRoot = findProjectRoot();
+          if (!projectRoot) {
+            throw new Error(
+              "Project root not found. Run 'agentteams init' first."
+            );
+          }
+
+          const activePlanDir = join(projectRoot, '.agentteams', 'active-plan');
+          if (!existsSync(activePlanDir)) {
+            mkdirSync(activePlanDir, { recursive: true });
+          }
+
+          const safeName = toSafeFileName(plan.title) || 'plan';
+          const fileName = `${safeName}.md`;
+          const filePath = join(activePlanDir, fileName);
+
+          const frontmatter = [
+            '---',
+            `planId: ${plan.id}`,
+            `title: ${plan.title}`,
+            `status: ${plan.status}`,
+            `priority: ${plan.priority}`,
+            `downloadedAt: ${new Date().toISOString()}`,
+            '---',
+          ].join('\n');
+
+          const markdown = plan.contentMarkdown ?? '';
+          writeFileSync(filePath, `${frontmatter}\n\n${markdown}`, 'utf-8');
+
+          return {
+            message: `Plan downloaded to ${fileName}`,
+            filePath: `.agentteams/active-plan/${fileName}`,
+          };
+        },
+        'Plan downloaded',
+      );
+
+      return result;
+    }
+    case 'cleanup': {
+      const projectRoot = findProjectRoot();
+      if (!projectRoot) {
+        throw new Error(
+          "Project root not found. Run 'agentteams init' first."
+        );
+      }
+
+      const activePlanDir = join(projectRoot, '.agentteams', 'active-plan');
+      if (!existsSync(activePlanDir)) {
+        return { message: 'No active-plan directory found.', deletedFiles: [] };
+      }
+
+      const deletedFiles = await withSpinner(
+        'Cleaning up plan files...',
+        async () => {
+          const allFiles = readdirSync(activePlanDir).filter((f) => f.endsWith('.md'));
+          const deleted: string[] = [];
+
+          if (options.id) {
+            for (const file of allFiles) {
+              const content = readFileSync(join(activePlanDir, file), 'utf-8');
+              const match = content.match(/^planId:\s*(.+)$/m);
+              if (match && match[1].trim() === options.id) {
+                rmSync(join(activePlanDir, file));
+                deleted.push(file);
+              }
+            }
+          } else {
+            for (const file of allFiles) {
+              rmSync(join(activePlanDir, file));
+              deleted.push(file);
+            }
+          }
+
+          return deleted;
+        },
+        `Cleaned up plan files`,
+      );
+
+      return {
+        message: deletedFiles.length > 0
+          ? `Deleted ${deletedFiles.length} file(s).`
+          : 'No matching files found.',
+        deletedFiles,
+      };
     }
     default:
       throw new Error(`Unknown action: ${action}`);
@@ -425,17 +565,21 @@ async function executeReportCommand(
         ?? (options.defaultCreatedBy as string | undefined)
         ?? '__cli__';
 
-      const response = await axios.post(
-        baseUrl,
-        {
-          planId: options.planId,
-          title,
-          content,
-          reportType,
-          status,
-          createdBy
-        },
-        { headers }
+      const response = await withSpinner(
+        'Creating report...',
+        () => axios.post(
+          baseUrl,
+          {
+            planId: options.planId,
+            title,
+            content,
+            reportType,
+            status,
+            createdBy
+          },
+          { headers }
+        ),
+        'Report created',
       );
       return response.data;
     }
@@ -513,19 +657,23 @@ async function executePostMortemCommand(
       if (!options.content) throw new Error('--content is required for postmortem create');
       if (options.actionItems === undefined) throw new Error('--action-items is required for postmortem create');
 
-      const response = await axios.post(
-        baseUrl,
-        {
-          planId: options.planId,
-          title: options.title,
-          content: options.content,
-          actionItems: splitCsv(options.actionItems),
-          status: options.status,
-          createdBy: (options.createdBy as string | undefined)
-            ?? (options.defaultCreatedBy as string | undefined)
-            ?? '__cli__'
-        },
-        { headers }
+      const response = await withSpinner(
+        'Creating post-mortem...',
+        () => axios.post(
+          baseUrl,
+          {
+            planId: options.planId,
+            title: options.title,
+            content: options.content,
+            actionItems: splitCsv(options.actionItems),
+            status: options.status,
+            createdBy: (options.createdBy as string | undefined)
+              ?? (options.defaultCreatedBy as string | undefined)
+              ?? '__cli__'
+          },
+          { headers }
+        ),
+        'Post-mortem created',
       );
       return response.data;
     }

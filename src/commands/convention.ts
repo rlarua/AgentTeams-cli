@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import axios from "axios";
 import { loadConfig, findProjectConfig } from "../utils/config.js";
+import { withSpinner } from "../utils/spinner.js";
 import type { Config } from "../types/index.js";
 
 const CONVENTION_DIR = ".agentteams";
@@ -253,15 +254,69 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
     );
   }
 
-  const hasReportingTemplate = await downloadReportingTemplate(projectRoot, config, apiUrl, headers);
-  const platformGuideCount = await downloadPlatformGuides(projectRoot, apiUrl, headers);
-
-  const listResponse = await axios.get(
-    `${apiUrl}/api/projects/${config.projectId}/conventions`,
-    { headers }
+  const hasReportingTemplate = await withSpinner(
+    'Downloading reporting template...',
+    () => downloadReportingTemplate(projectRoot, config, apiUrl, headers),
+  );
+  const platformGuideCount = await withSpinner(
+    'Downloading platform guides...',
+    () => downloadPlatformGuides(projectRoot, apiUrl, headers),
   );
 
-  const conventions = listResponse.data?.data;
+  const conventions = await withSpinner(
+    'Downloading conventions...',
+    async () => {
+      const listResponse = await axios.get(
+        `${apiUrl}/api/projects/${config.projectId}/conventions`,
+        { headers }
+      );
+
+      const conventionList = listResponse.data?.data;
+      if (!conventionList || conventionList.length === 0) {
+        return conventionList as any[] | undefined;
+      }
+
+      const legacyDir = join(projectRoot, CONVENTION_DIR, LEGACY_CONVENTION_DOWNLOAD_DIR);
+      rmSync(legacyDir, { recursive: true, force: true });
+
+      const categoryDirs = new Set<string>();
+      for (const convention of conventionList) {
+        const categoryName = typeof convention.category === "string" ? convention.category : "";
+        categoryDirs.add(toSafeDirectoryName(categoryName));
+      }
+
+      for (const categoryDir of categoryDirs) {
+        rmSync(join(projectRoot, CONVENTION_DIR, categoryDir), { recursive: true, force: true });
+        mkdirSync(join(projectRoot, CONVENTION_DIR, categoryDir), { recursive: true });
+      }
+
+      const fileNameCount = new Map<string, number>();
+
+      for (const convention of conventionList) {
+        const downloadResponse = await axios.get(
+          `${apiUrl}/api/projects/${config.projectId}/conventions/${convention.id}/download`,
+          { headers, responseType: "text" }
+        );
+
+        const baseFileName = buildConventionFileName(convention);
+        const categoryName = typeof convention.category === "string" ? convention.category : "";
+        const categoryDir = toSafeDirectoryName(categoryName);
+        const duplicateKey = `${categoryDir}/${baseFileName}`;
+
+        const seenCount = fileNameCount.get(duplicateKey) ?? 0;
+        fileNameCount.set(duplicateKey, seenCount + 1);
+
+        const fileName = seenCount === 0
+          ? baseFileName
+          : baseFileName.replace(/\.md$/, `-${seenCount + 1}.md`);
+        const filePath = join(projectRoot, CONVENTION_DIR, categoryDir, fileName);
+        writeFileSync(filePath, downloadResponse.data, "utf-8");
+      }
+
+      return conventionList;
+    },
+  );
+
   if (!conventions || conventions.length === 0) {
     if (hasReportingTemplate) {
       const platformLine = platformGuideCount > 0
@@ -273,43 +328,6 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
     throw new Error(
       "No conventions found for this project. Create one via the web dashboard first."
     );
-  }
-
-  const legacyDir = join(projectRoot, CONVENTION_DIR, LEGACY_CONVENTION_DOWNLOAD_DIR);
-  rmSync(legacyDir, { recursive: true, force: true });
-
-  const categoryDirs = new Set<string>();
-  for (const convention of conventions) {
-    const categoryName = typeof convention.category === "string" ? convention.category : "";
-    categoryDirs.add(toSafeDirectoryName(categoryName));
-  }
-
-  for (const categoryDir of categoryDirs) {
-    rmSync(join(projectRoot, CONVENTION_DIR, categoryDir), { recursive: true, force: true });
-    mkdirSync(join(projectRoot, CONVENTION_DIR, categoryDir), { recursive: true });
-  }
-
-  const fileNameCount = new Map<string, number>();
-
-  for (const convention of conventions) {
-    const downloadResponse = await axios.get(
-      `${apiUrl}/api/projects/${config.projectId}/conventions/${convention.id}/download`,
-      { headers, responseType: "text" }
-    );
-
-    const baseFileName = buildConventionFileName(convention);
-    const categoryName = typeof convention.category === "string" ? convention.category : "";
-    const categoryDir = toSafeDirectoryName(categoryName);
-    const duplicateKey = `${categoryDir}/${baseFileName}`;
-
-    const seenCount = fileNameCount.get(duplicateKey) ?? 0;
-    fileNameCount.set(duplicateKey, seenCount + 1);
-
-    const fileName = seenCount === 0
-      ? baseFileName
-      : baseFileName.replace(/\.md$/, `-${seenCount + 1}.md`);
-    const filePath = join(projectRoot, CONVENTION_DIR, categoryDir, fileName);
-    writeFileSync(filePath, downloadResponse.data, "utf-8");
   }
 
   const reportingLine = hasReportingTemplate
