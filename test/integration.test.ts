@@ -362,6 +362,41 @@ describe('CLI Integration Tests', () => {
       );
     });
 
+    it('plan create: should interpret \\\\n sequences when interpretEscapes is enabled', async () => {
+      axiosPostSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
+
+      await executeCommand('plan', 'create', {
+        title: 'Plan 1',
+        content: 'Line1\\nLine2',
+        interpretEscapes: true,
+      });
+
+      expect(axiosPostSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans`,
+        expect.objectContaining({
+          title: 'Plan 1',
+          content: 'Line1\nLine2',
+        }),
+        { headers: authHeaders() }
+      );
+    });
+
+    it('plan update: should interpret \\\\n sequences when interpretEscapes is enabled', async () => {
+      axiosPutSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
+
+      await executeCommand('plan', 'update', {
+        id: 'plan-1',
+        content: 'Line1\\nLine2',
+        interpretEscapes: true,
+      });
+
+      expect(axiosPutSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
+        { content: 'Line1\nLine2' },
+        { headers: authHeaders() }
+      );
+    });
+
     it('plan list: should pass status filter as query params', async () => {
       axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
 

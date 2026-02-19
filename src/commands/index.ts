@@ -29,6 +29,12 @@ function toSafeFileName(input: string): string {
     .slice(0, 60);
 }
 
+function interpretEscapes(content: string): string {
+  return content
+    .replace(/\\r\\n/g, '\r\n')
+    .replace(/\\n/g, '\n');
+}
+
 export async function executeCommand(
   resource: string,
   action: string,
@@ -354,6 +360,9 @@ async function executePlanCommand(
         content = readFileSync(filePath, 'utf-8');
         printFileInfo(options.file, content);
       }
+      if (typeof content === 'string' && options.interpretEscapes) {
+        content = interpretEscapes(content);
+      }
       if (!content || content.trim().length === 0) {
         throw new Error('--content or --file is required for plan create');
       }
@@ -392,6 +401,9 @@ async function executePlanCommand(
         printFileInfo(options.file, body.content);
       } else if (options.content) {
         body.content = options.content;
+        if (typeof body.content === 'string' && options.interpretEscapes) {
+          body.content = interpretEscapes(body.content);
+        }
       }
       if (options.status) body.status = options.status;
       if (options.priority) body.priority = options.priority;

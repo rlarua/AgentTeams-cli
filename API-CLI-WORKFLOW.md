@@ -135,6 +135,7 @@ Many list endpoints accept `page` and `pageSize`.
 - Create: `POST /api/projects/:projectId/plans`
   - Plans are always created as `DRAFT` (server-enforced). Even if a client sends `status`, it will be ignored on creation.
   - Use `--content` or `--file` for the body.
+  - 멀티라인을 `--content`로 전달해야 하는 경우, `--interpret-escapes`를 사용하면 `\\n` 시퀀스를 실제 줄바꿈으로 변환합니다(기본 OFF).
 - Download snapshot: `GET /api/projects/:projectId/plans/:id`
   - Saved to `.agentteams/active-plan/{safe-title}.md` with frontmatter.
 - (추가) 단축 커맨드

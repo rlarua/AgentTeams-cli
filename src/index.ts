@@ -167,6 +167,7 @@ program
   .option('--title <title>', 'Plan title')
   .option('--search <text>', 'Plan title/ID search keyword (list only)')
   .option('--content <content>', 'Plan content (plain text or Tiptap JSON)')
+  .option('--interpret-escapes', 'Interpret \\n sequences in --content as newlines (create/update only)', false)
   .option('--file <path>', 'Read plan content from a local file (create/update)')
   .option('--status <status>', 'Plan status (DRAFT, PENDING, ASSIGNED, IN_PROGRESS, BLOCKED, DONE, CANCELLED)')
   .option('--priority <priority>', 'Plan priority (LOW, MEDIUM, HIGH)')
@@ -185,6 +186,7 @@ program
         title: options.title,
         search: options.search,
         content: options.content,
+        interpretEscapes: options.interpretEscapes,
         file: options.file,
         status: options.status,
         priority: options.priority,
