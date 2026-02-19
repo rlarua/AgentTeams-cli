@@ -45,6 +45,15 @@ type ConventionDeleteOptions = ConventionCommandOptions & {
   apply?: boolean;
 };
 
+type ConventionListItem = {
+  id: string;
+  title?: string;
+  category?: string;
+  fileName?: string | null;
+  updatedAt?: string;
+  createdAt?: string;
+};
+
 type PlatformGuide = {
   title?: string;
   fileName?: string;
@@ -156,6 +165,48 @@ function toOptionalString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+async function fetchAllConventions(
+  apiUrl: string,
+  projectId: string,
+  headers: Record<string, string>
+): Promise<ConventionListItem[]> {
+  const pageSize = 100;
+  let page = 1;
+  let totalPages: number | undefined;
+  const items: ConventionListItem[] = [];
+
+  while (true) {
+    const response = await axios.get(
+      `${apiUrl}/api/projects/${projectId}/conventions`,
+      { headers, params: { page, pageSize } }
+    );
+
+    const data = response.data?.data;
+    if (!Array.isArray(data)) {
+      break;
+    }
+
+    items.push(...data);
+
+    const meta = response.data?.meta;
+    if (typeof meta?.totalPages === "number") {
+      totalPages = meta.totalPages;
+    }
+
+    if (totalPages !== undefined) {
+      if (page >= totalPages) break;
+      page += 1;
+      continue;
+    }
+
+    // Fallback if meta is missing: stop when we got less than a full page.
+    if (data.length < pageSize) break;
+    page += 1;
+  }
+
+  return items;
+}
+
 function toOptionalStringOrNullIfPresent(
   data: Record<string, unknown>,
   key: string
@@ -177,12 +228,7 @@ function toOptionalStringOrNullIfPresent(
 export async function conventionShow(): Promise<any> {
   const { config, apiUrl, headers } = getApiConfigOrThrow();
 
-  const listResponse = await axios.get(
-    `${apiUrl}/api/projects/${config.projectId}/conventions`,
-    { headers }
-  );
-
-  const conventions = listResponse.data?.data;
+  const conventions = await fetchAllConventions(apiUrl, config.projectId, headers);
   if (!conventions || conventions.length === 0) {
     throw new Error(
       "No conventions found for this project. Create one via the web dashboard first."
@@ -206,14 +252,9 @@ export async function conventionShow(): Promise<any> {
 export async function conventionList(): Promise<any> {
   const { config, apiUrl, headers } = getApiConfigOrThrow();
 
-  const response = await axios.get(
-    `${apiUrl}/api/projects/${config.projectId}/conventions`,
-    { headers }
-  );
-
-  const conventions = response.data?.data;
+  const conventions = await fetchAllConventions(apiUrl, config.projectId, headers);
   if (!Array.isArray(conventions)) {
-    return response.data;
+    return { data: conventions };
   }
 
   return {
@@ -225,7 +266,12 @@ export async function conventionList(): Promise<any> {
       updatedAt: item.updatedAt,
       createdAt: item.createdAt,
     })),
-    meta: response.data?.meta,
+    meta: {
+      total: conventions.length,
+      page: 1,
+      pageSize: conventions.length,
+      totalPages: 1,
+    }
   };
 }
 
@@ -390,12 +436,7 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
   const conventions = await withSpinner(
     'Downloading conventions...',
     async () => {
-      const listResponse = await axios.get(
-        `${apiUrl}/api/projects/${config.projectId}/conventions`,
-        { headers }
-      );
-
-      const conventionList = listResponse.data?.data;
+      const conventionList = await fetchAllConventions(apiUrl, config.projectId, headers);
       if (!conventionList || conventionList.length === 0) {
         return conventionList as any[] | undefined;
       }

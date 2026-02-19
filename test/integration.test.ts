@@ -160,6 +160,7 @@ describe('CLI Integration Tests', () => {
             'X-API-Key': 'key_oauth_123',
             'Content-Type': 'application/json',
           },
+          params: { page: 1, pageSize: 100 },
         }
       );
 
@@ -500,7 +501,7 @@ describe('CLI Integration Tests', () => {
 
       expect(axiosGetSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/conventions`,
-        { headers: authHeaders() }
+        { headers: authHeaders(), params: { page: 1, pageSize: 100 } }
       );
     });
 
@@ -519,7 +520,7 @@ describe('CLI Integration Tests', () => {
       expect(axiosGetSpy).toHaveBeenNthCalledWith(
         1,
         `${API_URL}/api/projects/${PROJECT_ID}/conventions`,
-        { headers: authHeaders() }
+        { headers: authHeaders(), params: { page: 1, pageSize: 100 } }
       );
       expect(axiosGetSpy).toHaveBeenNthCalledWith(
         2,
