@@ -186,6 +186,8 @@ Status values: `IN_PROGRESS`, `DONE`, `BLOCKED`
 
 Manage plans.
 
+Note: Plans are always created as `DRAFT`. Even if you pass `--status` to `plan create`, the server will ignore it. Use `plan update` to change status after creation.
+
 ```bash
 agentteams plan list
 agentteams plan get --id <plan-id>
@@ -193,9 +195,9 @@ agentteams plan get --id <plan-id>
 agentteams plan create \
   --title "Implement feature" \
   --content "Detailed content" \
-  --status "PENDING" \
   --priority "HIGH"
 
+agentteams plan update --id <plan-id> --status "PENDING"
 agentteams plan update --id <plan-id> --status "IN_PROGRESS"
 agentteams plan assign --id <plan-id> --agent "agent-name"
 agentteams plan download --id <plan-id>
@@ -249,6 +251,8 @@ agentteams agent-config delete --id <config-id>
 
 Manage completion reports.
 
+Tip: Include reproducible verification evidence (commands + outcomes), but keep outcomes short: `pass/fail + 1–3 lines of summary`. Do not paste long raw logs into the report body.
+
 ```bash
 agentteams report list
 
@@ -266,6 +270,8 @@ Status values: `COMPLETED`, `FAILED`, `PARTIAL`
 ### `postmortem`
 
 Manage post mortems.
+
+Tip: If you have platform guides downloaded under `.agentteams/platform/guides/`, prefer the template in `post-mortem-guide.md`.
 
 ```bash
 agentteams postmortem list

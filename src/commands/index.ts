@@ -275,6 +275,11 @@ async function executePlanCommand(
         throw new Error('--content or --file is required for plan create');
       }
 
+      if (options.status && options.status !== 'DRAFT') {
+        // Server enforces DRAFT on creation; status can be updated afterwards.
+        console.warn(`[warn] plan create: --status ${options.status} is ignored. Plans are always created as DRAFT.`);
+      }
+
       const response = await withSpinner(
         'Creating plan...',
         () => axios.post(
@@ -283,7 +288,7 @@ async function executePlanCommand(
             title: options.title,
             content,
             priority: options.priority ?? 'MEDIUM',
-            status: options.status,
+            status: 'DRAFT',
           },
           { headers }
         ),
