@@ -6,6 +6,7 @@ import {
   conventionList,
   conventionShow,
   conventionDownload,
+  conventionCreate,
   conventionUpdate,
   conventionDelete,
 } from './convention.js';
@@ -732,6 +733,14 @@ async function executeConventionCommand(action: string, options: any): Promise<a
       return conventionShow();
     case 'download':
       return conventionDownload({ cwd: options?.cwd });
+    case 'create': {
+      const files = options?.file;
+      const hasFiles = typeof files === 'string' || (Array.isArray(files) && files.length > 0);
+      if (!hasFiles) {
+        throw new Error('--file is required for convention create');
+      }
+      return conventionCreate({ cwd: options?.cwd, file: options.file });
+    }
     case 'update': {
       const files = options?.file;
       const hasFiles = typeof files === 'string' || (Array.isArray(files) && files.length > 0);
@@ -749,7 +758,7 @@ async function executeConventionCommand(action: string, options: any): Promise<a
       return conventionDelete({ cwd: options?.cwd, file: options.file, apply: options.apply });
     }
     default:
-      throw new Error(`Unknown convention action: ${action}. Use list, show, download, update, or delete.`);
+      throw new Error(`Unknown convention action: ${action}. Use list, show, download, create, update, or delete.`);
   }
 }
 

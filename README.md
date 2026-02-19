@@ -75,6 +75,7 @@ export AGENTTEAMS_API_URL="https://your-agentteams-api.example.com"
 agentteams convention list
 agentteams convention show
 agentteams convention download
+agentteams convention create --file .agentteams/rules/new-rule.md
 agentteams convention update --file .agentteams/rules/context.md
 agentteams convention update --file .agentteams/rules/context.md --apply
 agentteams convention delete --file .agentteams/rules/context.md
@@ -99,6 +100,7 @@ Manage project conventions.
 agentteams convention list
 agentteams convention show
 agentteams convention download
+agentteams convention create --file .agentteams/rules/new-rule.md
 agentteams convention update --file .agentteams/rules/context.md
 agentteams convention update --file .agentteams/rules/context.md --apply
 agentteams convention delete --file .agentteams/rules/context.md
@@ -107,6 +109,21 @@ agentteams convention delete --file .agentteams/rules/context.md --apply
 
 `convention download` saves files by category in `.agentteams/<category>/`.
 If file names collide within the same category, suffixes like `-2`, `-3` are added.
+
+#### `convention create`
+
+Create a new convention.
+
+- The input file must be under `.agentteams/<category>/*.md`, and `<category>` is inferred from the path.
+- Frontmatter is optional. Supported fields: `trigger`, `description`, `agentInstruction`, `title` (optional).
+- After creation, the CLI immediately updates `.agentteams/conventions.manifest.json`, so you can `update/delete` the same file right away.
+- Run `agentteams convention download` if you want to refresh `convention.md` and the server-normalized (downloadable) markdown.
+
+Examples:
+
+```bash
+agentteams convention create --file .agentteams/rules/new-rule.md
+```
 
 #### `convention update` / `convention delete`
 

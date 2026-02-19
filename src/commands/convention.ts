@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, unlinkSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { basename, join, relative, resolve } from "node:path";
 import axios from "axios";
 import matter from "gray-matter";
 import { diffLines, createTwoFilesPatch } from "diff";
@@ -43,6 +43,10 @@ type ConventionUploadOptions = ConventionCommandOptions & {
 type ConventionDeleteOptions = ConventionCommandOptions & {
   file: string | string[];
   apply?: boolean;
+};
+
+type ConventionCreateOptions = ConventionCommandOptions & {
+  file: string | string[];
 };
 
 type ConventionListItem = {
@@ -135,6 +139,24 @@ function loadManifestOrThrow(projectRoot: string): ConventionDownloadManifestV1 
   return parsed;
 }
 
+function loadManifestOrCreate(projectRoot: string): ConventionDownloadManifestV1 {
+  const manifestPath = buildManifestPath(projectRoot);
+  if (!existsSync(manifestPath)) {
+    return {
+      version: 1,
+      generatedAt: new Date().toISOString(),
+      entries: [],
+    };
+  }
+
+  const raw = readFileSync(manifestPath, "utf-8");
+  const parsed = JSON.parse(raw) as ConventionDownloadManifestV1;
+  if (parsed?.version !== 1 || !Array.isArray(parsed.entries)) {
+    throw new Error(`Invalid manifest format: ${manifestPath}`);
+  }
+  return parsed;
+}
+
 function writeManifest(projectRoot: string, manifest: ConventionDownloadManifestV1) {
   const manifestPath = buildManifestPath(projectRoot);
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n", "utf-8");
@@ -163,6 +185,41 @@ function createUnifiedDiff(fileLabel: string, serverText: string, localText: str
 
 function toOptionalString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
+}
+
+function fileNameToTitle(fileName: string): string {
+  return fileName
+    .replace(/\.md$/i, "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseCategoryFromAgentteamsPath(fileRelativePath: string): string {
+  const normalized = normalizeRelativePath(fileRelativePath);
+  const parts = normalized.split("/");
+
+  const agentteamsIndex = parts.indexOf(CONVENTION_DIR);
+  if (agentteamsIndex === -1) {
+    throw new Error(
+      `Convention create requires a file under ${CONVENTION_DIR}/<category>/: ${fileRelativePath}`
+    );
+  }
+
+  const category = parts[agentteamsIndex + 1];
+  if (!category || category.length === 0) {
+    throw new Error(
+      `Convention create requires a category directory under ${CONVENTION_DIR}/: ${fileRelativePath}`
+    );
+  }
+
+  if (category === "platform" || category === "active-plan") {
+    throw new Error(
+      `Convention create does not allow reserved directories under ${CONVENTION_DIR}/: ${category}`
+    );
+  }
+
+  return category;
 }
 
 async function fetchAllConventions(
@@ -521,6 +578,103 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
     : "";
 
   return `Convention sync completed.\n${reportingLine}${platformLine}Downloaded ${conventions.length} file(s) into category directories under ${CONVENTION_DIR}`;
+}
+
+export async function conventionCreate(options: ConventionCreateOptions): Promise<string> {
+  const { config, apiUrl, headers } = getApiConfigOrThrow(options);
+  const projectRoot = findProjectRoot(options?.cwd);
+  if (!projectRoot) {
+    throw new Error("No .agentteams directory found. Run 'agentteams init' first.");
+  }
+
+  const manifest = loadManifestOrCreate(projectRoot);
+  const files = toFileList(options.file);
+  const results: string[] = [];
+
+  for (const fileInput of files) {
+    const cwd = options.cwd ?? process.cwd();
+    const absolutePath = resolveConventionFileAbsolutePath(projectRoot, cwd, fileInput);
+    if (!existsSync(absolutePath)) {
+      throw new Error(`File not found: ${absolutePath}`);
+    }
+
+    const fileRelativePath = normalizeRelativePath(relative(projectRoot, absolutePath));
+    const category = parseCategoryFromAgentteamsPath(fileRelativePath);
+    const fileName = basename(absolutePath);
+
+    if (!fileName.toLowerCase().endsWith(".md")) {
+      throw new Error(`Convention create requires a .md file: ${fileRelativePath}`);
+    }
+
+    const existingEntry = manifest.entries.find((e) => e.fileRelativePath === fileRelativePath);
+    if (existingEntry) {
+      throw new Error(
+        `File is already tracked in the manifest (use update instead): ${fileRelativePath}\n` +
+        `- conventionId: ${existingEntry.conventionId}`
+      );
+    }
+
+    const localMarkdown = readFileSync(absolutePath, "utf-8");
+    const parsed = matter(localMarkdown);
+    const frontmatter = (parsed.data ?? {}) as Record<string, unknown>;
+    const bodyMarkdown = String(parsed.content ?? "");
+
+    const content = await normalizeMarkdownToTiptap(bodyMarkdown);
+
+    const title = toOptionalString(frontmatter.title)?.trim() || fileNameToTitle(fileName);
+
+    const payload: Record<string, unknown> = {
+      title,
+      category,
+      fileName,
+      content,
+    };
+
+    const trigger = toOptionalString(frontmatter.trigger)?.trim();
+    const description = toOptionalString(frontmatter.description)?.trim();
+    const agentInstruction = toOptionalString(frontmatter.agentInstruction);
+
+    if (trigger) payload.trigger = trigger;
+    if (description) payload.description = description;
+    if (typeof agentInstruction === "string" && agentInstruction.trim().length > 0) {
+      payload.agentInstruction = agentInstruction.trimEnd();
+    }
+
+    const response = await withSpinner(
+      `Creating convention for ${fileRelativePath}...`,
+      () => axios.post(
+        `${apiUrl}/api/projects/${config.projectId}/conventions`,
+        payload,
+        { headers }
+      )
+    );
+
+    const created = response.data?.data as Record<string, unknown> | undefined;
+    const createdId = typeof created?.id === "string" ? created.id : "unknown";
+    const createdUpdatedAt = typeof created?.updatedAt === "string" ? created.updatedAt : undefined;
+
+    const now = new Date().toISOString();
+    manifest.generatedAt = now;
+    manifest.entries.push({
+      conventionId: createdId,
+      fileRelativePath,
+      fileName,
+      categoryDir: category,
+      title,
+      category,
+      ...(createdUpdatedAt ? { updatedAt: createdUpdatedAt } : {}),
+      downloadedAt: now,
+      lastUploadedAt: now,
+      ...(createdUpdatedAt ? { lastKnownUpdatedAt: createdUpdatedAt } : {}),
+    });
+    writeManifest(projectRoot, manifest);
+
+    results.push(`[OK] ${fileRelativePath}: Created. (conventionId=${createdId})`);
+    results.push(`[OK] ${CONVENTION_DIR}/${CONVENTION_MANIFEST_FILE}: Updated.`);
+    results.push(`[NEXT] Run 'agentteams convention download' to refresh convention.md and canonical markdown.`);
+  }
+
+  return results.join("\n");
 }
 
 export async function conventionUpdate(options: ConventionUploadOptions): Promise<string> {

@@ -1032,6 +1032,84 @@ describe('CLI Integration Tests', () => {
       }
     });
 
+    it('convention create: should POST and update manifest immediately', async () => {
+      axiosPostSpy.mockResolvedValueOnce({
+        data: { data: { id: 'cv-new', updatedAt: '2026-02-19T00:00:00.000Z' } },
+      } as any);
+
+      const originalCwd = process.cwd();
+      const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-convention-create-'));
+
+      try {
+        const agentteamsDir = join(tempCwd, '.agentteams');
+        mkdirSync(join(agentteamsDir, 'rules'), { recursive: true });
+
+        writeFileSync(
+          join(agentteamsDir, 'config.json'),
+          JSON.stringify(
+            {
+              teamId: 'team_1',
+              projectId: PROJECT_ID,
+              agentName: 'test-agent',
+              apiKey: 'key_test123',
+              apiUrl: API_URL,
+            },
+            null,
+            2
+          ) + '\n',
+          'utf-8'
+        );
+
+        const filePath = join(agentteamsDir, 'rules', 'new-rule.md');
+        writeFileSync(
+          filePath,
+          `---\ntrigger: always_on\ndescription: \"test\"\nagentInstruction: |\n  Do the thing\n---\n\n# New Rule\n\n- ok\n`,
+          'utf-8'
+        );
+
+        process.chdir(tempCwd);
+        await executeCommand('convention', 'create', {
+          cwd: tempCwd,
+          file: ['.agentteams/rules/new-rule.md'],
+        });
+
+        expect(axiosPostSpy).toHaveBeenCalledWith(
+          `${API_URL}/api/projects/${PROJECT_ID}/conventions`,
+          expect.objectContaining({
+            title: 'new rule',
+            category: 'rules',
+            fileName: 'new-rule.md',
+            content: expect.any(String),
+            trigger: 'always_on',
+            description: 'test',
+            agentInstruction: 'Do the thing',
+          }),
+          { headers: authHeaders() }
+        );
+
+        const manifestRaw = readFileSync(join(agentteamsDir, 'conventions.manifest.json'), 'utf-8');
+        const manifest = JSON.parse(manifestRaw) as any;
+        expect(manifest.version).toBe(1);
+        expect(Array.isArray(manifest.entries)).toBe(true);
+        expect(manifest.entries).toHaveLength(1);
+        expect(manifest.entries[0]).toEqual(
+          expect.objectContaining({
+            conventionId: 'cv-new',
+            fileRelativePath: '.agentteams/rules/new-rule.md',
+            fileName: 'new-rule.md',
+            categoryDir: 'rules',
+            title: 'new rule',
+            category: 'rules',
+            updatedAt: '2026-02-19T00:00:00.000Z',
+            lastKnownUpdatedAt: '2026-02-19T00:00:00.000Z',
+          })
+        );
+      } finally {
+        process.chdir(originalCwd);
+        rmSync(tempCwd, { recursive: true, force: true });
+      }
+    });
+
     it('convention download: should cleanup existing conventions directory before writing', async () => {
       axiosGetSpy
         .mockResolvedValueOnce({ data: { data: [{ id: 'ag-1' }] } } as any)
@@ -1214,7 +1292,7 @@ describe('CLI Integration Tests', () => {
         executeCommand('dependency', 'create', { planId: 'plan-1' })
       ).rejects.toThrow('--blocking-plan-id is required for dependency create');
       await expect(executeCommand('convention', 'append', {})).rejects.toThrow(
-        'Unknown convention action: append. Use list, show, download, update, or delete.'
+        'Unknown convention action: append. Use list, show, download, create, update, or delete.'
       );
       await expect(executeCommand('sync', 'list', {})).rejects.toThrow(
         'Unknown sync action: list. Use download.'

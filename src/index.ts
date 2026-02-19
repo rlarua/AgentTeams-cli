@@ -250,11 +250,11 @@ program
 program
   .command('convention')
   .description('Manage project conventions')
-  .argument('<action>', 'Action to perform (list, show, download, update, delete)')
+  .argument('<action>', 'Action to perform (list, show, download, create, update, delete)')
   .option('--cwd <path>', 'Working directory (defaults to current)')
   .option(
     '-f, --file <path>',
-    'Target convention markdown file (repeatable, must be downloaded via convention download)',
+    'Target convention markdown file (repeatable; create requires a file under .agentteams/<category>/)',
     (value, previous: string[] = []) => previous.concat([value]),
     [] as string[]
   )
