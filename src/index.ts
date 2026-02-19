@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { createRequire } from 'node:module';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { Command } from 'commander';
 import { executeCommand } from './commands/index.js';
 import { formatOutput } from './utils/formatter.js';
@@ -11,6 +13,61 @@ const pkg = require('../package.json') as { version: string };
 
 const program = new Command();
 
+type OutputFormat = 'json' | 'text';
+
+function normalizeFormat(format: unknown, fallback: OutputFormat): OutputFormat {
+  if (format === 'json' || format === 'text') return format;
+  return fallback;
+}
+
+function extractSummary(result: unknown): string | undefined {
+  if (!result || typeof result !== 'object') return undefined;
+
+  const obj = result as any;
+  const candidate = obj?.data ?? obj;
+
+  const id = typeof candidate?.id === 'string' ? candidate.id : undefined;
+  if (id) return `id: ${id}`;
+
+  if (Array.isArray(candidate)) return `count: ${candidate.length}`;
+
+  if (Array.isArray(candidate?.data)) return `count: ${candidate.data.length}`;
+
+  return undefined;
+}
+
+function writeOutputFile(outputFile: string, content: string): { resolvedPath: string; bytes: number } {
+  const resolvedPath = resolve(outputFile);
+  mkdirSync(dirname(resolvedPath), { recursive: true });
+  writeFileSync(resolvedPath, content, 'utf-8');
+  const bytes = Buffer.byteLength(content, 'utf-8');
+  return { resolvedPath, bytes };
+}
+
+function printCommandResult(params: {
+  result: unknown;
+  format: OutputFormat;
+  outputFile?: string;
+  verbose?: boolean;
+}): void {
+  const outputText =
+    typeof params.result === 'string' ? params.result : formatOutput(params.result, params.format);
+
+  if (typeof params.outputFile === 'string' && params.outputFile.trim().length > 0) {
+    const { resolvedPath, bytes } = writeOutputFile(params.outputFile, outputText);
+    console.log(`Saved output to ${resolvedPath} (${bytes} bytes).`);
+    const summary = extractSummary(params.result);
+    if (summary) console.log(summary);
+
+    if (params.verbose) {
+      console.log(outputText);
+    }
+    return;
+  }
+
+  console.log(outputText);
+}
+
 program
   .name('agentteams')
   .description('CLI tool for AgentTeams API')
@@ -20,11 +77,18 @@ program
   .command('init')
   .description('Initialize AgentTeams CLI via OAuth')
   .option('--format <format>', 'Output format (json, text)', 'text')
+  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
+  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (options) => {
     try {
       const result = await executeCommand('init', 'start', {});
 
-      console.log(formatOutput(result, options.format));
+      printCommandResult({
+        result,
+        format: normalizeFormat(options.format, 'text'),
+        outputFile: options.outputFile,
+        verbose: options.verbose,
+      });
     } catch (error) {
       console.error(handleError(error));
       process.exit(1);
@@ -35,17 +99,20 @@ program
   .command('sync')
   .description('Sync local convention files from API')
   .option('--format <format>', 'Output format (json, text)', 'text')
+  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
+  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (options) => {
     try {
       const result = await executeCommand('sync', 'download', {
         cwd: process.cwd(),
       });
 
-      if (typeof result === 'string') {
-        console.log(result);
-      } else {
-        console.log(formatOutput(result, options.format));
-      }
+      printCommandResult({
+        result,
+        format: normalizeFormat(options.format, 'text'),
+        outputFile: options.outputFile,
+        verbose: options.verbose,
+      });
     } catch (error) {
       console.error(handleError(error));
       process.exit(1);
@@ -65,6 +132,8 @@ program
   .option('--page <number>', 'Page number (list only)')
   .option('--page-size <number>', 'Page size (list only)')
   .option('--format <format>', 'Output format (json, text)', 'json')
+  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
+  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (action, options) => {
     try {
       const result = await executeCommand('status', action, {
@@ -78,7 +147,12 @@ program
         pageSize: options.pageSize,
       });
 
-      console.log(formatOutput(result, options.format));
+      printCommandResult({
+        result,
+        format: normalizeFormat(options.format, 'json'),
+        outputFile: options.outputFile,
+        verbose: options.verbose,
+      });
     } catch (error) {
       console.error(handleError(error));
       process.exit(1);
@@ -88,7 +162,7 @@ program
 program
   .command('plan')
   .description('Manage plans')
-  .argument('<action>', 'Action to perform (list, get, create, update, delete, assign, download, cleanup)')
+  .argument('<action>', 'Action to perform (list, get, create, update, delete, assign, download, cleanup, start, finish)')
   .option('--id <id>', 'Plan ID')
   .option('--title <title>', 'Plan title')
   .option('--search <text>', 'Plan title/ID search keyword (list only)')
@@ -97,10 +171,13 @@ program
   .option('--status <status>', 'Plan status (DRAFT, PENDING, ASSIGNED, IN_PROGRESS, BLOCKED, DONE, CANCELLED)')
   .option('--priority <priority>', 'Plan priority (LOW, MEDIUM, HIGH)')
   .option('--assigned-to <id>', 'Assigned agent config ID (list filter)')
+  .option('--task <text>', 'Task summary for plan start/finish')
   .option('--page <number>', 'Page number (list only)')
   .option('--page-size <number>', 'Page size (list only)')
   .option('--agent <agent>', 'Agent name or ID to assign')
   .option('--format <format>', 'Output format (json, text)', 'json')
+  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
+  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (action, options) => {
     try {
       const result = await executeCommand('plan', action, {
@@ -112,12 +189,18 @@ program
         status: options.status,
         priority: options.priority,
         assignedTo: options.assignedTo,
+        task: options.task,
         page: options.page,
         pageSize: options.pageSize,
         agent: options.agent,
       });
 
-      console.log(formatOutput(result, options.format));
+      printCommandResult({
+        result,
+        format: normalizeFormat(options.format, 'json'),
+        outputFile: options.outputFile,
+        verbose: options.verbose,
+      });
     } catch (error) {
       console.error(handleError(error));
       process.exit(1);
@@ -135,6 +218,8 @@ program
   .option('--page <number>', 'Page number (list only)')
   .option('--page-size <number>', 'Page size (list only)')
   .option('--format <format>', 'Output format (json, text)', 'json')
+  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
+  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (action, options) => {
     try {
       const result = await executeCommand('comment', action, {
@@ -146,7 +231,12 @@ program
         pageSize: options.pageSize,
       });
 
-      console.log(formatOutput(result, options.format));
+      printCommandResult({
+        result,
+        format: normalizeFormat(options.format, 'json'),
+        outputFile: options.outputFile,
+        verbose: options.verbose,
+      });
     } catch (error) {
       console.error(handleError(error));
       process.exit(1);
@@ -161,6 +251,7 @@ program
   .option('--plan-id <id>', 'Plan ID (optional)')
   .option('--title <title>', 'Report title')
   .option('--content <content>', 'Report markdown content')
+  .option('--template <name>', 'Report content template (minimal)', 'minimal')
   .option('--report-type <type>', 'Report type (IMPL_PLAN, COMMIT_RANGE, TASK_COMPLETION)')
   .option('--status <status>', 'Report status (COMPLETED, FAILED, PARTIAL)')
   .option('--created-by <name>', 'Created by (defaults to agentName from config)')
@@ -174,13 +265,23 @@ program
   .option('--team-id <id>', 'Override team ID (optional)')
   .option('--agent-name <name>', 'Override agent name (optional)')
   .option('--format <format>', 'Output format (json, text)', 'json')
+  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
+  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (action, options) => {
     try {
+      if (typeof options.summary === 'string' && options.summary.trim().length > 0) {
+        console.warn('[warn] --summary is deprecated. Use --title instead.');
+      }
+      if (typeof options.details === 'string' && options.details.trim().length > 0) {
+        console.warn('[warn] --details is deprecated. Use --content instead.');
+      }
+
       const result = await executeCommand('report', action, {
         id: options.id,
         planId: options.planId,
         title: options.title,
         content: options.content,
+        template: options.template,
         reportType: options.reportType,
         status: options.status,
         createdBy: options.createdBy,
@@ -195,7 +296,12 @@ program
         agentName: options.agentName,
       });
 
-      console.log(formatOutput(result, options.format));
+      printCommandResult({
+        result,
+        format: normalizeFormat(options.format, 'json'),
+        outputFile: options.outputFile,
+        verbose: options.verbose,
+      });
     } catch (error) {
       console.error(handleError(error));
       process.exit(1);
@@ -221,6 +327,8 @@ program
   .option('--team-id <id>', 'Override team ID (optional)')
   .option('--agent-name <name>', 'Override agent name (optional)')
   .option('--format <format>', 'Output format (json, text)', 'json')
+  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
+  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (action, options) => {
     try {
       const result = await executeCommand('postmortem', action, {
@@ -240,7 +348,12 @@ program
         agentName: options.agentName,
       });
 
-      console.log(formatOutput(result, options.format));
+      printCommandResult({
+        result,
+        format: normalizeFormat(options.format, 'json'),
+        outputFile: options.outputFile,
+        verbose: options.verbose,
+      });
     } catch (error) {
       console.error(handleError(error));
       process.exit(1);
@@ -259,6 +372,8 @@ program
     [] as string[]
   )
   .option('--apply', 'Apply changes to server (default: dry-run)', false)
+  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
+  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (action, options) => {
     try {
       const result = await executeCommand('convention', action, {
@@ -267,11 +382,12 @@ program
         apply: options.apply,
       });
 
-      if (typeof result === 'string') {
-        console.log(result);
-      } else {
-        console.log(formatOutput(result, 'text'));
-      }
+      printCommandResult({
+        result,
+        format: 'text',
+        outputFile: options.outputFile,
+        verbose: options.verbose,
+      });
     } catch (error) {
       console.error(handleError(error));
       process.exit(1);
@@ -286,6 +402,8 @@ program
   .option('--blocking-plan-id <id>', 'Blocking plan ID')
   .option('--dep-id <id>', 'Dependency ID to delete')
   .option('--format <format>', 'Output format (json, text)', 'json')
+  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
+  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (action, options) => {
     try {
       const result = await executeCommand('dependency', action, {
@@ -294,7 +412,12 @@ program
         depId: options.depId,
       });
 
-      console.log(formatOutput(result, options.format));
+      printCommandResult({
+        result,
+        format: normalizeFormat(options.format, 'json'),
+        outputFile: options.outputFile,
+        verbose: options.verbose,
+      });
     } catch (error) {
       console.error(handleError(error));
       process.exit(1);
@@ -307,13 +430,20 @@ program
   .argument('<action>', 'Action to perform (list, get, delete)')
   .option('--id <id>', 'Agent config ID')
   .option('--format <format>', 'Output format (json, text)', 'json')
+  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
+  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (action, options) => {
     try {
       const result = await executeCommand('agent-config', action, {
         id: options.id,
       });
 
-      console.log(formatOutput(result, options.format));
+      printCommandResult({
+        result,
+        format: normalizeFormat(options.format, 'json'),
+        outputFile: options.outputFile,
+        verbose: options.verbose,
+      });
     } catch (error) {
       console.error(handleError(error));
       process.exit(1);
@@ -325,11 +455,18 @@ program
   .description('Manage configuration')
   .argument('<action>', 'Action to perform (whoami)')
   .option('--format <format>', 'Output format (json, text)', 'json')
+  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
+  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (action, options) => {
     try {
       const result = await executeCommand('config', action, {});
 
-      console.log(formatOutput(result, options.format));
+      printCommandResult({
+        result,
+        format: normalizeFormat(options.format, 'json'),
+        outputFile: options.outputFile,
+        verbose: options.verbose,
+      });
     } catch (error) {
       console.error(handleError(error));
       process.exit(1);

@@ -1,44 +1,47 @@
-# API ↔ CLI Workflow
+# API ↔ CLI 워크플로우
 
-This document describes how the AgentTeams CLI (`agentteams`) talks to the API server, and how those calls translate into local files being created/updated in your workspace.
+이 문서는 AgentTeams CLI(`agentteams`)가 API 서버와 어떻게 통신하는지, 그리고 그 결과로 로컬 워크스페이스에 어떤 파일이 생성/업데이트되는지를 설명합니다.
 
-## Scope
+## 범위(Scope)
 
-- Auth/config loading rules used by the CLI
-- Request/response conventions (envelopes, pagination)
-- End-to-end workflows (Plan → Comments/Status → Completion Report → Postmortem)
-- Local file locations created by the CLI
+- CLI 인증/설정(config) 로딩 규칙
+- 요청/응답 컨벤션(엔벨로프, 페이지네이션)
+- 엔드투엔드 흐름(Plan → Comments/Status → Completion Report → Postmortem)
+- CLI가 생성하는 로컬 파일 위치 및 역할
+- (추가) 공통 출력 UX(`--output-file`, `--verbose`)와 단축 워크플로우(`plan start/finish`)
 
-> The source of truth is the codebase. This document is an operational guide.
-
----
-
-## Components and responsibilities
-
-- CLI (`/cli`)
-  - Command parsing via `commander`
-  - HTTP calls via `axios`
-  - Config loading (`.agentteams/config.json`, `~/.agentteams/config.json`, `AGENTTEAMS_*`)
-  - Creates local artifacts (plan snapshots, downloaded conventions)
-- API (`/api`)
-  - REST API via Fastify
-  - Auth (primarily `X-API-Key`) and permission checks
-  - DB access via Prisma
-  - Swagger UI at `/docs`
+> 최종 소스 오브 트루스는 코드입니다. 이 문서는 운영/사용 가이드입니다.
 
 ---
 
-## Authentication and config loading
+## 구성 요소와 책임
 
-### `agentteams init` (first-time setup)
+- CLI(`/cli`)
+  - 커맨드 파싱: `commander`
+  - HTTP 호출: `axios`
+  - 설정 로딩: `.agentteams/config.json`, `~/.agentteams/config.json`, `AGENTTEAMS_*`
+  - 로컬 아티팩트 생성: 플랜 스냅샷(runbook), 컨벤션/가이드 다운로드 파일
+  - (추가) 공통 출력 UX: `--output-file`, `--verbose`
+  - (추가) 단축 워크플로우: `agentteams plan start|finish`
+- API(`/api`)
+  - REST API: Fastify
+  - 인증/권한: 주로 `X-API-Key` 기반
+  - DB 접근: Prisma
+  - Swagger UI: `/docs`
 
-High-level flow:
+---
 
-1. Start a local OAuth callback server.
-2. Open the authorize page in a browser (or print the URL in SSH environments).
-3. Receive `apiUrl`, `apiKey`, `teamId`, `projectId`, `agentName` and persist them locally.
-4. Save the convention template to `.agentteams/convention.md`.
-5. Download all conventions into `.agentteams/*`.
+## 인증(Authentication)과 설정(Config) 로딩
+
+### `agentteams init` (최초 설정)
+
+개요 흐름:
+
+1. 로컬 OAuth 콜백 서버를 실행합니다.
+2. 브라우저에서 authorize 페이지를 엽니다(SSH 환경에서는 URL을 출력).
+3. `apiUrl`, `apiKey`, `teamId`, `projectId`, `agentName`을 수신하고 로컬에 저장합니다.
+4. 컨벤션 템플릿을 `.agentteams/convention.md`로 저장합니다.
+5. 컨벤션/플랫폼 가이드를 `.agentteams/*`로 다운로드합니다.
 
 ```mermaid
 sequenceDiagram
@@ -61,14 +64,14 @@ sequenceDiagram
   CLI->>FS: Write .agentteams/<category>/*.md and manifest
 ```
 
-### Config priority (highest → lowest)
+### 설정 우선순위(높음 → 낮음)
 
 1. CLI option overrides (some commands only)
 2. Env vars `AGENTTEAMS_*`
 3. Project config: nearest `.agentteams/config.json` found by walking up from `cwd`
 4. Global config: `~/.agentteams/config.json`
 
-Supported env vars:
+지원 환경변수:
 
 - `AGENTTEAMS_API_KEY`
 - `AGENTTEAMS_API_URL`
@@ -76,19 +79,19 @@ Supported env vars:
 - `AGENTTEAMS_PROJECT_ID`
 - `AGENTTEAMS_AGENT_NAME`
 
-### Default request headers
+### 기본 요청 헤더
 
 - `X-API-Key: key_...`
 - `Content-Type: application/json`
 
-API accepts either:
+API는 다음 중 하나를 허용합니다:
 
 - `Authorization: Bearer <token>`
 - `X-API-Key: key_...` (API keys must have the `key_` prefix)
 
 ---
 
-## Common API conventions
+## 공통 API 컨벤션
 
 ### Base URL
 
@@ -107,7 +110,25 @@ Many list endpoints accept `page` and `pageSize`.
 
 ---
 
-## Command-focused workflows
+## 공통 출력 UX(추가)
+
+### `--output-file <path>` / `--verbose`
+
+대상(주요 커맨드 전반): `init`, `sync`, `status`, `plan`, `comment`, `report`, `postmortem`, `dependency`, `agent-config`, `config`, `convention`
+
+- `--output-file <path>`
+  - “원래 stdout에 출력될 전체 결과”를 지정한 파일에 그대로 저장합니다.
+  - stdout에는 기본적으로 **요약 1~3줄**만 출력합니다.
+  - 상대 경로는 `cwd` 기준이며 내부에서 `path.resolve`로 절대경로로 변환합니다.
+  - 부모 디렉토리가 없으면 생성합니다.
+- `--verbose`
+  - `--output-file`과 함께 사용하면 stdout에도 전체 결과를 출력합니다(파일 저장은 유지).
+
+요약 출력은 기본 영어 메시지로 출력됩니다(자동화/로그 파싱 관점에서 고정된 문구를 선호).
+
+---
+
+## 커맨드별 워크플로우
 
 ### Plan
 
@@ -116,6 +137,12 @@ Many list endpoints accept `page` and `pageSize`.
   - Use `--content` or `--file` for the body.
 - Download snapshot: `GET /api/projects/:projectId/plans/:id`
   - Saved to `.agentteams/active-plan/{safe-title}.md` with frontmatter.
+- (추가) 단축 커맨드
+  - `agentteams plan start --id <planId>`
+    - 내부적으로 `GET /plans/:id` → `PUT /plans/:id(status=IN_PROGRESS)` → `POST /agent-statuses(status=IN_PROGRESS)`를 순서대로 호출합니다.
+    - 플랜이 `DRAFT`인 경우, UX 개선을 위해 `DRAFT → PENDING → IN_PROGRESS`로 자동 승격합니다.
+  - `agentteams plan finish --id <planId>`
+    - 내부적으로 `GET /plans/:id` → `PUT /plans/:id(status=DONE)` → `POST /agent-statuses(status=DONE)`를 순서대로 호출합니다.
 
 ### Comment (plan-scoped)
 
@@ -148,19 +175,28 @@ Convention commands are tightly coupled to `.agentteams/`.
 
 CLI supports `--api-url`, `--api-key`, `--team-id`, `--project-id`, `--agent-name` overrides for environments without local config.
 
+#### (추가) `report create`의 템플릿/Deprecated 옵션
+
+- `--template minimal`
+  - `--content`가 없을 때 최소 템플릿을 자동으로 채워서 생성할 수 있습니다.
+- Deprecated(호환 유지, 경고 출력)
+  - `--summary`: `--title`의 별칭(Deprecated)
+  - `--details`: `--content`가 없을 때 Details 섹션으로 삽입(Deprecated)
+
 ---
 
-## Local files created by the CLI
+## CLI가 생성/관리하는 로컬 파일
 
 - Project config: `.agentteams/config.json`
 - Global config: `~/.agentteams/config.json`
 - Convention template: `.agentteams/convention.md`
 - Download manifest: `.agentteams/conventions.manifest.json`
 - Plan snapshots: `.agentteams/active-plan/*.md`
+- Output capture: `--output-file <path>`로 지정한 임의 경로(사용자 지정)
 
 ---
 
-## End-to-end: plan creation → completion report
+## 엔드투엔드: plan 생성 → 완료 보고서
 
 ```mermaid
 sequenceDiagram
@@ -197,6 +233,33 @@ sequenceDiagram
   U->>CLI: report create --plan-id {planId}
   CLI->>API: POST /api/projects/:projectId/completion-reports
   API-->>CLI: { data: report }
+```
+
+## 엔드투엔드(추가): plan start / plan finish
+
+```mermaid
+sequenceDiagram
+  participant U as "User/Agent"
+  participant CLI as "CLI (agentteams)"
+  participant API as "API"
+
+  U->>CLI: plan start --id {planId}
+  CLI->>API: GET /api/projects/:projectId/plans/:id
+  API-->>CLI: { data: plan(title, ...) }
+  CLI->>API: PUT /api/projects/:projectId/plans/:id (status=PENDING)  %% only when current status is DRAFT
+  API-->>CLI: { data: plan }
+  CLI->>API: PUT /api/projects/:projectId/plans/:id (status=IN_PROGRESS)
+  API-->>CLI: { data: plan }
+  CLI->>API: POST /api/projects/:projectId/agent-statuses (IN_PROGRESS)
+  API-->>CLI: { data: status }
+
+  U->>CLI: plan finish --id {planId}
+  CLI->>API: GET /api/projects/:projectId/plans/:id
+  API-->>CLI: { data: plan(title, ...) }
+  CLI->>API: PUT /api/projects/:projectId/plans/:id (status=DONE)
+  API-->>CLI: { data: plan }
+  CLI->>API: POST /api/projects/:projectId/agent-statuses (DONE)
+  API-->>CLI: { data: status }
 ```
 
 ---
@@ -281,12 +344,15 @@ flowchart TD
   - API keys must have the `key_` prefix.
 - `403 Forbidden`
   - You likely lack project/role permissions (especially for convention writes).
+- `400 Bad Request`
+  - 플랜 상태 전이처럼 서버가 검증하는 제약을 위반했을 수 있습니다.
+  - 예: 허용되지 않은 상태 전이 시 `400` + `허용되지 않은 상태 전이입니다`
 - Connection issues (`ECONNREFUSED`, `ENOTFOUND`)
   - Check `AGENTTEAMS_API_URL` / config `apiUrl`, and ensure the server is reachable.
 
 ---
 
-## Minimal usage examples
+## 최소 사용 예시
 
 ```bash
 # First-time setup
@@ -304,12 +370,16 @@ agentteams comment create --plan-id <planId> --type RISK --content "Potential fa
 # Report agent status
 agentteams status report --status IN_PROGRESS --task "Working on plan" --issues "" --remaining ""
 
-# Move plan forward
+# Move plan forward (manual)
 agentteams plan update --id <planId> --status IN_PROGRESS
 agentteams plan update --id <planId> --status DONE
 
-# Create completion report
-agentteams report create --plan-id <planId> --summary "Done" --content "## Summary\n- ...\n\n## Verification\n- ...\n"
+# Start/finish shortcuts (auto status report)
+agentteams plan start --id <planId>
+agentteams plan finish --id <planId>
+
+# Create completion report (recommended flags)
+agentteams report create --plan-id <planId> --title "Done" --template minimal
 ```
 
 Environment-only mode (no config file):

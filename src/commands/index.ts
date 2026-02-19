@@ -65,7 +65,10 @@ export async function executeCommand(
       }
 
       if (resource === 'plan') {
-        return executePlanCommand(apiUrl, config.projectId, headers, action, options);
+        return executePlanCommand(apiUrl, config.projectId, headers, action, {
+          ...options,
+          defaultCreatedBy: config.agentName,
+        });
       }
 
       if (resource === 'comment') {
@@ -258,6 +261,86 @@ async function executePlanCommand(
         headers,
       });
       return response.data;
+    }
+    case 'start': {
+      if (!options.id) throw new Error('--id is required for plan start');
+
+      const planResponse = await axios.get(`${baseUrl}/${options.id}`, { headers });
+      const plan = (planResponse.data as any)?.data;
+      const planTitle = plan?.title ?? options.id;
+      const planStatus = plan?.status as string | undefined;
+
+      const updatedPlan = await withSpinner('Starting plan...', async () => {
+        if (planStatus === 'DRAFT') {
+          await axios.put(
+            `${baseUrl}/${options.id}`,
+            { status: 'PENDING' },
+            { headers }
+          );
+        }
+
+        return axios.put(
+          `${baseUrl}/${options.id}`,
+          { status: 'IN_PROGRESS' },
+          { headers }
+        );
+      }, 'Plan started');
+
+      const statusBaseUrl = `${apiUrl}/api/projects/${projectId}/agent-statuses`;
+      const statusReport = await axios.post(
+        statusBaseUrl,
+        {
+          agent: options.agent,
+          status: 'IN_PROGRESS',
+          task: options.task ?? `Started plan: ${planTitle}`,
+          issues: [],
+          remaining: [],
+        },
+        { headers }
+      );
+
+      return {
+        data: {
+          plan: updatedPlan.data,
+          statusReport: statusReport.data,
+        },
+      };
+    }
+    case 'finish': {
+      if (!options.id) throw new Error('--id is required for plan finish');
+
+      const planResponse = await axios.get(`${baseUrl}/${options.id}`, { headers });
+      const planTitle = (planResponse.data as any)?.data?.title ?? options.id;
+
+      const updatedPlan = await withSpinner(
+        'Finishing plan...',
+        () => axios.put(
+          `${baseUrl}/${options.id}`,
+          { status: 'DONE' },
+          { headers }
+        ),
+        'Plan finished',
+      );
+
+      const statusBaseUrl = `${apiUrl}/api/projects/${projectId}/agent-statuses`;
+      const statusReport = await axios.post(
+        statusBaseUrl,
+        {
+          agent: options.agent,
+          status: 'DONE',
+          task: options.task ?? `Finished plan: ${planTitle}`,
+          issues: [],
+          remaining: [],
+        },
+        { headers }
+      );
+
+      return {
+        data: {
+          plan: updatedPlan.data,
+          statusReport: statusReport.data,
+        },
+      };
     }
     case 'create': {
       if (!options.title) throw new Error('--title is required for plan create');
@@ -562,9 +645,11 @@ async function executeReportCommand(
       }
 
       const rawContent = options.content as string | undefined;
-      const content = rawContent ?? toDetailsAsMarkdown(options.details);
+      const content = rawContent
+        ?? toDetailsAsMarkdown(options.details)
+        ?? resolveReportTemplate(options.template);
       if (!content || content.trim().length === 0) {
-        throw new Error('--content is required for report create (or use --details)');
+        throw new Error('--content is required for report create. Use --content, --details (deprecated), or --template minimal.');
       }
 
       const reportType = (options.reportType as string | undefined) ?? 'IMPL_PLAN';
@@ -728,6 +813,31 @@ function toDetailsAsMarkdown(details: unknown): string | undefined {
   } catch {
     return `\n\n## Details\n\n${details}\n`;
   }
+}
+
+function minimalCompletionReportTemplate(): string {
+  return [
+    '## Summary',
+    '- What changed and why',
+    '',
+    '## Verification',
+    '- typecheck: ...',
+    '- tests: ...',
+    '',
+    '## Notes',
+    '- risks / follow-ups',
+    '',
+  ].join('\n');
+}
+
+function resolveReportTemplate(template: unknown): string | undefined {
+  if (template === undefined || template === null) return undefined;
+  const value = String(template).trim();
+  if (value.length === 0) return undefined;
+
+  if (value === 'minimal') return minimalCompletionReportTemplate();
+
+  throw new Error(`Unsupported template: ${value}. Only 'minimal' is supported.`);
 }
 
 async function executeConventionCommand(action: string, options: any): Promise<any> {

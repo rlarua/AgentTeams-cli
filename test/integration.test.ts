@@ -399,6 +399,80 @@ describe('CLI Integration Tests', () => {
       );
     });
 
+    it('plan start: should update plan status and create status report', async () => {
+      axiosGetSpy.mockResolvedValue({ data: { data: { id: 'plan-1', title: 'My Plan', status: 'PENDING' } } } as any);
+      axiosPutSpy.mockResolvedValue({ data: { data: { id: 'plan-1', status: 'IN_PROGRESS' } } } as any);
+      axiosPostSpy.mockResolvedValue({ data: { data: { id: 'st-1' } } } as any);
+
+      await executeCommand('plan', 'start', { id: 'plan-1' });
+
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
+        { headers: authHeaders() }
+      );
+      expect(axiosPutSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
+        { status: 'IN_PROGRESS' },
+        { headers: authHeaders() }
+      );
+      expect(axiosPostSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/agent-statuses`,
+        expect.objectContaining({
+          status: 'IN_PROGRESS',
+          task: 'Started plan: My Plan',
+          issues: [],
+          remaining: [],
+        }),
+        { headers: authHeaders() }
+      );
+    });
+
+    it('plan start (draft): should promote DRAFT → PENDING → IN_PROGRESS', async () => {
+      axiosGetSpy.mockResolvedValue({ data: { data: { id: 'plan-1', title: 'My Plan', status: 'DRAFT' } } } as any);
+      axiosPutSpy.mockResolvedValue({ data: { data: { id: 'plan-1', status: 'IN_PROGRESS' } } } as any);
+      axiosPostSpy.mockResolvedValue({ data: { data: { id: 'st-1' } } } as any);
+
+      await executeCommand('plan', 'start', { id: 'plan-1' });
+
+      expect(axiosPutSpy).toHaveBeenNthCalledWith(
+        1,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
+        { status: 'PENDING' },
+        { headers: authHeaders() }
+      );
+      expect(axiosPutSpy).toHaveBeenNthCalledWith(
+        2,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
+        { status: 'IN_PROGRESS' },
+        { headers: authHeaders() }
+      );
+    });
+
+    it('plan finish: should update plan status and create status report', async () => {
+      axiosGetSpy.mockResolvedValue({ data: { data: { id: 'plan-1', title: 'My Plan' } } } as any);
+      axiosPutSpy.mockResolvedValue({ data: { data: { id: 'plan-1', status: 'DONE' } } } as any);
+
+      axiosPostSpy.mockResolvedValueOnce({ data: { data: { id: 'st-1' } } } as any);
+
+      await executeCommand('plan', 'finish', { id: 'plan-1' });
+
+      expect(axiosPutSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
+        { status: 'DONE' },
+        { headers: authHeaders() }
+      );
+      expect(axiosPostSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/agent-statuses`,
+        expect.objectContaining({
+          status: 'DONE',
+          task: 'Finished plan: My Plan',
+          issues: [],
+          remaining: [],
+        }),
+        { headers: authHeaders() }
+      );
+    });
+
     it('comment CRUD: should use project-scoped endpoints and required type', async () => {
       axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 'c1' } } } as any);
@@ -1183,6 +1257,24 @@ describe('CLI Integration Tests', () => {
       );
     });
 
+    it('report create: should use minimal template when content is missing', async () => {
+      axiosPostSpy.mockResolvedValue({ data: { data: { id: 'r1' } } } as any);
+
+      await executeCommand('report', 'create', {
+        title: 'Template report',
+        template: 'minimal',
+      });
+
+      expect(axiosPostSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/completion-reports`,
+        expect.objectContaining({
+          title: 'Template report',
+          content: expect.stringContaining('## Summary'),
+        }),
+        { headers: authHeaders() }
+      );
+    });
+
     it('report list: should pass query filters and pagination', async () => {
       axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
 
@@ -1354,6 +1446,22 @@ describe('CLI Integration Tests', () => {
   });
 
   describe('Error Handling', () => {
+    it('400: should display bad request message with next action', () => {
+      const error = {
+        response: {
+          status: 400,
+          data: { message: 'Bad Request' },
+        },
+        isAxiosError: true,
+        message: 'Request failed with status code 400',
+      } as AxiosError;
+
+      const errorMessage = handleError(error);
+      expect(errorMessage).toContain('Bad request');
+      expect(errorMessage).toContain('Next:');
+      expect(errorMessage).toContain('Details:');
+    });
+
     it('401: should display "Invalid API key" message', () => {
       const error = {
         response: {
@@ -1420,6 +1528,22 @@ describe('CLI Integration Tests', () => {
 
       const errorMessage = handleError(error);
       expect(errorMessage).toContain('Resource not found');
+    });
+
+    it('409: should display conflict message with next action', () => {
+      const error = {
+        response: {
+          status: 409,
+          data: { message: 'Conflict' },
+        },
+        isAxiosError: true,
+        message: 'Request failed with status code 409',
+      } as AxiosError;
+
+      const errorMessage = handleError(error);
+      expect(errorMessage).toContain('Conflict');
+      expect(errorMessage).toContain('Next:');
+      expect(errorMessage).toContain('Details:');
     });
 
     it('500: should display server error message', () => {

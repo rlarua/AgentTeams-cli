@@ -26,24 +26,29 @@ export function handleError(error: unknown): string {
       const message = typeof rawMessage === 'string' ? translateServerMessage(rawMessage) : String(rawMessage);
 
       switch (status) {
+        case 400:
+          return `Bad request. Check your flags and payload.\nNext: Verify required options (e.g., --id/--plan-id) and try again.\nDetails: ${message}`;
         case 401:
-          return `Invalid API key. Please check your AGENTTEAMS_API_KEY environment variable.\nDetails: ${message}`;
+          return `Invalid API key. Please check your AGENTTEAMS_API_KEY environment variable.\nNext: Re-run 'agentteams init' or set AGENTTEAMS_API_KEY.\nDetails: ${message}`;
         case 403:
           if (typeof message === 'string' && message.toLowerCase().includes('cross-project')) {
-            return `Cross-project access denied. You don't have permission to access this resource.\nDetails: ${message}`;
+            return `Cross-project access denied. You don't have permission to access this resource.\nNext: Confirm you're using an API key for the same project/team.\nDetails: ${message}`;
           }
-          return `Forbidden.\nDetails: ${message}`;
+          return `Forbidden.\nNext: Confirm your API key permissions for this project/team.\nDetails: ${message}`;
         case 404:
-          return `Resource not found.\nDetails: ${message}`;
+          return `Resource not found.\nNext: Check identifiers (e.g., --id) and the target project.\nDetails: ${message}`;
+        case 409:
+          return `Conflict.\nNext: If this is a convention update/delete, run 'agentteams convention download' and retry.\nDetails: ${message}`;
         case 500:
-          return `Server error occurred. Please try again later.\nDetails: ${message}`;
+          return `Server error occurred. Please try again later.\nNext: Retry later. If it persists, check server status/logs.\nDetails: ${message}`;
         default:
           return `HTTP ${status} error: ${message}`;
       }
     }
 
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-      return `Cannot connect to server at ${process.env.AGENTTEAMS_API_URL}. Please check if the server is running and the URL is correct.`;
+      const apiUrl = process.env.AGENTTEAMS_API_URL ?? '(not set)';
+      return `Cannot connect to server at ${apiUrl}.\nNext: Check AGENTTEAMS_API_URL and connectivity.`;
     }
 
     return `Network error: ${error.message}`;
