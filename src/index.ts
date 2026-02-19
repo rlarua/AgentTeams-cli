@@ -250,10 +250,22 @@ program
 program
   .command('convention')
   .description('Manage project conventions')
-  .argument('<action>', 'Action to perform (list, show, download)')
-  .action(async (action) => {
+  .argument('<action>', 'Action to perform (list, show, download, update, delete)')
+  .option('--cwd <path>', 'Working directory (defaults to current)')
+  .option(
+    '-f, --file <path>',
+    'Target convention markdown file (repeatable, must be downloaded via convention download)',
+    (value, previous: string[] = []) => previous.concat([value]),
+    [] as string[]
+  )
+  .option('--apply', 'Apply changes to server (default: dry-run)', false)
+  .action(async (action, options) => {
     try {
-      const result = await executeCommand('convention', action, {});
+      const result = await executeCommand('convention', action, {
+        cwd: options.cwd ?? process.cwd(),
+        file: options.file,
+        apply: options.apply,
+      });
 
       if (typeof result === 'string') {
         console.log(result);

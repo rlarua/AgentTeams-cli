@@ -24,9 +24,12 @@
   "author": "",
   "license": "Apache-2.0",
   "dependencies": {
+    "@agentteams/markdown-tiptap": "file:../packages/markdown-tiptap",
     "axios": "^1.7.9",
     "chalk": "^5.6.2",
     "commander": "^12.1.0",
+    "diff": "^8.0.2",
+    "gray-matter": "^4.0.3",
     "open": "^10.1.0",
     "ora": "^9.3.0"
   },

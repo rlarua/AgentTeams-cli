@@ -576,11 +576,342 @@ describe('CLI Integration Tests', () => {
         const downloadedFile2 = readFileSync(join(agentteamsDir, 'rules', 'api-rule.md'), 'utf-8');
         const reportingContent = readFileSync(join(agentteamsDir, 'convention.md'), 'utf-8');
         const planGuide = readFileSync(join(agentteamsDir, 'platform', 'guides', 'plan-guide.md'), 'utf-8');
+        const manifestRaw = readFileSync(join(agentteamsDir, 'conventions.manifest.json'), 'utf-8');
+        const manifest = JSON.parse(manifestRaw) as any;
 
         expect(downloadedFile1).toBe('# downloaded convention 1');
         expect(downloadedFile2).toBe('# downloaded convention 2');
         expect(reportingContent).toBe('# reporting template\n');
         expect(planGuide).toBe('# plan guide\n');
+        expect(manifest.version).toBe(1);
+        expect(Array.isArray(manifest.entries)).toBe(true);
+        expect(manifest.entries.length).toBe(2);
+      } finally {
+        process.chdir(originalCwd);
+        rmSync(tempCwd, { recursive: true, force: true });
+      }
+    });
+
+    it('convention update: should dry-run diff and not upload', async () => {
+      axiosGetSpy
+        .mockResolvedValueOnce({
+          data: { data: { id: 'cv-1', updatedAt: '2026-01-01T00:00:00.000Z' } },
+        } as any)
+        .mockResolvedValueOnce({ data: '# server version\n' } as any);
+
+      const originalCwd = process.cwd();
+      const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-convention-update-dryrun-'));
+
+      try {
+        const agentteamsDir = join(tempCwd, '.agentteams');
+        mkdirSync(agentteamsDir, { recursive: true });
+        mkdirSync(join(agentteamsDir, 'rules'), { recursive: true });
+
+        writeFileSync(
+          join(agentteamsDir, 'config.json'),
+          JSON.stringify(
+            {
+              teamId: 'team_1',
+              projectId: PROJECT_ID,
+              agentName: 'test-agent',
+              apiKey: 'key_test123',
+              apiUrl: API_URL,
+            },
+            null,
+            2
+          ) + '\n',
+          'utf-8'
+        );
+
+        const filePath = join(agentteamsDir, 'rules', 'core-rules.md');
+        writeFileSync(filePath, '# local version\n', 'utf-8');
+
+        writeFileSync(
+          join(agentteamsDir, 'conventions.manifest.json'),
+          JSON.stringify(
+            {
+              version: 1,
+              generatedAt: '2026-01-01T00:00:00.000Z',
+              entries: [
+                {
+                  conventionId: 'cv-1',
+                  fileRelativePath: '.agentteams/rules/core-rules.md',
+                  fileName: 'core-rules.md',
+                  categoryDir: 'rules',
+                  downloadedAt: '2026-01-01T00:00:00.000Z',
+                },
+              ],
+            },
+            null,
+            2
+          ) + '\n',
+          'utf-8'
+        );
+
+        process.chdir(tempCwd);
+        const result = await executeCommand('convention', 'update', {
+          cwd: tempCwd,
+          file: [filePath],
+          apply: false,
+        });
+
+        expect(typeof result).toBe('string');
+        expect(result).toContain('server version');
+        expect(result).toContain('local version');
+        expect(axiosPutSpy).not.toHaveBeenCalled();
+      } finally {
+        process.chdir(originalCwd);
+        rmSync(tempCwd, { recursive: true, force: true });
+      }
+    });
+
+    it('convention update: should upload when --apply is set', async () => {
+      axiosGetSpy
+        .mockResolvedValueOnce({
+          data: { data: { id: 'cv-1', updatedAt: '2026-01-01T00:00:00.000Z' } },
+        } as any)
+        .mockResolvedValueOnce({ data: '# server version\n' } as any);
+
+      axiosPutSpy.mockResolvedValueOnce({
+        data: { data: { id: 'cv-1', updatedAt: '2026-02-01T00:00:00.000Z' } },
+      } as any);
+
+      const originalCwd = process.cwd();
+      const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-convention-update-apply-'));
+
+      try {
+        const agentteamsDir = join(tempCwd, '.agentteams');
+        mkdirSync(agentteamsDir, { recursive: true });
+        mkdirSync(join(agentteamsDir, 'rules'), { recursive: true });
+
+        writeFileSync(
+          join(agentteamsDir, 'config.json'),
+          JSON.stringify(
+            {
+              teamId: 'team_1',
+              projectId: PROJECT_ID,
+              agentName: 'test-agent',
+              apiKey: 'key_test123',
+              apiUrl: API_URL,
+            },
+            null,
+            2
+          ) + '\n',
+          'utf-8'
+        );
+
+        const filePath = join(agentteamsDir, 'rules', 'core-rules.md');
+        writeFileSync(
+          filePath,
+          [
+            '---',
+            'trigger: always_on',
+            'description: 테스트 설명',
+            'agentInstruction: |',
+            '  line1',
+            '  line2',
+            '---',
+            '',
+            '# local version',
+            '',
+          ].join('\n'),
+          'utf-8'
+        );
+
+        writeFileSync(
+          join(agentteamsDir, 'conventions.manifest.json'),
+          JSON.stringify(
+            {
+              version: 1,
+              generatedAt: '2026-01-01T00:00:00.000Z',
+              entries: [
+                {
+                  conventionId: 'cv-1',
+                  fileRelativePath: '.agentteams/rules/core-rules.md',
+                  fileName: 'core-rules.md',
+                  categoryDir: 'rules',
+                  downloadedAt: '2026-01-01T00:00:00.000Z',
+                },
+              ],
+            },
+            null,
+            2
+          ) + '\n',
+          'utf-8'
+        );
+
+        process.chdir(tempCwd);
+        const result = await executeCommand('convention', 'update', {
+          cwd: tempCwd,
+          file: [filePath],
+          apply: true,
+        });
+
+        expect(typeof result).toBe('string');
+        expect(result).toContain('[OK]');
+
+        expect(axiosPutSpy).toHaveBeenCalledWith(
+          `${API_URL}/api/projects/${PROJECT_ID}/conventions/cv-1`,
+          expect.objectContaining({
+            updatedAt: '2026-01-01T00:00:00.000Z',
+            trigger: 'always_on',
+            description: '테스트 설명',
+            agentInstruction: 'line1\nline2',
+            content: expect.any(String),
+          }),
+          { headers: authHeaders() }
+        );
+
+        const manifest = JSON.parse(readFileSync(join(agentteamsDir, 'conventions.manifest.json'), 'utf-8')) as any;
+        expect(manifest.entries[0].lastUploadedAt).toBeTruthy();
+      } finally {
+        process.chdir(originalCwd);
+        rmSync(tempCwd, { recursive: true, force: true });
+      }
+    });
+
+    it('convention update: should resolve .agentteams path from nested cwd', async () => {
+      axiosGetSpy
+        .mockResolvedValueOnce({
+          data: { data: { id: 'cv-1', updatedAt: '2026-01-01T00:00:00.000Z' } },
+        } as any)
+        .mockResolvedValueOnce({ data: '# server version\n' } as any);
+
+      const originalCwd = process.cwd();
+      const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-convention-update-nested-cwd-'));
+
+      try {
+        const agentteamsDir = join(tempCwd, '.agentteams');
+        mkdirSync(agentteamsDir, { recursive: true });
+        mkdirSync(join(agentteamsDir, 'rules'), { recursive: true });
+        mkdirSync(join(tempCwd, 'cli'), { recursive: true });
+
+        writeFileSync(
+          join(agentteamsDir, 'config.json'),
+          JSON.stringify(
+            {
+              teamId: 'team_1',
+              projectId: PROJECT_ID,
+              agentName: 'test-agent',
+              apiKey: 'key_test123',
+              apiUrl: API_URL,
+            },
+            null,
+            2
+          ) + '\n',
+          'utf-8'
+        );
+
+        const filePath = join(agentteamsDir, 'rules', 'core-rules.md');
+        writeFileSync(filePath, '# local version\n', 'utf-8');
+
+        writeFileSync(
+          join(agentteamsDir, 'conventions.manifest.json'),
+          JSON.stringify(
+            {
+              version: 1,
+              generatedAt: '2026-01-01T00:00:00.000Z',
+              entries: [
+                {
+                  conventionId: 'cv-1',
+                  fileRelativePath: '.agentteams/rules/core-rules.md',
+                  fileName: 'core-rules.md',
+                  categoryDir: 'rules',
+                  downloadedAt: '2026-01-01T00:00:00.000Z',
+                },
+              ],
+            },
+            null,
+            2
+          ) + '\n',
+          'utf-8'
+        );
+
+        process.chdir(join(tempCwd, 'cli'));
+        const result = await executeCommand('convention', 'update', {
+          cwd: process.cwd(),
+          file: ['.agentteams/rules/core-rules.md'],
+          apply: false,
+        });
+
+        expect(typeof result).toBe('string');
+        expect(result).toContain('server version');
+        expect(result).toContain('local version');
+      } finally {
+        process.chdir(originalCwd);
+        rmSync(tempCwd, { recursive: true, force: true });
+      }
+    });
+
+    it('convention delete: should delete convention and cleanup local files when --apply is set', async () => {
+      axiosDeleteSpy.mockResolvedValueOnce({ status: 204 } as any);
+
+      const originalCwd = process.cwd();
+      const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-convention-delete-apply-'));
+
+      try {
+        const agentteamsDir = join(tempCwd, '.agentteams');
+        mkdirSync(agentteamsDir, { recursive: true });
+        mkdirSync(join(agentteamsDir, 'rules'), { recursive: true });
+
+        writeFileSync(
+          join(agentteamsDir, 'config.json'),
+          JSON.stringify(
+            {
+              teamId: 'team_1',
+              projectId: PROJECT_ID,
+              agentName: 'test-agent',
+              apiKey: 'key_test123',
+              apiUrl: API_URL,
+            },
+            null,
+            2
+          ) + '\n',
+          'utf-8'
+        );
+
+        const filePath = join(agentteamsDir, 'rules', 'core-rules.md');
+        writeFileSync(filePath, '# local\n', 'utf-8');
+
+        writeFileSync(
+          join(agentteamsDir, 'conventions.manifest.json'),
+          JSON.stringify(
+            {
+              version: 1,
+              generatedAt: '2026-01-01T00:00:00.000Z',
+              entries: [
+                {
+                  conventionId: 'cv-1',
+                  fileRelativePath: '.agentteams/rules/core-rules.md',
+                  fileName: 'core-rules.md',
+                  categoryDir: 'rules',
+                  downloadedAt: '2026-01-01T00:00:00.000Z',
+                },
+              ],
+            },
+            null,
+            2
+          ) + '\n',
+          'utf-8'
+        );
+
+        process.chdir(tempCwd);
+        const result = await executeCommand('convention', 'delete', {
+          cwd: tempCwd,
+          file: [filePath],
+          apply: true,
+        });
+
+        expect(typeof result).toBe('string');
+        expect(result).toContain('Deleted.');
+        expect(existsSync(filePath)).toBe(false);
+
+        const manifest = JSON.parse(readFileSync(join(agentteamsDir, 'conventions.manifest.json'), 'utf-8')) as any;
+        expect(manifest.entries.length).toBe(0);
+        expect(axiosDeleteSpy).toHaveBeenCalledWith(
+          `${API_URL}/api/projects/${PROJECT_ID}/conventions/cv-1`,
+          { headers: authHeaders() }
+        );
       } finally {
         process.chdir(originalCwd);
         rmSync(tempCwd, { recursive: true, force: true });
@@ -857,10 +1188,15 @@ describe('CLI Integration Tests', () => {
     it('config whoami: should display current API key info', async () => {
       const result = await executeCommand('config', 'whoami', {});
 
-      expect(result).toEqual({
-        apiKey: 'key_test123',
-        apiUrl: API_URL,
-      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          apiUrl: API_URL,
+          projectId: PROJECT_ID,
+          teamId: 'team_1',
+          agentName: 'test-agent',
+          hasApiKey: true,
+        })
+      );
     });
 
     it('should validate required options for updated contracts', async () => {
@@ -869,7 +1205,7 @@ describe('CLI Integration Tests', () => {
       );
       await expect(
         executeCommand('plan', 'create', { title: 'no desc' })
-      ).rejects.toThrow('--content is required for plan create');
+      ).rejects.toThrow('--content or --file is required for plan create');
       await expect(
         executeCommand('comment', 'create', { planId: 'plan-1', content: 'x' })
       ).rejects.toThrow('--type is required for comment create');
@@ -877,7 +1213,7 @@ describe('CLI Integration Tests', () => {
         executeCommand('dependency', 'create', { planId: 'plan-1' })
       ).rejects.toThrow('--blocking-plan-id is required for dependency create');
       await expect(executeCommand('convention', 'append', {})).rejects.toThrow(
-        'Unknown convention action: append. Use list, show, or download.'
+        'Unknown convention action: append. Use list, show, download, update, or delete.'
       );
       await expect(executeCommand('sync', 'list', {})).rejects.toThrow(
         'Unknown sync action: list. Use download.'
@@ -953,11 +1289,11 @@ describe('CLI Integration Tests', () => {
       expect(errorMessage).toContain('Invalid API key');
     });
 
-    it('403: should display "Cross-project access denied" message', () => {
+    it('403 (cross-project): should display "Cross-project access denied" message', () => {
       const error = {
         response: {
           status: 403,
-          data: { message: 'Forbidden' },
+          data: { message: 'Cross-project access denied' },
         },
         isAxiosError: true,
         message: 'Request failed with status code 403',
@@ -965,6 +1301,21 @@ describe('CLI Integration Tests', () => {
 
       const errorMessage = handleError(error);
       expect(errorMessage).toContain('Cross-project access denied');
+    });
+
+    it('403 (generic): should display "Forbidden" message', () => {
+      const error = {
+        response: {
+          status: 403,
+          data: { message: '컨벤션 수정 권한이 없습니다' },
+        },
+        isAxiosError: true,
+        message: 'Request failed with status code 403',
+      } as AxiosError;
+
+      const errorMessage = handleError(error);
+      expect(errorMessage).toContain('Forbidden.');
+      expect(errorMessage).toContain("You don't have permission to modify conventions.");
     });
 
     it('Network error: should display "Cannot connect" message', () => {

@@ -75,6 +75,10 @@ export AGENTTEAMS_API_URL="https://your-agentteams-api.example.com"
 agentteams convention list
 agentteams convention show
 agentteams convention download
+agentteams convention update --file .agentteams/rules/context.md
+agentteams convention update --file .agentteams/rules/context.md --apply
+agentteams convention delete --file .agentteams/rules/context.md
+agentteams convention delete --file .agentteams/rules/context.md --apply
 ```
 
 ## Core Commands
@@ -89,16 +93,47 @@ agentteams init
 
 ### `convention`
 
-View and download project conventions.
+Manage project conventions.
 
 ```bash
 agentteams convention list
 agentteams convention show
 agentteams convention download
+agentteams convention update --file .agentteams/rules/context.md
+agentteams convention update --file .agentteams/rules/context.md --apply
+agentteams convention delete --file .agentteams/rules/context.md
+agentteams convention delete --file .agentteams/rules/context.md --apply
 ```
 
 `convention download` saves files by category in `.agentteams/<category>/`.
 If file names collide within the same category, suffixes like `-2`, `-3` are added.
+
+#### `convention update` / `convention delete`
+
+- By default, `update` and `delete` run in **dry-run** mode. They print a diff/plan and do not modify the server.
+- Use `--apply` to actually update/delete the server resource.
+- Only files produced by `agentteams convention download` are allowed. The CLI uses `.agentteams/conventions.manifest.json` to map local files to server conventions.
+
+Examples:
+
+```bash
+# Preview changes (dry-run)
+agentteams convention update --file .agentteams/rules/context.md
+
+# Apply update to server
+agentteams convention update --file .agentteams/rules/context.md --apply
+
+# Preview deletion (dry-run)
+agentteams convention delete --file .agentteams/rules/context.md
+
+# Apply deletion to server
+agentteams convention delete --file .agentteams/rules/context.md --apply
+```
+
+Common errors:
+
+- `403 Forbidden`: the server rejected the operation due to missing write permissions.
+- `409 Conflict`: optimistic-lock conflict (someone else updated the convention). Download again and retry.
 
 ### `sync`
 

@@ -6,6 +6,8 @@ import {
   conventionList,
   conventionShow,
   conventionDownload,
+  conventionUpdate,
+  conventionDelete,
 } from './convention.js';
 import { agentConfigList, agentConfigGet, agentConfigDelete } from './agentConfig.js';
 import { dependencyList, dependencyCreate, dependencyDelete } from './dependency.js';
@@ -730,8 +732,24 @@ async function executeConventionCommand(action: string, options: any): Promise<a
       return conventionShow();
     case 'download':
       return conventionDownload({ cwd: options?.cwd });
+    case 'update': {
+      const files = options?.file;
+      const hasFiles = typeof files === 'string' || (Array.isArray(files) && files.length > 0);
+      if (!hasFiles) {
+        throw new Error('--file is required for convention update');
+      }
+      return conventionUpdate({ cwd: options?.cwd, file: options.file, apply: options.apply });
+    }
+    case 'delete': {
+      const files = options?.file;
+      const hasFiles = typeof files === 'string' || (Array.isArray(files) && files.length > 0);
+      if (!hasFiles) {
+        throw new Error('--file is required for convention delete');
+      }
+      return conventionDelete({ cwd: options?.cwd, file: options.file, apply: options.apply });
+    }
     default:
-      throw new Error(`Unknown convention action: ${action}. Use list, show, or download.`);
+      throw new Error(`Unknown convention action: ${action}. Use list, show, download, update, or delete.`);
   }
 }
 
@@ -820,9 +838,26 @@ function toPositiveInteger(value: unknown): number | undefined {
 async function executeConfigCommand(action: string): Promise<any> {
   switch (action) {
     case 'whoami': {
+      const configPath = findProjectConfig(process.cwd());
+      const config = loadConfig();
+      if (!config) {
+        return {
+          apiUrl: process.env.AGENTTEAMS_API_URL,
+          projectId: process.env.AGENTTEAMS_PROJECT_ID,
+          teamId: process.env.AGENTTEAMS_TEAM_ID,
+          agentName: process.env.AGENTTEAMS_AGENT_NAME,
+          hasApiKey: Boolean(process.env.AGENTTEAMS_API_KEY),
+          configPath,
+        };
+      }
+
       return {
-        apiKey: process.env.AGENTTEAMS_API_KEY,
-        apiUrl: process.env.AGENTTEAMS_API_URL,
+        apiUrl: config.apiUrl,
+        projectId: config.projectId,
+        teamId: config.teamId,
+        agentName: config.agentName,
+        hasApiKey: Boolean(config.apiKey),
+        configPath,
       };
     }
     default:
