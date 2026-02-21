@@ -269,6 +269,17 @@ program
   .option('--report-type <type>', 'Report type (IMPL_PLAN, COMMIT_RANGE, TASK_COMPLETION)')
   .option('--status <status>', 'Report status (COMPLETED, FAILED, PARTIAL)')
   .option('--created-by <name>', 'Created by (defaults to agentName from config)')
+  .option('--commit-hash <hash>', 'Git commit hash (manual override)')
+  .option('--branch-name <name>', 'Git branch name (manual override)')
+  .option('--files-modified <n>', 'Number of modified files (manual override)')
+  .option('--lines-added <n>', 'Number of added lines (manual override)')
+  .option('--lines-deleted <n>', 'Number of deleted lines (manual override)')
+  .option('--duration-seconds <n>', 'Duration in seconds (manual only)')
+  .option('--commit-start <hash>', 'Commit range start hash (manual only)')
+  .option('--commit-end <hash>', 'Commit range end hash (manual only)')
+  .option('--pull-request-id <id>', 'Pull request ID (manual only)')
+  .option('--quality-score <n>', 'Quality score 0-100')
+  .option('--no-git', 'Disable git metrics auto-collection')
   .option('--page <number>', 'Page number (list only)')
   .option('--page-size <number>', 'Page size (list only)')
   .option('--summary <summary>', '[Deprecated] Alias for --title')
@@ -299,6 +310,17 @@ program
         reportType: options.reportType,
         status: options.status,
         createdBy: options.createdBy,
+        commitHash: options.commitHash,
+        branchName: options.branchName,
+        filesModified: options.filesModified,
+        linesAdded: options.linesAdded,
+        linesDeleted: options.linesDeleted,
+        durationSeconds: options.durationSeconds,
+        commitStart: options.commitStart,
+        commitEnd: options.commitEnd,
+        pullRequestId: options.pullRequestId,
+        qualityScore: options.qualityScore,
+        git: options.git,
         page: options.page,
         pageSize: options.pageSize,
         summary: options.summary,

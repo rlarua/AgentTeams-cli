@@ -15,6 +15,7 @@ import { dependencyList, dependencyCreate, dependencyDelete } from './dependency
 import { loadConfig, findProjectConfig } from '../utils/config.js';
 import { withSpinner, printFileInfo } from '../utils/spinner.js';
 import { withoutJsonContentType } from '../utils/httpHeaders.js';
+import { collectGitMetrics } from '../utils/git.js';
 
 function findProjectRoot(): string | null {
   const configPath = findProjectConfig(process.cwd());
@@ -690,18 +691,44 @@ async function executeReportCommand(
         ?? (options.defaultCreatedBy as string | undefined)
         ?? '__cli__';
 
+      const autoGitMetrics = options.git === false ? {} : collectGitMetrics();
+
+      const commitHash = toNonEmptyString(options.commitHash) ?? autoGitMetrics.commitHash;
+      const branchName = toNonEmptyString(options.branchName) ?? autoGitMetrics.branchName;
+      const filesModified = toNonNegativeInteger(options.filesModified) ?? autoGitMetrics.filesModified;
+      const linesAdded = toNonNegativeInteger(options.linesAdded) ?? autoGitMetrics.linesAdded;
+      const linesDeleted = toNonNegativeInteger(options.linesDeleted) ?? autoGitMetrics.linesDeleted;
+      const durationSeconds = toNonNegativeInteger(options.durationSeconds);
+      const commitStart = toNonEmptyString(options.commitStart);
+      const commitEnd = toNonEmptyString(options.commitEnd);
+      const pullRequestId = toNonEmptyString(options.pullRequestId);
+      const qualityScore = toNonNegativeInteger(options.qualityScore);
+
+      const body: Record<string, unknown> = {
+        planId: options.planId,
+        title,
+        content,
+        reportType,
+        status,
+        createdBy,
+      };
+
+      if (commitHash !== undefined) body.commitHash = commitHash;
+      if (branchName !== undefined) body.branchName = branchName;
+      if (filesModified !== undefined) body.filesModified = filesModified;
+      if (linesAdded !== undefined) body.linesAdded = linesAdded;
+      if (linesDeleted !== undefined) body.linesDeleted = linesDeleted;
+      if (durationSeconds !== undefined) body.durationSeconds = durationSeconds;
+      if (commitStart !== undefined) body.commitStart = commitStart;
+      if (commitEnd !== undefined) body.commitEnd = commitEnd;
+      if (pullRequestId !== undefined) body.pullRequestId = pullRequestId;
+      if (qualityScore !== undefined) body.qualityScore = qualityScore;
+
       const response = await withSpinner(
         'Creating report...',
         () => axios.post(
           baseUrl,
-          {
-            planId: options.planId,
-            title,
-            content,
-            reportType,
-            status,
-            createdBy
-          },
+          body,
           { headers }
         ),
         'Report created',
@@ -716,7 +743,28 @@ async function executeReportCommand(
       if (options.content) body.content = options.content;
       if (options.reportType) body.reportType = options.reportType;
       if (options.status) body.status = options.status;
-      if (options.qualityScore !== undefined) body.qualityScore = options.qualityScore;
+
+      const commitHash = toNonEmptyString(options.commitHash);
+      const branchName = toNonEmptyString(options.branchName);
+      const filesModified = toNonNegativeInteger(options.filesModified);
+      const linesAdded = toNonNegativeInteger(options.linesAdded);
+      const linesDeleted = toNonNegativeInteger(options.linesDeleted);
+      const durationSeconds = toNonNegativeInteger(options.durationSeconds);
+      const commitStart = toNonEmptyString(options.commitStart);
+      const commitEnd = toNonEmptyString(options.commitEnd);
+      const pullRequestId = toNonEmptyString(options.pullRequestId);
+      const qualityScore = toNonNegativeInteger(options.qualityScore);
+
+      if (commitHash !== undefined) body.commitHash = commitHash;
+      if (branchName !== undefined) body.branchName = branchName;
+      if (filesModified !== undefined) body.filesModified = filesModified;
+      if (linesAdded !== undefined) body.linesAdded = linesAdded;
+      if (linesDeleted !== undefined) body.linesDeleted = linesDeleted;
+      if (durationSeconds !== undefined) body.durationSeconds = durationSeconds;
+      if (commitStart !== undefined) body.commitStart = commitStart;
+      if (commitEnd !== undefined) body.commitEnd = commitEnd;
+      if (pullRequestId !== undefined) body.pullRequestId = pullRequestId;
+      if (qualityScore !== undefined) body.qualityScore = qualityScore;
 
       const response = await axios.put(
         `${baseUrl}/${options.id}`,
@@ -998,6 +1046,27 @@ function splitCsv(value: string): string[] {
     .split(',')
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
+}
+
+function toNonEmptyString(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function toNonNegativeInteger(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isInteger(value) && value >= 0) {
+    return value;
+  }
+
+  if (typeof value === 'string' && /^\d+$/.test(value)) {
+    return Number.parseInt(value, 10);
+  }
+
+  return undefined;
 }
 
 function toPositiveInteger(value: unknown): number | undefined {
