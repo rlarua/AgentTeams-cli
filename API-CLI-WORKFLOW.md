@@ -1,3 +1,9 @@
+---
+trigger: 
+description: 
+agentInstruction: |
+  본 문서는 한국어로 작성해주세요.
+---
 # API ↔ CLI 워크플로우
 
 이 문서는 AgentTeams CLI(`agentteams`)가 API 서버와 어떻게 통신하는지, 그리고 그 결과로 로컬 워크스페이스에 어떤 파일이 생성/업데이트되는지를 설명합니다.
@@ -103,6 +109,10 @@ Example: `GET {apiUrl}/api/projects/{projectId}/plans`
 
 - Single: `{ data: {...} }`
 - List: `{ data: [...], meta: {...} }`
+- Error: `{ statusCode, error, message, errorCode? }`
+
+에러 응답의 `errorCode`는 선택 필드이며, CLI는 `errorCode`가 있을 때 이를 우선 사용해 에러를 분기합니다.
+`errorCode`가 없는 구버전/부분 적용 응답에서는 기존 `statusCode + message` 기반 동작으로 fallback합니다.
 
 ### Pagination
 

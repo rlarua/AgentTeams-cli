@@ -338,6 +338,19 @@ Note: `convention` does not support `--format`.
 
 ## Error Guide
 
+The API may include an optional machine-readable `errorCode` in error responses:
+
+```json
+{
+  "statusCode": 403,
+  "error": "Forbidden",
+  "message": "Cross-project access denied",
+  "errorCode": "CROSS_PROJECT_ACCESS_DENIED"
+}
+```
+
+The CLI prioritizes `errorCode` when present and falls back to message/status-based handling for older API responses.
+
 | Error | Meaning | Resolution |
 |---|---|---|
 | `401 Unauthorized` | Invalid API key | Check `apiKey` or `AGENTTEAMS_API_KEY` |

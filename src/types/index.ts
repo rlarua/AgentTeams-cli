@@ -253,6 +253,7 @@ export interface ApiError {
   error: string;
   /** Human-readable error message */
   message: string;
+  errorCode?: string;
 }
 
 // ============================================================

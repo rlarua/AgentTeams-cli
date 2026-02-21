@@ -1525,6 +1525,23 @@ describe('CLI Integration Tests', () => {
       expect(errorMessage).toContain('Cross-project access denied');
     });
 
+    it('403 (errorCode): should prioritize CROSS_PROJECT_ACCESS_DENIED over message matching', () => {
+      const error = {
+        response: {
+          status: 403,
+          data: {
+            message: '권한 없음',
+            errorCode: 'CROSS_PROJECT_ACCESS_DENIED',
+          },
+        },
+        isAxiosError: true,
+        message: 'Request failed with status code 403',
+      } as AxiosError;
+
+      const errorMessage = handleError(error);
+      expect(errorMessage).toContain('Cross-project access denied');
+    });
+
     it('403 (generic): should display "Forbidden" message', () => {
       const error = {
         response: {
@@ -1579,6 +1596,42 @@ describe('CLI Integration Tests', () => {
       expect(errorMessage).toContain('Conflict');
       expect(errorMessage).toContain('Next:');
       expect(errorMessage).toContain('Details:');
+    });
+
+    it('409 (errorCode): should display optimistic lock guidance', () => {
+      const error = {
+        response: {
+          status: 409,
+          data: {
+            message: '다른 사용자가 먼저 수정했습니다. 새로고침 후 다시 시도해주세요',
+            errorCode: 'OPTIMISTIC_LOCK_CONFLICT',
+          },
+        },
+        isAxiosError: true,
+        message: 'Request failed with status code 409',
+      } as AxiosError;
+
+      const errorMessage = handleError(error);
+      expect(errorMessage).toContain('Conflict (stale update)');
+      expect(errorMessage).toContain('convention download');
+    });
+
+    it('400 (errorCode): should display validation guidance', () => {
+      const error = {
+        response: {
+          status: 400,
+          data: {
+            message: 'projectId 파라미터가 필요합니다',
+            errorCode: 'VALIDATION_ERROR',
+          },
+        },
+        isAxiosError: true,
+        message: 'Request failed with status code 400',
+      } as AxiosError;
+
+      const errorMessage = handleError(error);
+      expect(errorMessage).toContain('Bad request (validation)');
+      expect(errorMessage).toContain('request parameters');
     });
 
     it('500: should display server error message', () => {
