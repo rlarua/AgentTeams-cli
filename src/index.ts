@@ -267,7 +267,8 @@ program
   .option('--id <id>', 'Report ID')
   .option('--plan-id <id>', 'Plan ID (optional)')
   .option('--title <title>', 'Report title')
-  .option('--content <content>', 'Report markdown content')
+  .option('--content <content>', 'Report markdown content (short text; use --file for long content)')
+  .option('--file <path>', 'Read report content from a local file (create/update)')
   .option('--template <name>', 'Report content template (minimal)', 'minimal')
   .option('--report-type <type>', 'Report type (IMPL_PLAN, COMMIT_RANGE, TASK_COMPLETION)')
   .option('--status <status>', 'Report status (COMPLETED, FAILED, PARTIAL)')
@@ -285,6 +286,8 @@ program
   .option('--no-git', 'Disable git metrics auto-collection')
   .option('--page <number>', 'Page number (list only)')
   .option('--page-size <number>', 'Page size (list only)')
+  .option('--search <text>', 'Title keyword search (list only)')
+  .option('--limit <n>', 'Max results per page, alias for --page-size (list only)')
   .option('--summary <summary>', '[Deprecated] Alias for --title')
   .option('--details <details>', '[Deprecated] Will be embedded in content as JSON')
   .option('--api-url <url>', 'Override API URL (optional)')
@@ -292,7 +295,7 @@ program
   .option('--project-id <id>', 'Override project ID (optional)')
   .option('--team-id <id>', 'Override team ID (optional)')
   .option('--agent-name <name>', 'Override agent name (optional)')
-  .option('--format <format>', 'Output format (json, text)', 'json')
+  .option('--format <format>', 'Output format (json, text)')
   .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
   .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (action, options) => {
@@ -304,11 +307,13 @@ program
         console.warn('[warn] --details is deprecated. Use --content instead.');
       }
 
+      const normalizedFormat = normalizeFormat(options.format, 'json');
       const result = await executeCommand('report', action, {
         id: options.id,
         planId: options.planId,
         title: options.title,
         content: options.content,
+        file: options.file,
         template: options.template,
         reportType: options.reportType,
         status: options.status,
@@ -326,6 +331,8 @@ program
         git: options.git,
         page: options.page,
         pageSize: options.pageSize,
+        search: options.search,
+        limit: options.limit,
         summary: options.summary,
         details: options.details,
         apiUrl: options.apiUrl,
@@ -337,9 +344,12 @@ program
 
       printCommandResult({
         result,
-        format: normalizeFormat(options.format, 'json'),
+        format: normalizedFormat,
         outputFile: options.outputFile,
         verbose: options.verbose,
+        resource: 'report',
+        action,
+        formatExplicit: typeof options.format === 'string',
       });
     } catch (error) {
       console.error(handleError(error));
@@ -354,32 +364,39 @@ program
   .option('--id <id>', 'Post mortem ID')
   .option('--plan-id <id>', 'Plan ID (optional)')
   .option('--title <title>', 'Post mortem title')
-  .option('--content <content>', 'Post mortem markdown content')
+  .option('--content <content>', 'Post mortem markdown content (short text; use --file for long content)')
+  .option('--file <path>', 'Read postmortem content from a local file (create/update)')
   .option('--action-items <csv>', 'Action items (comma-separated)')
   .option('--status <status>', 'Post mortem status (OPEN, IN_PROGRESS, RESOLVED)')
   .option('--created-by <name>', 'Created by (defaults to agentName from config)')
   .option('--page <number>', 'Page number (list only)')
   .option('--page-size <number>', 'Page size (list only)')
+  .option('--search <text>', 'Title keyword search (list only)')
+  .option('--limit <n>', 'Max results per page, alias for --page-size (list only)')
   .option('--api-url <url>', 'Override API URL (optional)')
   .option('--api-key <key>', 'Override API key (optional)')
   .option('--project-id <id>', 'Override project ID (optional)')
   .option('--team-id <id>', 'Override team ID (optional)')
   .option('--agent-name <name>', 'Override agent name (optional)')
-  .option('--format <format>', 'Output format (json, text)', 'json')
+  .option('--format <format>', 'Output format (json, text)')
   .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
   .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (action, options) => {
     try {
+      const normalizedFormat = normalizeFormat(options.format, 'json');
       const result = await executeCommand('postmortem', action, {
         id: options.id,
         planId: options.planId,
         title: options.title,
         content: options.content,
+        file: options.file,
         actionItems: options.actionItems,
         status: options.status,
         createdBy: options.createdBy,
         page: options.page,
         pageSize: options.pageSize,
+        search: options.search,
+        limit: options.limit,
         apiUrl: options.apiUrl,
         apiKey: options.apiKey,
         projectId: options.projectId,
@@ -389,9 +406,12 @@ program
 
       printCommandResult({
         result,
-        format: normalizeFormat(options.format, 'json'),
+        format: normalizedFormat,
         outputFile: options.outputFile,
         verbose: options.verbose,
+        resource: 'postmortem',
+        action,
+        formatExplicit: typeof options.format === 'string',
       });
     } catch (error) {
       console.error(handleError(error));

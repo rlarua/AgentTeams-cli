@@ -682,9 +682,15 @@ async function executeReportCommand(
       if (options.reportType) params.reportType = options.reportType;
       if (options.status) params.status = options.status;
       if (options.createdBy) params.createdBy = options.createdBy;
+      if (options.search) params.search = options.search;
 
       const page = toPositiveInteger(options.page);
-      const pageSize = toPositiveInteger(options.pageSize);
+      const limitVal = toPositiveInteger(options.limit);
+      const pageSizeVal = toPositiveInteger(options.pageSize);
+      if (limitVal !== undefined && pageSizeVal !== undefined) {
+        console.warn('[warn] --limit and --page-size both specified; --limit takes precedence.');
+      }
+      const pageSize = limitVal ?? pageSizeVal;
       if (page !== undefined) params.page = page;
       if (pageSize !== undefined) params.pageSize = pageSize;
 
@@ -710,11 +716,19 @@ async function executeReportCommand(
       }
 
       const rawContent = options.content as string | undefined;
-      const content = rawContent
+      let content = rawContent
         ?? toDetailsAsMarkdown(options.details)
         ?? resolveReportTemplate(options.template);
+      if (options.file) {
+        const filePath = resolve(options.file);
+        if (!existsSync(filePath)) {
+          throw new Error(`File not found: ${options.file}`);
+        }
+        content = readFileSync(filePath, 'utf-8');
+        printFileInfo(options.file, content);
+      }
       if (!content || content.trim().length === 0) {
-        throw new Error('--content is required for report create. Use --content, --details (deprecated), or --template minimal.');
+        throw new Error('--content, --file, or --template is required for report create.');
       }
 
       const reportType = (options.reportType as string | undefined) ?? 'IMPL_PLAN';
@@ -773,6 +787,14 @@ async function executeReportCommand(
 
       if (options.title ?? options.summary) body.title = options.title ?? options.summary;
       if (options.content) body.content = options.content;
+      if (options.file) {
+        const filePath = resolve(options.file);
+        if (!existsSync(filePath)) {
+          throw new Error(`File not found: ${options.file}`);
+        }
+        body.content = readFileSync(filePath, 'utf-8');
+        printFileInfo(options.file, body.content);
+      }
       if (options.reportType) body.reportType = options.reportType;
       if (options.status) body.status = options.status;
 
@@ -836,9 +858,15 @@ async function executePostMortemCommand(
       if (options.planId) params.planId = options.planId;
       if (options.status) params.status = options.status;
       if (options.createdBy) params.createdBy = options.createdBy;
+      if (options.search) params.search = options.search;
 
       const page = toPositiveInteger(options.page);
-      const pageSize = toPositiveInteger(options.pageSize);
+      const limitVal = toPositiveInteger(options.limit);
+      const pageSizeVal = toPositiveInteger(options.pageSize);
+      if (limitVal !== undefined && pageSizeVal !== undefined) {
+        console.warn('[warn] --limit and --page-size both specified; --limit takes precedence.');
+      }
+      const pageSize = limitVal ?? pageSizeVal;
       if (page !== undefined) params.page = page;
       if (pageSize !== undefined) params.pageSize = pageSize;
 
@@ -859,7 +887,15 @@ async function executePostMortemCommand(
     }
     case 'create': {
       if (!options.title) throw new Error('--title is required for postmortem create');
-      if (!options.content) throw new Error('--content is required for postmortem create');
+      if (options.file) {
+        const filePath = resolve(options.file);
+        if (!existsSync(filePath)) {
+          throw new Error(`File not found: ${options.file}`);
+        }
+        options.content = readFileSync(filePath, 'utf-8');
+        printFileInfo(options.file, options.content);
+      }
+      if (!options.content) throw new Error('--content or --file is required for postmortem create');
       if (options.actionItems === undefined) throw new Error('--action-items is required for postmortem create');
 
       const response = await withSpinner(
@@ -891,6 +927,14 @@ async function executePostMortemCommand(
       }
       if (options.title) body.title = options.title;
       if (options.content) body.content = options.content;
+      if (options.file) {
+        const filePath = resolve(options.file);
+        if (!existsSync(filePath)) {
+          throw new Error(`File not found: ${options.file}`);
+        }
+        body.content = readFileSync(filePath, 'utf-8');
+        printFileInfo(options.file, body.content);
+      }
       if (options.actionItems !== undefined) body.actionItems = splitCsv(options.actionItems);
       if (options.status) body.status = options.status;
 

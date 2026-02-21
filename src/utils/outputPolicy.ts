@@ -11,6 +11,16 @@ export interface OutputPolicyContext {
 
 const summaryDefaultActions: Record<string, Set<string>> = {
   plan: new Set(['create', 'update', 'start', 'finish']),
+  report: new Set(['create']),
+  postmortem: new Set(['create']),
+};
+
+const nextActionHints: Record<string, Record<string, string>> = {
+  plan: {
+    create: 'Next: agentteams plan start --id <id>',
+    start: 'Next: agentteams plan download --id <id>',
+    finish: 'Next: agentteams report create --plan-id <id>',
+  },
 };
 
 export function shouldPrintSummary(context: OutputPolicyContext): boolean {
@@ -49,24 +59,54 @@ export function createSummaryLines(result: unknown, context: Pick<OutputPolicyCo
 
   if (id && title) {
     lines.push(`id: ${id}, title: ${title}`);
-    return lines;
-  }
-
-  if (id) {
+  } else if (id) {
     lines.push(`id: ${id}`);
-    return lines;
-  }
-
-  if (title) {
+  } else if (title) {
     lines.push(`title: ${title}`);
-    return lines;
-  }
-
-  if (typeof count === 'number') {
+  } else if (typeof count === 'number') {
     lines.push(`count: ${count}`);
   }
 
+  const hint = resolveNextActionHint(id, result, context);
+  if (hint) {
+    lines.push(hint);
+  }
+
   return lines;
+}
+
+function resolveNextActionHint(
+  id: string | undefined,
+  result: unknown,
+  context: Pick<OutputPolicyContext, 'resource' | 'action'>
+): string | undefined {
+  if (!context.resource || !context.action) return undefined;
+  const actionMap = nextActionHints[context.resource];
+  if (!actionMap) return undefined;
+  const template = actionMap[context.action];
+  if (!template) return undefined;
+  const resolvedId = id ?? extractDeepId(result);
+  if (!resolvedId) return undefined;
+  return template.replace('<id>', resolvedId);
+}
+
+function extractDeepId(result: unknown): string | undefined {
+  if (!result || typeof result !== 'object') return undefined;
+  const obj = result as Record<string, unknown>;
+  const data = obj.data;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return undefined;
+  const dataObj = data as Record<string, unknown>;
+  for (const value of Object.values(dataObj)) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      const nested = value as Record<string, unknown>;
+      const nestedData = nested.data;
+      if (nestedData && typeof nestedData === 'object' && !Array.isArray(nestedData)) {
+        const id = (nestedData as Record<string, unknown>).id;
+        if (typeof id === 'string' && id.length > 0) return id;
+      }
+    }
+  }
+  return undefined;
 }
 
 function extractCandidate(result: unknown): Record<string, unknown> | undefined {
