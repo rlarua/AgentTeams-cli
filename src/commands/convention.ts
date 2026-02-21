@@ -394,7 +394,7 @@ async function downloadPlatformGuides(
       return 0;
     }
 
-    const baseDir = join(projectRoot, CONVENTION_DIR, 'platform', 'guides');
+    const baseDir = join(projectRoot, CONVENTION_DIR, 'platform');
     rmSync(baseDir, { recursive: true, force: true });
     mkdirSync(baseDir, { recursive: true });
 
@@ -560,7 +560,7 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
   if (!conventions || conventions.length === 0) {
     if (hasReportingTemplate) {
       const platformLine = platformGuideCount > 0
-        ? `\nDownloaded ${platformGuideCount} platform guide file(s) into ${CONVENTION_DIR}/platform/guides`
+        ? `\nDownloaded ${platformGuideCount} platform guide file(s) into ${CONVENTION_DIR}/platform`
         : '';
       return `Convention sync completed.\nUpdated ${CONVENTION_DIR}/${CONVENTION_INDEX_FILE}\nNo project conventions found.${platformLine}`;
     }
@@ -575,7 +575,7 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
     : "";
 
   const platformLine = platformGuideCount > 0
-    ? `Downloaded ${platformGuideCount} platform guide file(s) into ${CONVENTION_DIR}/platform/guides\n`
+    ? `Downloaded ${platformGuideCount} platform guide file(s) into ${CONVENTION_DIR}/platform\n`
     : "";
 
   return `Convention sync completed.\n${reportingLine}${platformLine}Downloaded ${conventions.length} file(s) into category directories under ${CONVENTION_DIR}`;

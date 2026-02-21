@@ -225,8 +225,8 @@ describe('CLI Integration Tests', () => {
          const downloadedCore = readFileSync(join(agentteamsDir, 'rules', 'core-rules.md'), 'utf-8');
          const downloadedApi = readFileSync(join(agentteamsDir, 'rules', 'api-rules.md'), 'utf-8');
        const reporting = readFileSync(join(agentteamsDir, 'convention.md'), 'utf-8');
-         const planGuide = readFileSync(join(agentteamsDir, 'platform', 'guides', 'plan-guide.md'), 'utf-8');
-         expect(downloadedCore).toBe('# core rules');
+          const planGuide = readFileSync(join(agentteamsDir, 'platform', 'plan-guide.md'), 'utf-8');
+          expect(downloadedCore).toBe('# core rules');
          expect(downloadedApi).toBe('# api rules');
          expect(reporting).toBe('# reporting from sync\n');
          expect(planGuide).toBe('# plan guide\n');
@@ -791,7 +791,7 @@ describe('CLI Integration Tests', () => {
         const downloadedFile1 = readFileSync(join(agentteamsDir, 'rules', 'core-rules.md'), 'utf-8');
         const downloadedFile2 = readFileSync(join(agentteamsDir, 'rules', 'api-rule.md'), 'utf-8');
         const reportingContent = readFileSync(join(agentteamsDir, 'convention.md'), 'utf-8');
-        const planGuide = readFileSync(join(agentteamsDir, 'platform', 'guides', 'plan-guide.md'), 'utf-8');
+        const planGuide = readFileSync(join(agentteamsDir, 'platform', 'plan-guide.md'), 'utf-8');
         const manifestRaw = readFileSync(join(agentteamsDir, 'conventions.manifest.json'), 'utf-8');
         const manifest = JSON.parse(manifestRaw) as any;
 
@@ -1189,7 +1189,7 @@ describe('CLI Integration Tests', () => {
         process.chdir(tempCwd);
         const result = await executeCommand('convention', 'download', {});
         const reporting = readFileSync(join(agentteamsDir, 'convention.md'), 'utf-8');
-        const planGuide = readFileSync(join(agentteamsDir, 'platform', 'guides', 'plan-guide.md'), 'utf-8');
+        const planGuide = readFileSync(join(agentteamsDir, 'platform', 'plan-guide.md'), 'utf-8');
 
         expect(typeof result).toBe('string');
         expect(result).toContain('No project conventions found');
