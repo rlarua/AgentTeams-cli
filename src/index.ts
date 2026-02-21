@@ -8,6 +8,7 @@ import { executeCommand } from './commands/index.js';
 import { formatOutput } from './utils/formatter.js';
 import { handleError } from './utils/errors.js';
 import { createSummaryLines, shouldPrintSummary, type OutputFormat } from './utils/outputPolicy.js';
+import { printInitResult } from './utils/initOutput.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json') as { version: string };
@@ -88,13 +89,9 @@ program
   .action(async (options) => {
     try {
       const result = await executeCommand('init', 'start', {});
+      const format = normalizeFormat(options.format, 'text');
 
-      printCommandResult({
-        result,
-        format: normalizeFormat(options.format, 'text'),
-        outputFile: options.outputFile,
-        verbose: options.verbose,
-      });
+      printInitResult(result, format);
     } catch (error) {
       console.error(handleError(error));
       process.exit(1);
