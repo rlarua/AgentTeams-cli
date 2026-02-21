@@ -14,6 +14,7 @@ import { agentConfigList, agentConfigGet, agentConfigDelete } from './agentConfi
 import { dependencyList, dependencyCreate, dependencyDelete } from './dependency.js';
 import { loadConfig, findProjectConfig } from '../utils/config.js';
 import { withSpinner, printFileInfo } from '../utils/spinner.js';
+import { withoutJsonContentType } from '../utils/httpHeaders.js';
 
 function findProjectRoot(): string | null {
   const configPath = findProjectConfig(process.cwd());
@@ -223,7 +224,7 @@ async function executeStatusCommand(
       if (!options.id) throw new Error('--id is required for status delete');
       const response = await axios.delete(
         `${baseUrl}/${options.id}`,
-        { headers }
+        { headers: withoutJsonContentType(headers) }
       );
       return response.data;
     }
@@ -421,7 +422,7 @@ async function executePlanCommand(
     }
     case 'delete': {
       if (!options.id) throw new Error('--id is required for plan delete');
-      await axios.delete(`${baseUrl}/${options.id}`, { headers });
+      await axios.delete(`${baseUrl}/${options.id}`, { headers: withoutJsonContentType(headers) });
       return { message: `Plan ${options.id} deleted successfully` };
     }
     case 'assign': {
@@ -601,7 +602,7 @@ async function executeCommentCommand(
       if (!options.id) throw new Error('--id is required for comment delete');
       await axios.delete(
         `${commentBaseUrl}/${options.id}`,
-        { headers }
+        { headers: withoutJsonContentType(headers) }
       );
       return { message: `Comment ${options.id} deleted successfully` };
     }
@@ -709,7 +710,7 @@ async function executeReportCommand(
       if (!options.id) throw new Error('--id is required for report delete');
       await axios.delete(
         `${baseUrl}/${options.id}`,
-        { headers }
+        { headers: withoutJsonContentType(headers) }
       );
       return { message: `Report ${options.id} deleted successfully` };
     }
@@ -805,7 +806,7 @@ async function executePostMortemCommand(
       if (!options.id) throw new Error('--id is required for postmortem delete');
       await axios.delete(
         `${baseUrl}/${options.id}`,
-        { headers }
+        { headers: withoutJsonContentType(headers) }
       );
       return { message: `PostMortem ${options.id} deleted successfully` };
     }

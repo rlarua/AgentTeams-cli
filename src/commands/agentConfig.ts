@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { loadConfig } from '../utils/config.js';
+import { withoutJsonContentType } from '../utils/httpHeaders.js';
 
 function getConfigOrThrow() {
   const config = loadConfig();
@@ -40,7 +41,7 @@ export async function agentConfigDelete(id: string): Promise<any> {
   const config = getConfigOrThrow();
   const response = await axios.delete(
     `${config.apiUrl}/api/projects/${config.projectId}/agent-configs/${id}`,
-    { headers: getHeaders(config.apiKey) }
+    { headers: withoutJsonContentType(getHeaders(config.apiKey)) }
   );
   if (response.status === 204) {
     return { message: `Agent config ${id} deleted successfully.` };

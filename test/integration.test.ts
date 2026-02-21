@@ -17,6 +17,12 @@ function authHeaders() {
   };
 }
 
+function deleteHeaders() {
+  return {
+    'X-API-Key': 'key_test123',
+  };
+}
+
 describe('CLI Integration Tests', () => {
   const originalEnv = process.env;
   let axiosGetSpy: jest.SpiedFunction<typeof axios.get>;
@@ -293,7 +299,7 @@ describe('CLI Integration Tests', () => {
       );
       expect(axiosDeleteSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/agent-statuses/status-2`,
-        { headers: authHeaders() }
+        { headers: deleteHeaders() }
       );
     });
 
@@ -358,7 +364,7 @@ describe('CLI Integration Tests', () => {
       );
       expect(axiosDeleteSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
-        { headers: authHeaders() }
+        { headers: deleteHeaders() }
       );
     });
 
@@ -552,7 +558,7 @@ describe('CLI Integration Tests', () => {
       );
       expect(axiosDeleteSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/comments/comment-1`,
-        { headers: authHeaders() }
+        { headers: deleteHeaders() }
       );
     });
 
@@ -598,7 +604,7 @@ describe('CLI Integration Tests', () => {
       );
       expect(axiosDeleteSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/plans/${planId}/dependencies/dep-1`,
-        { headers: authHeaders() }
+        { headers: deleteHeaders() }
       );
       expect(axiosPostSpy.mock.calls[0]?.[0]).not.toContain('NaN');
     });
@@ -1020,7 +1026,7 @@ describe('CLI Integration Tests', () => {
         expect(manifest.entries.length).toBe(0);
         expect(axiosDeleteSpy).toHaveBeenCalledWith(
           `${API_URL}/api/projects/${PROJECT_ID}/conventions/cv-1`,
-          { headers: authHeaders() }
+          { headers: deleteHeaders() }
         );
       } finally {
         process.chdir(originalCwd);
@@ -1338,6 +1344,17 @@ describe('CLI Integration Tests', () => {
       );
     });
 
+    it('report delete: should call project-scoped endpoint without json content-type', async () => {
+      axiosDeleteSpy.mockResolvedValue({ status: 204 } as any);
+
+      await executeCommand('report', 'delete', { id: 'report-1' });
+
+      expect(axiosDeleteSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/completion-reports/report-1`,
+        { headers: deleteHeaders() }
+      );
+    });
+
     it('postmortem command: should remain project-scoped post mortem path', async () => {
       axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 'pm1' } } } as any);
@@ -1388,6 +1405,34 @@ describe('CLI Integration Tests', () => {
             pageSize: 5,
           },
         }
+      );
+    });
+
+    it('postmortem delete: should call project-scoped endpoint without json content-type', async () => {
+      axiosDeleteSpy.mockResolvedValue({ status: 204 } as any);
+
+      await executeCommand('postmortem', 'delete', { id: 'pm-1' });
+
+      expect(axiosDeleteSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/post-mortems/pm-1`,
+        { headers: deleteHeaders() }
+      );
+    });
+
+    it('agent-config get/delete: should use project-scoped endpoints and delete headers', async () => {
+      axiosGetSpy.mockResolvedValue({ data: { data: { id: 'ac-1' } } } as any);
+      axiosDeleteSpy.mockResolvedValue({ status: 204 } as any);
+
+      await executeCommand('agent-config', 'get', { id: 'ac-1' });
+      await executeCommand('agent-config', 'delete', { id: 'ac-1' });
+
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/agent-configs/ac-1`,
+        { headers: authHeaders() }
+      );
+      expect(axiosDeleteSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/agent-configs/ac-1`,
+        { headers: deleteHeaders() }
       );
     });
 

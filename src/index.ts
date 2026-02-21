@@ -7,33 +7,16 @@ import { Command } from 'commander';
 import { executeCommand } from './commands/index.js';
 import { formatOutput } from './utils/formatter.js';
 import { handleError } from './utils/errors.js';
+import { createSummaryLines, shouldPrintSummary, type OutputFormat } from './utils/outputPolicy.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json') as { version: string };
 
 const program = new Command();
 
-type OutputFormat = 'json' | 'text';
-
 function normalizeFormat(format: unknown, fallback: OutputFormat): OutputFormat {
   if (format === 'json' || format === 'text') return format;
   return fallback;
-}
-
-function extractSummary(result: unknown): string | undefined {
-  if (!result || typeof result !== 'object') return undefined;
-
-  const obj = result as any;
-  const candidate = obj?.data ?? obj;
-
-  const id = typeof candidate?.id === 'string' ? candidate.id : undefined;
-  if (id) return `id: ${id}`;
-
-  if (Array.isArray(candidate)) return `count: ${candidate.length}`;
-
-  if (Array.isArray(candidate?.data)) return `count: ${candidate.data.length}`;
-
-  return undefined;
 }
 
 function writeOutputFile(outputFile: string, content: string): { resolvedPath: string; bytes: number } {
@@ -49,18 +32,41 @@ function printCommandResult(params: {
   format: OutputFormat;
   outputFile?: string;
   verbose?: boolean;
+  resource?: string;
+  action?: string;
+  formatExplicit?: boolean;
 }): void {
   const outputText =
     typeof params.result === 'string' ? params.result : formatOutput(params.result, params.format);
 
+  const summaryLines = createSummaryLines(params.result, {
+    resource: params.resource,
+    action: params.action,
+  });
+
   if (typeof params.outputFile === 'string' && params.outputFile.trim().length > 0) {
     const { resolvedPath, bytes } = writeOutputFile(params.outputFile, outputText);
     console.log(`Saved output to ${resolvedPath} (${bytes} bytes).`);
-    const summary = extractSummary(params.result);
-    if (summary) console.log(summary);
+    for (const line of summaryLines) {
+      console.log(line);
+    }
 
     if (params.verbose) {
       console.log(outputText);
+    }
+    return;
+  }
+
+  if (shouldPrintSummary({
+    resource: params.resource,
+    action: params.action,
+    format: params.format,
+    formatExplicit: params.formatExplicit,
+    outputFile: params.outputFile,
+    verbose: params.verbose,
+  })) {
+    for (const line of summaryLines) {
+      console.log(line);
     }
     return;
   }
@@ -176,11 +182,12 @@ program
   .option('--page <number>', 'Page number (list only)')
   .option('--page-size <number>', 'Page size (list only)')
   .option('--agent <agent>', 'Agent name or ID to assign')
-  .option('--format <format>', 'Output format (json, text)', 'json')
+  .option('--format <format>', 'Output format (json, text)')
   .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
   .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (action, options) => {
     try {
+      const normalizedFormat = normalizeFormat(options.format, 'json');
       const result = await executeCommand('plan', action, {
         id: options.id,
         title: options.title,
@@ -199,9 +206,12 @@ program
 
       printCommandResult({
         result,
-        format: normalizeFormat(options.format, 'json'),
+        format: normalizedFormat,
         outputFile: options.outputFile,
         verbose: options.verbose,
+        resource: 'plan',
+        action,
+        formatExplicit: typeof options.format === 'string',
       });
     } catch (error) {
       console.error(handleError(error));

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { loadConfig } from '../utils/config.js';
+import { withoutJsonContentType } from '../utils/httpHeaders.js';
 
 function getConfigOrThrow() {
   const config = loadConfig();
@@ -54,7 +55,7 @@ export async function dependencyDelete(
   const apiBaseUrl = getApiBaseUrl(config.apiUrl);
   const response = await axios.delete(
     `${apiBaseUrl}/api/projects/${config.projectId}/plans/${planId}/dependencies/${depId}`,
-    { headers: getHeaders(config.apiKey) }
+    { headers: withoutJsonContentType(getHeaders(config.apiKey)) }
   );
   if (response.status === 204) {
     return { message: `Dependency ${depId} deleted from plan ${planId}.` };

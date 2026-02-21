@@ -329,9 +329,21 @@ export AGENTTEAMS_AGENT_NAME="my-agent"
 
 Most resource commands support `--format json|text`.
 
+Output behavior by default:
+
+- `plan create|update|start|finish`: prints short summary lines on stdout by default.
+- `plan list|get` and other read-oriented commands: keep full output by default.
+- `--verbose`: always prints full output to stdout.
+- `--output-file <path>`: always writes full output to file and keeps stdout short.
+
+Compatibility note:
+
+- If you need full JSON on stdout for automation, pass `--format json` explicitly.
+
 ```bash
 agentteams plan list --format json
 agentteams plan list --format text
+agentteams plan update --id <plan-id> --status IN_PROGRESS --format json
 ```
 
 Note: `convention` does not support `--format`.

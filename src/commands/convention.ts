@@ -6,6 +6,7 @@ import { diffLines, createTwoFilesPatch } from "diff";
 import { normalizeMarkdownToTiptap } from "@agentteams/markdown-tiptap";
 import { loadConfig, findProjectConfig } from "../utils/config.js";
 import { withSpinner } from "../utils/spinner.js";
+import { withoutJsonContentType } from "../utils/httpHeaders.js";
 import type { Config } from "../types/index.js";
 
 const CONVENTION_DIR = ".agentteams";
@@ -834,7 +835,7 @@ export async function conventionDelete(options: ConventionDeleteOptions): Promis
       `Deleting convention for ${fileRelativePath}...`,
       () => axios.delete(
         `${apiUrl}/api/projects/${config.projectId}/conventions/${conventionId}`,
-        { headers }
+        { headers: withoutJsonContentType(headers) }
       )
     );
 
