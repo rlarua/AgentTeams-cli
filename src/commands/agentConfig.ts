@@ -19,10 +19,15 @@ function getHeaders(apiKey: string) {
   };
 }
 
+function getApiBaseUrl(apiUrl: string): string {
+  return apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+}
+
 export async function agentConfigList(): Promise<any> {
   const config = getConfigOrThrow();
+  const apiBaseUrl = getApiBaseUrl(config.apiUrl);
   const response = await axios.get(
-    `${config.apiUrl}/api/projects/${config.projectId}/agent-configs`,
+    `${apiBaseUrl}/api/projects/${config.projectId}/agent-configs`,
     { headers: getHeaders(config.apiKey) }
   );
   return response.data;
@@ -30,8 +35,9 @@ export async function agentConfigList(): Promise<any> {
 
 export async function agentConfigGet(id: string): Promise<any> {
   const config = getConfigOrThrow();
+  const apiBaseUrl = getApiBaseUrl(config.apiUrl);
   const response = await axios.get(
-    `${config.apiUrl}/api/projects/${config.projectId}/agent-configs/${id}`,
+    `${apiBaseUrl}/api/projects/${config.projectId}/agent-configs/${id}`,
     { headers: getHeaders(config.apiKey) }
   );
   return response.data;
@@ -39,8 +45,9 @@ export async function agentConfigGet(id: string): Promise<any> {
 
 export async function agentConfigDelete(id: string): Promise<any> {
   const config = getConfigOrThrow();
+  const apiBaseUrl = getApiBaseUrl(config.apiUrl);
   const response = await axios.delete(
-    `${config.apiUrl}/api/projects/${config.projectId}/agent-configs/${id}`,
+    `${apiBaseUrl}/api/projects/${config.projectId}/agent-configs/${id}`,
     { headers: withoutJsonContentType(getHeaders(config.apiKey)) }
   );
   if (response.status === 204) {
