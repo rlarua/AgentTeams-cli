@@ -27,7 +27,19 @@ function formatObject(obj: any): string {
   }
 
   const lines: string[] = [];
-  for (const [key, value] of Object.entries(obj)) {
+  const preferredOrder = ['id', 'title', 'status', 'priority', 'updatedAt', 'createdAt'];
+  const entries = Object.entries(obj).sort(([a], [b]) => {
+    const leftPriority = preferredOrder.indexOf(a);
+    const rightPriority = preferredOrder.indexOf(b);
+
+    const leftRank = leftPriority === -1 ? Number.MAX_SAFE_INTEGER : leftPriority;
+    const rightRank = rightPriority === -1 ? Number.MAX_SAFE_INTEGER : rightPriority;
+
+    if (leftRank !== rightRank) return leftRank - rightRank;
+    return a.localeCompare(b);
+  });
+
+  for (const [key, value] of entries) {
     if (value === null || value === undefined) {
       continue;
     }

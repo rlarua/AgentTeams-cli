@@ -90,6 +90,10 @@ sequenceDiagram
 - `X-API-Key: key_...`
 - `Content-Type: application/json`
 
+예외:
+
+- `DELETE` 요청은 서버의 빈 JSON body 검증 충돌을 피하기 위해 `Content-Type`을 포함하지 않습니다.
+
 API는 다음 중 하나를 허용합니다:
 
 - `Authorization: Bearer <token>`
@@ -136,6 +140,8 @@ Many list endpoints accept `page` and `pageSize`.
 
 요약 출력은 기본 영어 메시지로 출력됩니다(자동화/로그 파싱 관점에서 고정된 문구를 선호).
 
+text 출력에서 객체 필드는 핵심 식별 필드(`id/title/status/priority/updatedAt/createdAt`)를 우선 표시한 뒤 나머지를 정렬해 출력합니다.
+
 ---
 
 ## 커맨드별 워크플로우
@@ -145,7 +151,9 @@ Many list endpoints accept `page` and `pageSize`.
 - Create: `POST /api/projects/:projectId/plans`
   - Plans are always created as `DRAFT` (server-enforced). Even if a client sends `status`, it will be ignored on creation.
   - Use `--content` or `--file` for the body.
+  - `--template refactor-minimal`로 최소 리팩터링 체크리스트 본문을 자동 채울 수 있습니다(내용이 비어 있을 때).
   - 멀티라인을 `--content`로 전달해야 하는 경우, `--interpret-escapes`를 사용하면 `\\n` 시퀀스를 실제 줄바꿈으로 변환합니다(기본 OFF).
+- Get alias: `plan show --id <id>`는 `plan get --id <id>`와 동일 동작입니다.
 - Download snapshot: `GET /api/projects/:projectId/plans/:id`
   - Saved to `.agentteams/active-plan/{safe-title}.md` with frontmatter.
 - (추가) 단축 커맨드

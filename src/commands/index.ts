@@ -269,6 +269,13 @@ async function executePlanCommand(
       });
       return response.data;
     }
+    case 'show': {
+      if (!options.id) throw new Error('--id is required for plan show');
+      const response = await axios.get(`${baseUrl}/${options.id}`, {
+        headers,
+      });
+      return response.data;
+    }
     case 'start': {
       if (!options.id) throw new Error('--id is required for plan start');
 
@@ -353,6 +360,18 @@ async function executePlanCommand(
       if (!options.title) throw new Error('--title is required for plan create');
 
       let content = options.content;
+      const hasExplicitContent = typeof options.content === 'string' && options.content.trim().length > 0;
+      const hasExplicitFile = typeof options.file === 'string' && options.file.trim().length > 0;
+      const templateContent = resolvePlanTemplate(options.template);
+
+      if (!content && !options.file && templateContent) {
+        content = templateContent;
+      }
+
+      if ((hasExplicitContent || hasExplicitFile) && templateContent) {
+        console.warn('[warn] plan create: --template is ignored because --content/--file was provided.');
+      }
+
       if (options.file) {
         const filePath = resolve(options.file);
         if (!existsSync(filePath)) {
@@ -365,7 +384,7 @@ async function executePlanCommand(
         content = interpretEscapes(content);
       }
       if (!content || content.trim().length === 0) {
-        throw new Error('--content or --file is required for plan create');
+        throw new Error('--content, --file, or --template is required for plan create');
       }
 
       if (options.status && options.status !== 'DRAFT') {
@@ -851,6 +870,28 @@ function resolveReportTemplate(template: unknown): string | undefined {
   if (value === 'minimal') return minimalCompletionReportTemplate();
 
   throw new Error(`Unsupported template: ${value}. Only 'minimal' is supported.`);
+}
+
+function minimalPlanRefactorChecklistTemplate(): string {
+  return [
+    '## Refactor Checklist',
+    '- [ ] Define current pain points and target behavior',
+    '- [ ] Identify impacted modules and side effects',
+    '- [ ] Keep API/schema contracts backward-compatible',
+    '- [ ] Add or update related tests',
+    '- [ ] Run verification (`npm test`, `npm run build`) and record outcomes',
+    '',
+  ].join('\n');
+}
+
+function resolvePlanTemplate(template: unknown): string | undefined {
+  if (template === undefined || template === null) return undefined;
+  const value = String(template).trim();
+  if (value.length === 0) return undefined;
+
+  if (value === 'refactor-minimal') return minimalPlanRefactorChecklistTemplate();
+
+  throw new Error(`Unsupported plan template: ${value}. Only 'refactor-minimal' is supported.`);
 }
 
 async function executeConventionCommand(action: string, options: any): Promise<any> {

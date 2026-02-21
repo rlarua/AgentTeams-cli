@@ -327,6 +327,7 @@ describe('CLI Integration Tests', () => {
       });
       await executeCommand('plan', 'list', {});
       await executeCommand('plan', 'get', { id: 'plan-1' });
+      await executeCommand('plan', 'show', { id: 'plan-1' });
       await executeCommand('plan', 'update', { id: 'plan-1', status: 'IN_PROGRESS' });
       await executeCommand('plan', 'assign', { id: 'plan-1', agent: 'agent-a' });
       await executeCommand('plan', 'delete', { id: 'plan-1' });
@@ -348,6 +349,11 @@ describe('CLI Integration Tests', () => {
       );
       expect(axiosGetSpy).toHaveBeenNthCalledWith(
         2,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
+        { headers: authHeaders() }
+      );
+      expect(axiosGetSpy).toHaveBeenNthCalledWith(
+        3,
         `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
         { headers: authHeaders() }
       );
@@ -382,6 +388,24 @@ describe('CLI Integration Tests', () => {
         expect.objectContaining({
           title: 'Plan 1',
           content: 'Line1\nLine2',
+        }),
+        { headers: authHeaders() }
+      );
+    });
+
+    it('plan create: should use refactor-minimal template when content is missing', async () => {
+      axiosPostSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
+
+      await executeCommand('plan', 'create', {
+        title: 'Plan with template',
+        template: 'refactor-minimal',
+      });
+
+      expect(axiosPostSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans`,
+        expect.objectContaining({
+          title: 'Plan with template',
+          content: expect.stringContaining('## Refactor Checklist'),
         }),
         { headers: authHeaders() }
       );
@@ -1456,7 +1480,7 @@ describe('CLI Integration Tests', () => {
       );
       await expect(
         executeCommand('plan', 'create', { title: 'no desc' })
-      ).rejects.toThrow('--content or --file is required for plan create');
+      ).rejects.toThrow('--content, --file, or --template is required for plan create');
       await expect(
         executeCommand('comment', 'create', { planId: 'plan-1', content: 'x' })
       ).rejects.toThrow('--type is required for comment create');
@@ -1485,6 +1509,8 @@ describe('CLI Integration Tests', () => {
       expect(cliIndex).toContain("--assigned-to <id>");
       expect(cliIndex).toContain("--page <number>");
       expect(cliIndex).toContain("--page-size <number>");
+      expect(cliIndex).toContain("Action to perform (list, get, show, create");
+      expect(cliIndex).toContain("--template <name>");
       expect(cliIndex).not.toContain("Action to perform (download)");
 
       expect(cliIndex).not.toContain("--metadata <json>");
@@ -1522,6 +1548,28 @@ describe('CLI Integration Tests', () => {
       expect(output).toContain('IN_PROGRESS');
       expect(output).toContain('agent2');
       expect(output).toContain('DONE');
+    });
+
+    it('should prioritize plan core keys in text output', () => {
+      const data = {
+        data: {
+          updatedAt: '2026-01-01T00:00:00.000Z',
+          extra: 'value',
+          priority: 'HIGH',
+          id: 'plan-1',
+          status: 'IN_PROGRESS',
+          title: 'My Plan',
+        },
+      };
+
+      const output = formatOutput(data, 'text');
+      const lines = output.split('\n');
+
+      expect(lines[0]).toBe('id: plan-1');
+      expect(lines[1]).toBe('title: My Plan');
+      expect(lines[2]).toBe('status: IN_PROGRESS');
+      expect(lines[3]).toBe('priority: HIGH');
+      expect(lines[4]).toBe('updatedAt: 2026-01-01T00:00:00.000Z');
     });
   });
 

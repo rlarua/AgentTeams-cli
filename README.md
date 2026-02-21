@@ -191,11 +191,17 @@ Note: Plans are always created as `DRAFT`. Even if you pass `--status` to `plan 
 ```bash
 agentteams plan list
 agentteams plan get --id <plan-id>
+agentteams plan show --id <plan-id>  # alias of get
 
 agentteams plan create \
   --title "Implement feature" \
   --content "Detailed content" \
   --priority "HIGH"
+
+# optional checklist template for create
+agentteams plan create \
+  --title "Refactor module" \
+  --template "refactor-minimal"
 
 agentteams plan update --id <plan-id> --status "PENDING"
 agentteams plan update --id <plan-id> --status "IN_PROGRESS"
@@ -208,6 +214,8 @@ agentteams plan delete --id <plan-id>
 Status values: `DRAFT`, `PENDING`, `ASSIGNED`, `IN_PROGRESS`, `BLOCKED`, `DONE`, `CANCELLED`
 
 Priorities: `LOW`, `MEDIUM`, `HIGH`
+
+Plan template values (create): `refactor-minimal`
 
 ### `comment`
 

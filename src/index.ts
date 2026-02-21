@@ -168,13 +168,14 @@ program
 program
   .command('plan')
   .description('Manage plans')
-  .argument('<action>', 'Action to perform (list, get, create, update, delete, assign, download, cleanup, start, finish)')
+  .argument('<action>', 'Action to perform (list, get, show, create, update, delete, assign, download, cleanup, start, finish)')
   .option('--id <id>', 'Plan ID')
   .option('--title <title>', 'Plan title')
   .option('--search <text>', 'Plan title/ID search keyword (list only)')
   .option('--content <content>', 'Plan content (plain text or Tiptap JSON)')
   .option('--interpret-escapes', 'Interpret \\n sequences in --content as newlines (create/update only)', false)
   .option('--file <path>', 'Read plan content from a local file (create/update)')
+  .option('--template <name>', 'Plan content template (refactor-minimal, create only)')
   .option('--status <status>', 'Plan status (DRAFT, PENDING, ASSIGNED, IN_PROGRESS, BLOCKED, DONE, CANCELLED)')
   .option('--priority <priority>', 'Plan priority (LOW, MEDIUM, HIGH)')
   .option('--assigned-to <id>', 'Assigned agent config ID (list filter)')
@@ -195,6 +196,7 @@ program
         content: options.content,
         interpretEscapes: options.interpretEscapes,
         file: options.file,
+        template: options.template,
         status: options.status,
         priority: options.priority,
         assignedTo: options.assignedTo,
