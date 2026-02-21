@@ -70,7 +70,11 @@ describe('outputPolicy', () => {
       { resource: 'plan', action: 'create' }
     );
 
-    expect(lines).toEqual(['Success: plan create', 'id: plan-123, title: CLI output fix']);
+    expect(lines).toEqual([
+      'Success: plan create',
+      'id: plan-123, title: CLI output fix',
+      'Next: agentteams plan start --id plan-123',
+    ]);
   });
 
   it('uses message when available', () => {
@@ -83,5 +87,33 @@ describe('outputPolicy', () => {
     );
 
     expect(lines[0]).toBe('Plan downloaded');
+  });
+
+  it('creates next action hint for plan start', () => {
+    const lines = createSummaryLines(
+      {
+        data: {
+          id: 'plan-456',
+          title: 'Started plan',
+        },
+      },
+      { resource: 'plan', action: 'start' }
+    );
+
+    expect(lines).toContain('Next: agentteams plan download --id plan-456');
+  });
+
+  it('creates next action hint for plan finish', () => {
+    const lines = createSummaryLines(
+      {
+        data: {
+          id: 'plan-789',
+          title: 'Finished plan',
+        },
+      },
+      { resource: 'plan', action: 'finish' }
+    );
+
+    expect(lines).toContain('Next: agentteams report create --plan-id plan-789');
   });
 });
