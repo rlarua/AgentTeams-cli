@@ -191,6 +191,7 @@ Note: Plans are always created as `DRAFT`. Even if you pass `--status` to `plan 
 ```bash
 agentteams plan list
 agentteams plan get --id <plan-id>
+agentteams plan get --id <plan-id> --include-deps --format text
 agentteams plan show --id <plan-id>  # alias of get
 
 agentteams plan create \
@@ -216,6 +217,8 @@ Status values: `DRAFT`, `PENDING`, `ASSIGNED`, `IN_PROGRESS`, `BLOCKED`, `DONE`,
 Priorities: `LOW`, `MEDIUM`, `HIGH`
 
 Plan template values (create): `refactor-minimal`
+
+`--include-deps` (get/show): also fetches dependency data and appends a `Dependencies` section in text output; in json output it adds `data.dependencies` with `blocking` and `dependents` arrays.
 
 ### `comment`
 

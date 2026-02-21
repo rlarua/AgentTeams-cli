@@ -154,6 +154,10 @@ text 출력에서 객체 필드는 핵심 식별 필드(`id/title/status/priorit
   - `--template refactor-minimal`로 최소 리팩터링 체크리스트 본문을 자동 채울 수 있습니다(내용이 비어 있을 때).
   - 멀티라인을 `--content`로 전달해야 하는 경우, `--interpret-escapes`를 사용하면 `\\n` 시퀀스를 실제 줄바꿈으로 변환합니다(기본 OFF).
 - Get alias: `plan show --id <id>`는 `plan get --id <id>`와 동일 동작입니다.
+- Include dependencies: `plan get|show --id <id> --include-deps`
+  - 내부적으로 `GET /plans/:id` + `GET /plans/:id/dependencies`를 호출해 응답을 합성합니다.
+  - `--format json`: `data.dependencies = { blocking: [...], dependents: [...] }`
+  - `--format text`: Plan 필드 출력 뒤 `## Dependencies` 섹션을 추가합니다.
 - Download snapshot: `GET /api/projects/:projectId/plans/:id`
   - Saved to `.agentteams/active-plan/{safe-title}.md` with frontmatter.
 - (추가) 단축 커맨드

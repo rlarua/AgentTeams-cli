@@ -374,6 +374,82 @@ describe('CLI Integration Tests', () => {
       );
     });
 
+    it('plan get with include-deps: should fetch dependency endpoint and merge data', async () => {
+      axiosGetSpy
+        .mockResolvedValueOnce({
+          data: {
+            data: {
+              id: 'plan-1',
+              title: 'Main Plan',
+              status: 'IN_PROGRESS',
+            },
+          },
+        } as any)
+        .mockResolvedValueOnce({
+          data: {
+            data: {
+              blocking: [{ id: 'p-2', title: 'Blocker', status: 'PENDING' }],
+              dependents: [{ id: 'p-3', title: 'Dependent', status: 'PENDING' }],
+            },
+          },
+        } as any);
+
+      const result = await executeCommand('plan', 'get', {
+        id: 'plan-1',
+        includeDeps: true,
+        format: 'json',
+      });
+
+      expect(axiosGetSpy).toHaveBeenNthCalledWith(
+        1,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
+        { headers: authHeaders() }
+      );
+      expect(axiosGetSpy).toHaveBeenNthCalledWith(
+        2,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/dependencies`,
+        { headers: authHeaders() }
+      );
+      expect((result as any).data.dependencies).toEqual({
+        blocking: [{ id: 'p-2', title: 'Blocker', status: 'PENDING' }],
+        dependents: [{ id: 'p-3', title: 'Dependent', status: 'PENDING' }],
+      });
+    });
+
+    it('plan show with include-deps and text: should render dependency section', async () => {
+      axiosGetSpy
+        .mockResolvedValueOnce({
+          data: {
+            data: {
+              id: 'plan-1',
+              title: 'Main Plan',
+              status: 'IN_PROGRESS',
+            },
+          },
+        } as any)
+        .mockResolvedValueOnce({ data: { data: { blocking: [], dependents: [] } } } as any);
+
+      const result = await executeCommand('plan', 'show', {
+        id: 'plan-1',
+        includeDeps: true,
+        format: 'text',
+      });
+
+      expect(axiosGetSpy).toHaveBeenNthCalledWith(
+        1,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
+        { headers: authHeaders() }
+      );
+      expect(axiosGetSpy).toHaveBeenNthCalledWith(
+        2,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/dependencies`,
+        { headers: authHeaders() }
+      );
+      expect(typeof result).toBe('string');
+      expect(String(result)).toContain('## Dependencies');
+      expect(String(result)).toContain('No dependencies.');
+    });
+
     it('plan create: should interpret \\\\n sequences when interpretEscapes is enabled', async () => {
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
 
@@ -1596,6 +1672,7 @@ describe('CLI Integration Tests', () => {
       expect(cliIndex).toContain("--page-size <number>");
       expect(cliIndex).toContain("Action to perform (list, get, show, create");
       expect(cliIndex).toContain("--template <name>");
+      expect(cliIndex).toContain("--include-deps");
       expect(cliIndex).not.toContain("Action to perform (download)");
 
       expect(cliIndex).not.toContain("--metadata <json>");

@@ -183,6 +183,7 @@ program
   .option('--page <number>', 'Page number (list only)')
   .option('--page-size <number>', 'Page size (list only)')
   .option('--agent <agent>', 'Agent name or ID to assign')
+  .option('--include-deps', 'Include dependencies in plan get/show output', false)
   .option('--format <format>', 'Output format (json, text)')
   .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
   .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
@@ -204,6 +205,8 @@ program
         page: options.page,
         pageSize: options.pageSize,
         agent: options.agent,
+        includeDeps: options.includeDeps,
+        format: normalizedFormat,
       });
 
       printCommandResult({
