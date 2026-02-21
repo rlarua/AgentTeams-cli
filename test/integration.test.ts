@@ -1340,6 +1340,80 @@ describe('CLI Integration Tests', () => {
       );
     });
 
+    it('report create: should include manual metrics and disable git auto collection with --no-git', async () => {
+      axiosPostSpy.mockResolvedValue({ data: { data: { id: 'r2' } } } as any);
+
+      await executeCommand('report', 'create', {
+        title: 'Metric report',
+        content: '# Metric report',
+        git: false,
+        commitHash: 'abc123',
+        branchName: 'feature/report',
+        filesModified: '5',
+        linesAdded: '120',
+        linesDeleted: '30',
+        durationSeconds: '1800',
+        commitStart: '111aaa',
+        commitEnd: '222bbb',
+        pullRequestId: '42',
+        qualityScore: '95',
+      });
+
+      expect(axiosPostSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/completion-reports`,
+        expect.objectContaining({
+          title: 'Metric report',
+          content: '# Metric report',
+          commitHash: 'abc123',
+          branchName: 'feature/report',
+          filesModified: 5,
+          linesAdded: 120,
+          linesDeleted: 30,
+          durationSeconds: 1800,
+          commitStart: '111aaa',
+          commitEnd: '222bbb',
+          pullRequestId: '42',
+          qualityScore: 95,
+        }),
+        { headers: authHeaders() }
+      );
+    });
+
+    it('report update: should include metric fields in update body', async () => {
+      axiosPutSpy.mockResolvedValue({ data: { data: { id: 'r3' } } } as any);
+
+      await executeCommand('report', 'update', {
+        id: 'report-3',
+        commitHash: 'fff999',
+        branchName: 'main',
+        filesModified: '2',
+        linesAdded: '10',
+        linesDeleted: '4',
+        durationSeconds: '90',
+        commitStart: 'aaa111',
+        commitEnd: 'bbb222',
+        pullRequestId: '77',
+        qualityScore: '80',
+      });
+
+      expect(axiosPutSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/completion-reports/report-3`,
+        expect.objectContaining({
+          commitHash: 'fff999',
+          branchName: 'main',
+          filesModified: 2,
+          linesAdded: 10,
+          linesDeleted: 4,
+          durationSeconds: 90,
+          commitStart: 'aaa111',
+          commitEnd: 'bbb222',
+          pullRequestId: '77',
+          qualityScore: 80,
+        }),
+        { headers: authHeaders() }
+      );
+    });
+
     it('report list: should pass query filters and pagination', async () => {
       axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
 
@@ -1503,6 +1577,17 @@ describe('CLI Integration Tests', () => {
       expect(cliIndex).toContain("--remaining <csv>");
       expect(cliIndex).toContain("--type <type>");
       expect(cliIndex).toContain("--blocking-plan-id <id>");
+      expect(cliIndex).toContain("--commit-hash <hash>");
+      expect(cliIndex).toContain("--branch-name <name>");
+      expect(cliIndex).toContain("--files-modified <n>");
+      expect(cliIndex).toContain("--lines-added <n>");
+      expect(cliIndex).toContain("--lines-deleted <n>");
+      expect(cliIndex).toContain("--duration-seconds <n>");
+      expect(cliIndex).toContain("--commit-start <hash>");
+      expect(cliIndex).toContain("--commit-end <hash>");
+      expect(cliIndex).toContain("--pull-request-id <id>");
+      expect(cliIndex).toContain("--quality-score <n>");
+      expect(cliIndex).toContain("--no-git");
       expect(cliIndex).toContain(".command('sync')");
       expect(cliIndex).toContain(".command('postmortem')");
       expect(cliIndex).toContain("--search <text>");

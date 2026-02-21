@@ -269,11 +269,32 @@ agentteams report create \
   --content "## TL;DR\n- done" \
   --report-type IMPL_PLAN \
   --status COMPLETED
+
+# with metrics (auto + manual)
+agentteams report create \
+  --title "CLI metrics report" \
+  --content "## Summary\n- done" \
+  --files-modified 5 \
+  --lines-added 120 \
+  --lines-deleted 30 \
+  --quality-score 95
+
+# disable git auto collection
+agentteams report create \
+  --title "Manual metrics report" \
+  --content "## Summary\n- done" \
+  --no-git
 ```
 
 Report types: `IMPL_PLAN`, `COMMIT_RANGE`, `TASK_COMPLETION`
 
 Status values: `COMPLETED`, `FAILED`, `PARTIAL`
+
+Metrics behavior:
+
+- Auto-collected on `report create` (unless `--no-git`): `commitHash`, `branchName`, `filesModified`, `linesAdded`, `linesDeleted`
+- Manual only: `durationSeconds`, `commitStart`, `commitEnd`, `pullRequestId`
+- Manual options always override auto-collected values
 
 ### `postmortem`
 
