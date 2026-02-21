@@ -316,12 +316,26 @@ async function executePlanCommand(
       const plan = (planResponse.data as any)?.data;
       const planTitle = plan?.title ?? options.id;
       const planStatus = plan?.status as string | undefined;
+      const assignAgent = (options.agent as string | undefined)
+        ?? (options.defaultCreatedBy as string | undefined);
 
       const updatedPlan = await withSpinner('Starting plan...', async () => {
         if (planStatus === 'DRAFT') {
           await axios.put(
             `${baseUrl}/${options.id}`,
             { status: 'PENDING' },
+            { headers }
+          );
+        }
+
+        if (planStatus === 'DRAFT' || planStatus === 'PENDING') {
+          if (!assignAgent) {
+            throw new Error('No agent available for assignment. Set AGENTTEAMS_AGENT_NAME or pass --agent.');
+          }
+
+          await axios.post(
+            `${baseUrl}/${options.id}/assign`,
+            { assignedTo: assignAgent },
             { headers }
           );
         }

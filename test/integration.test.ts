@@ -540,7 +540,7 @@ describe('CLI Integration Tests', () => {
       );
     });
 
-    it('plan start: should update plan status and create status report', async () => {
+    it('plan start: should assign then update status and create status report', async () => {
       axiosGetSpy.mockResolvedValue({ data: { data: { id: 'plan-1', title: 'My Plan', status: 'PENDING' } } } as any);
       axiosPutSpy.mockResolvedValue({ data: { data: { id: 'plan-1', status: 'IN_PROGRESS' } } } as any);
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 'st-1' } } } as any);
@@ -551,12 +551,19 @@ describe('CLI Integration Tests', () => {
         `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
         { headers: authHeaders() }
       );
+      expect(axiosPostSpy).toHaveBeenNthCalledWith(
+        1,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/assign`,
+        { assignedTo: 'test-agent' },
+        { headers: authHeaders() }
+      );
       expect(axiosPutSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
         { status: 'IN_PROGRESS' },
         { headers: authHeaders() }
       );
-      expect(axiosPostSpy).toHaveBeenCalledWith(
+      expect(axiosPostSpy).toHaveBeenNthCalledWith(
+        2,
         `${API_URL}/api/projects/${PROJECT_ID}/agent-statuses`,
         expect.objectContaining({
           status: 'IN_PROGRESS',
@@ -568,7 +575,7 @@ describe('CLI Integration Tests', () => {
       );
     });
 
-    it('plan start (draft): should promote DRAFT → PENDING → IN_PROGRESS', async () => {
+    it('plan start (draft): should promote DRAFT → PENDING → ASSIGNED → IN_PROGRESS', async () => {
       axiosGetSpy.mockResolvedValue({ data: { data: { id: 'plan-1', title: 'My Plan', status: 'DRAFT' } } } as any);
       axiosPutSpy.mockResolvedValue({ data: { data: { id: 'plan-1', status: 'IN_PROGRESS' } } } as any);
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 'st-1' } } } as any);
@@ -583,6 +590,36 @@ describe('CLI Integration Tests', () => {
       );
       expect(axiosPutSpy).toHaveBeenNthCalledWith(
         2,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
+        { status: 'IN_PROGRESS' },
+        { headers: authHeaders() }
+      );
+      expect(axiosPostSpy).toHaveBeenNthCalledWith(
+        1,
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/assign`,
+        { assignedTo: 'test-agent' },
+        { headers: authHeaders() }
+      );
+      expect(axiosPostSpy).toHaveBeenNthCalledWith(
+        2,
+        `${API_URL}/api/projects/${PROJECT_ID}/agent-statuses`,
+        expect.objectContaining({
+          status: 'IN_PROGRESS',
+          task: 'Started plan: My Plan',
+          issues: [],
+          remaining: [],
+        }),
+        { headers: authHeaders() }
+      );
+    });
+
+    it('plan start: should fail when assignment fails', async () => {
+      axiosGetSpy.mockResolvedValue({ data: { data: { id: 'plan-1', title: 'My Plan', status: 'PENDING' } } } as any);
+      axiosPostSpy.mockRejectedValue(new Error('assign failed'));
+
+      await expect(executeCommand('plan', 'start', { id: 'plan-1' })).rejects.toThrow('assign failed');
+
+      expect(axiosPutSpy).not.toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
         { status: 'IN_PROGRESS' },
         { headers: authHeaders() }
