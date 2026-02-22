@@ -1045,6 +1045,9 @@ function minimalCompletionReportTemplate(): string {
     '## Notes',
     '- risks / follow-ups',
     '',
+    '## Conventions Referenced',
+    '- `.agentteams/rules/...`  # list conventions you referenced during this work',
+    '',
   ].join('\n');
 }
 
