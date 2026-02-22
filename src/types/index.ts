@@ -149,8 +149,10 @@ export interface Comment {
   id: string;
   /** Associated plan ID */
   planId: string;
-  /** Author identifier */
-  author: string;
+  createdByMemberId: string | null;
+  createdByAgentId: string | null;
+  createdByType: string | null;
+  createdByName: string | null;
   /** Comment type (e.g., "NOTE", "FEEDBACK", "STATUS_UPDATE") */
   type: string;
   /** Comment content (markdown supported) */
