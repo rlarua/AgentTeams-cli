@@ -35,6 +35,23 @@ function formatFreshnessChangeLabel(change: { type: 'new' | 'updated' | 'deleted
   return `updated: ${target}`;
 }
 
+export function buildFreshnessNoticeLines(freshness: {
+  platformGuidesChanged: boolean;
+  conventionChanges: Array<{ type: 'new' | 'updated' | 'deleted'; title?: string; fileName?: string; id: string }>;
+}): string[] {
+  const lines: string[] = ['⚠ Updated conventions found:'];
+  if (freshness.platformGuidesChanged) {
+    lines.push('  - platform guides (shared)');
+  }
+
+  for (const change of freshness.conventionChanges) {
+    lines.push(`  - ${formatFreshnessChangeLabel(change)}`);
+  }
+
+  return lines;
+}
+
+
 async function promptConventionDownload(): Promise<boolean> {
   const rl = createInterface({
     input: process.stdin,
@@ -289,22 +306,36 @@ export async function executePlanCommand(
         );
       }
 
+      let conventionUpdates: {
+        hasChanges: boolean;
+        changes: string[];
+        suggestion: string;
+      } | undefined;
+
       try {
         const freshness = await checkConventionFreshness(apiUrl, projectId, headers, projectRoot);
         const hasChanges = freshness.platformGuidesChanged || freshness.conventionChanges.length > 0;
 
         if (hasChanges) {
-          const isInteractive = process.stdin.isTTY === true
-            && process.stdout.isTTY === true
-            && options.format !== 'json';
+          const changeLabels: string[] = [];
+          if (freshness.platformGuidesChanged) {
+            changeLabels.push('platform guides (shared)');
+          }
+          for (const change of freshness.conventionChanges) {
+            changeLabels.push(formatFreshnessChangeLabel(change));
+          }
 
-          if (isInteractive) {
-            console.log('\n⚠ Updated conventions found:');
-            if (freshness.platformGuidesChanged) {
-              console.log('  - platform guides (shared)');
-            }
-            for (const change of freshness.conventionChanges) {
-              console.log(`  - ${formatFreshnessChangeLabel(change)}`);
+          conventionUpdates = {
+            hasChanges: true,
+            changes: changeLabels,
+            suggestion: "Run 'agentteams convention download' to sync latest conventions.",
+          };
+
+          const isTty = process.stdin.isTTY === true && process.stdout.isTTY === true;
+          if (isTty) {
+            const noticeLines = buildFreshnessNoticeLines(freshness);
+            for (const line of noticeLines) {
+              process.stderr.write(`${line}\n`);
             }
 
             const confirmed = await promptConventionDownload();
@@ -347,10 +378,16 @@ export async function executePlanCommand(
           const markdown = plan.contentMarkdown ?? '';
           writeFileSync(filePath, `${frontmatter}\n\n${markdown}`, 'utf-8');
 
-          return {
+          const downloadResult: Record<string, unknown> = {
             message: `Plan downloaded to ${fileName}`,
             filePath: `.agentteams/active-plan/${fileName}`,
           };
+
+          if (conventionUpdates) {
+            downloadResult.conventionUpdates = conventionUpdates;
+          }
+
+          return downloadResult;
         },
         'Plan downloaded',
       );

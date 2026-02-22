@@ -204,6 +204,7 @@ program
         agent: options.agent,
         includeDeps: options.includeDeps,
         format: normalizedFormat,
+        formatExplicit: typeof options.format === 'string',
       });
 
       printCommandResult({
