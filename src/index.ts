@@ -269,7 +269,6 @@ program
   .option('--template <name>', 'Report content template (minimal)', 'minimal')
   .option('--report-type <type>', 'Report type (IMPL_PLAN, COMMIT_RANGE, TASK_COMPLETION)')
   .option('--status <status>', 'Report status (COMPLETED, FAILED, PARTIAL)')
-  .option('--created-by <name>', 'Created by (defaults to agentName from config)')
   .option('--commit-hash <hash>', 'Git commit hash (manual override)')
   .option('--branch-name <name>', 'Git branch name (manual override)')
   .option('--files-modified <n>', 'Number of modified files (manual override)')
@@ -314,7 +313,6 @@ program
         template: options.template,
         reportType: options.reportType,
         status: options.status,
-        createdBy: options.createdBy,
         commitHash: options.commitHash,
         branchName: options.branchName,
         filesModified: options.filesModified,
@@ -365,7 +363,6 @@ program
   .option('--file <path>', 'Read postmortem content from a local file (create/update)')
   .option('--action-items <csv>', 'Action items (comma-separated)')
   .option('--status <status>', 'Post mortem status (OPEN, IN_PROGRESS, RESOLVED)')
-  .option('--created-by <name>', 'Created by (defaults to agentName from config)')
   .option('--page <number>', 'Page number (list only)')
   .option('--page-size <number>', 'Page size (list only)')
   .option('--search <text>', 'Title keyword search (list only)')
@@ -389,7 +386,6 @@ program
         file: options.file,
         actionItems: options.actionItems,
         status: options.status,
-        createdBy: options.createdBy,
         page: options.page,
         pageSize: options.pageSize,
         search: options.search,

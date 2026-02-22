@@ -99,8 +99,6 @@ export interface Plan {
   assignedTo: string | null;
   /** Priority level (e.g., "LOW", "MEDIUM", "HIGH") */
   priority: string;
-  /** ID of user who created the plan */
-  createdBy: string;
   /** Creation timestamp (ISO 8601) */
   createdAt: string;
   /** Last update timestamp (ISO 8601) */
@@ -207,8 +205,6 @@ export interface CompletionReport {
   status: string;
   /** Quality score 0-100 (null if not scored) */
   qualityScore: number | null;
-  /** ID of user who created the report */
-  createdBy: string;
   /** Creation timestamp (ISO 8601) */
   createdAt: string;
   /** Last update timestamp (ISO 8601) */

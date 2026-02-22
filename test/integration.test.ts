@@ -1429,7 +1429,6 @@ describe('CLI Integration Tests', () => {
           content: '# Report',
           reportType: 'IMPL_PLAN',
           status: 'COMPLETED',
-          createdBy: 'test-agent',
         }),
         { headers: authHeaders() }
       );
@@ -1534,7 +1533,6 @@ describe('CLI Integration Tests', () => {
         planId: 'plan-1',
         reportType: 'TASK_COMPLETION',
         status: 'COMPLETED',
-        createdBy: 'tester',
         page: '2',
         pageSize: '10',
       });
@@ -1547,7 +1545,6 @@ describe('CLI Integration Tests', () => {
             planId: 'plan-1',
             reportType: 'TASK_COMPLETION',
             status: 'COMPLETED',
-            createdBy: 'tester',
             page: 2,
             pageSize: 10,
           },
@@ -1587,7 +1584,6 @@ describe('CLI Integration Tests', () => {
           title: 'Title',
           content: 'Content',
           actionItems: ['item1', 'item2'],
-          createdBy: 'test-agent',
         }),
         { headers: authHeaders() }
       );
@@ -1599,7 +1595,6 @@ describe('CLI Integration Tests', () => {
       await executeCommand('postmortem', 'list', {
         planId: 'plan-1',
         status: 'RESOLVED',
-        createdBy: 'tester',
         page: '4',
         pageSize: '5',
       });
@@ -1611,7 +1606,6 @@ describe('CLI Integration Tests', () => {
           params: {
             planId: 'plan-1',
             status: 'RESOLVED',
-            createdBy: 'tester',
             page: 4,
             pageSize: 5,
           },

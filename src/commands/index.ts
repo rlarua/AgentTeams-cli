@@ -695,7 +695,6 @@ async function executeReportCommand(
       if (options.planId) params.planId = options.planId;
       if (options.reportType) params.reportType = options.reportType;
       if (options.status) params.status = options.status;
-      if (options.createdBy) params.createdBy = options.createdBy;
       if (options.search) params.search = options.search;
 
       const page = toPositiveInteger(options.page);
@@ -747,9 +746,6 @@ async function executeReportCommand(
 
       const reportType = (options.reportType as string | undefined) ?? 'IMPL_PLAN';
       const status = (options.status as string | undefined) ?? 'COMPLETED';
-      const createdBy = (options.createdBy as string | undefined)
-        ?? (options.defaultCreatedBy as string | undefined)
-        ?? '__cli__';
 
       const autoGitMetrics = options.git === false ? {} : collectGitMetrics();
 
@@ -770,7 +766,6 @@ async function executeReportCommand(
         content,
         reportType,
         status,
-        createdBy,
       };
 
       if (commitHash !== undefined) body.commitHash = commitHash;
@@ -871,7 +866,6 @@ async function executePostMortemCommand(
       const params: Record<string, string | number> = {};
       if (options.planId) params.planId = options.planId;
       if (options.status) params.status = options.status;
-      if (options.createdBy) params.createdBy = options.createdBy;
       if (options.search) params.search = options.search;
 
       const page = toPositiveInteger(options.page);
@@ -922,9 +916,6 @@ async function executePostMortemCommand(
             content: options.content,
             actionItems: splitCsv(options.actionItems),
             status: options.status,
-            createdBy: (options.createdBy as string | undefined)
-              ?? (options.defaultCreatedBy as string | undefined)
-              ?? '__cli__'
           },
           { headers }
         ),
