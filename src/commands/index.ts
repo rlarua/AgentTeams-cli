@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { createInterface } from 'node:readline/promises';
 import { existsSync, mkdirSync, writeFileSync, rmSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { executeInitCommand } from './init.js';
@@ -6,6 +7,7 @@ import {
   conventionList,
   conventionShow,
   conventionDownload,
+  checkConventionFreshness,
   conventionCreate,
   conventionUpdate,
   conventionDelete,
@@ -60,6 +62,33 @@ function interpretEscapes(content: string): string {
   return content
     .replace(/\\r\\n/g, '\r\n')
     .replace(/\\n/g, '\n');
+}
+
+function formatFreshnessChangeLabel(change: { type: "new" | "updated" | "deleted"; title?: string; fileName?: string; id: string }): string {
+  const target = (change.title && change.title.trim().length > 0)
+    ? change.title.trim()
+    : (change.fileName && change.fileName.trim().length > 0)
+      ? change.fileName.trim()
+      : change.id;
+
+  if (change.type === "new") return `new: ${target}`;
+  if (change.type === "deleted") return `deleted: ${target}`;
+  return `updated: ${target}`;
+}
+
+async function promptConventionDownload(): Promise<boolean> {
+  const rl = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  try {
+    const answer = await rl.question("Download now? (y/N) ");
+    const normalized = answer.trim().toLowerCase();
+    return normalized === "y" || normalized === "yes";
+  } finally {
+    rl.close();
+  }
 }
 
 export async function executeCommand(
@@ -528,19 +557,48 @@ async function executePlanCommand(
     }
     case 'download': {
       if (!options.id) throw new Error('--id is required for plan download');
+      const projectRoot = findProjectRoot();
+      if (!projectRoot) {
+        throw new Error(
+          "Project root not found. Run 'agentteams init' first."
+        );
+      }
+
+      try {
+        const freshness = await checkConventionFreshness(apiUrl, projectId, headers, projectRoot);
+        const hasChanges = freshness.platformGuidesChanged || freshness.conventionChanges.length > 0;
+
+        if (hasChanges) {
+          const isInteractive = process.stdin.isTTY === true
+            && process.stdout.isTTY === true
+            && options.format !== 'json';
+
+          if (isInteractive) {
+            console.log("\n⚠ Updated conventions found:");
+            if (freshness.platformGuidesChanged) {
+              console.log("  - platform guides (shared)");
+            }
+            for (const change of freshness.conventionChanges) {
+              console.log(`  - ${formatFreshnessChangeLabel(change)}`);
+            }
+
+            const confirmed = await promptConventionDownload();
+            if (confirmed) {
+              await conventionDownload();
+              console.log("✔ Convention download completed");
+            }
+          }
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`[warn] Convention freshness check failed: ${message}`);
+      }
 
       const result = await withSpinner(
         'Downloading plan...',
         async () => {
           const response = await axios.get(`${baseUrl}/${options.id}`, { headers });
           const plan = response.data.data;
-
-          const projectRoot = findProjectRoot();
-          if (!projectRoot) {
-            throw new Error(
-              "Project root not found. Run 'agentteams init' first."
-            );
-          }
 
           const activePlanDir = join(projectRoot, '.agentteams', 'active-plan');
           if (!existsSync(activePlanDir)) {

@@ -22,6 +22,7 @@ type ConventionCommandOptions = {
 type ConventionDownloadManifestV1 = {
   version: 1;
   generatedAt: string;
+  platformGuidesHash?: string;
   entries: Array<{
     conventionId: string;
     fileRelativePath: string;
@@ -61,6 +62,20 @@ type ConventionListItem = {
 
 type ConventionDownloadItem = ConventionListItem & {
   contentMarkdown?: string;
+};
+
+type ConventionManifestEntry = ConventionDownloadManifestV1["entries"][number];
+
+export type ConventionFreshnessChange = {
+  id: string;
+  type: "new" | "updated" | "deleted";
+  title?: string;
+  fileName?: string;
+};
+
+export type ConventionFreshnessResult = {
+  platformGuidesChanged: boolean;
+  conventionChanges: ConventionFreshnessChange[];
 };
 
 type PlatformGuide = {
@@ -287,6 +302,39 @@ async function fetchConventionsWithContent(
   return data;
 }
 
+async function fetchPlatformGuidesHash(
+  apiUrl: string,
+  headers: Record<string, string>
+): Promise<string> {
+  const response = await axios.get(
+    `${apiUrl}/api/platform/guides/hash`,
+    { headers }
+  );
+
+  const hash = response.data?.data?.hash;
+  if (typeof hash !== "string" || hash.length === 0) {
+    throw new Error("Invalid platform guides hash response format");
+  }
+
+  return hash;
+}
+
+function toConventionName(convention: { title?: string; fileName?: string | null; id: string }): string {
+  const title = typeof convention.title === "string" ? convention.title.trim() : "";
+  if (title.length > 0) return title;
+  const fileName = typeof convention.fileName === "string" ? convention.fileName.trim() : "";
+  if (fileName.length > 0) return fileName;
+  return convention.id;
+}
+
+function toConventionNameFromManifest(entry: ConventionManifestEntry): string {
+  const title = typeof entry.title === "string" ? entry.title.trim() : "";
+  if (title.length > 0) return title;
+  const fileName = typeof entry.fileName === "string" ? entry.fileName.trim() : "";
+  if (fileName.length > 0) return fileName;
+  return entry.conventionId;
+}
+
 function toOptionalStringOrNullIfPresent(
   data: Record<string, unknown>,
   key: string
@@ -324,6 +372,73 @@ export async function conventionShow(): Promise<any> {
   }
 
   return sections.join("\n\n---\n\n");
+}
+
+export async function checkConventionFreshness(
+  apiUrl: string,
+  projectId: string,
+  headers: Record<string, string>,
+  projectRoot: string
+): Promise<ConventionFreshnessResult> {
+  const manifestPath = buildManifestPath(projectRoot);
+  if (!existsSync(manifestPath)) {
+    return {
+      platformGuidesChanged: false,
+      conventionChanges: [],
+    };
+  }
+
+  const manifest = loadManifestOrThrow(projectRoot);
+  const currentPlatformGuidesHash = await fetchPlatformGuidesHash(apiUrl, headers);
+  const platformGuidesChanged = typeof manifest.platformGuidesHash === "string"
+    && manifest.platformGuidesHash.length > 0
+    && manifest.platformGuidesHash !== currentPlatformGuidesHash;
+
+  const serverConventions = await fetchAllConventions(apiUrl, projectId, headers);
+  const serverById = new Map(serverConventions.map((item) => [item.id, item]));
+  const localById = new Map(manifest.entries.map((entry) => [entry.conventionId, entry]));
+  const conventionChanges: ConventionFreshnessChange[] = [];
+
+  for (const serverConvention of serverConventions) {
+    const local = localById.get(serverConvention.id);
+    if (!local) {
+      conventionChanges.push({
+        id: serverConvention.id,
+        type: "new",
+        title: toConventionName(serverConvention),
+        fileName: serverConvention.fileName ?? undefined,
+      });
+      continue;
+    }
+
+    if (
+      typeof serverConvention.updatedAt === "string"
+      && typeof local.updatedAt === "string"
+      && serverConvention.updatedAt !== local.updatedAt
+    ) {
+      conventionChanges.push({
+        id: serverConvention.id,
+        type: "updated",
+        title: toConventionName(serverConvention),
+        fileName: serverConvention.fileName ?? local.fileName,
+      });
+    }
+  }
+
+  for (const localEntry of manifest.entries) {
+    if (serverById.has(localEntry.conventionId)) continue;
+    conventionChanges.push({
+      id: localEntry.conventionId,
+      type: "deleted",
+      title: toConventionNameFromManifest(localEntry),
+      fileName: localEntry.fileName,
+    });
+  }
+
+  return {
+    platformGuidesChanged,
+    conventionChanges,
+  };
 }
 
 export async function conventionList(): Promise<any> {
@@ -533,9 +648,11 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
       }
 
       const fileNameCount = new Map<string, number>();
+      const platformGuidesHash = await fetchPlatformGuidesHash(apiUrl, headers);
       const manifest: ConventionDownloadManifestV1 = {
         version: 1,
         generatedAt: new Date().toISOString(),
+        platformGuidesHash,
         entries: [],
       };
 

@@ -192,7 +192,8 @@ describe('CLI Integration Tests', () => {
               { id: 'cv-2', title: 'API Rules', category: 'rules', contentMarkdown: '# api rules' },
             ],
           },
-        } as any);
+        } as any)
+        .mockResolvedValueOnce({ data: { data: { hash: 'platform-guides-hash-1' } } } as any);
 
       const originalCwd = process.cwd();
       const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-sync-download-'));
@@ -796,7 +797,8 @@ describe('CLI Integration Tests', () => {
               { id: 'cv-2', title: 'API Rule', category: 'rules', contentMarkdown: '# downloaded convention 2' },
             ],
           },
-        } as any);
+        } as any)
+        .mockResolvedValueOnce({ data: { data: { hash: 'platform-guides-hash-2' } } } as any);
 
       const originalCwd = process.cwd();
       const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-convention-update-'));
@@ -1250,7 +1252,8 @@ describe('CLI Integration Tests', () => {
               { id: 'cv-2', title: 'Rules', category: 'rules', contentMarkdown: '# rules 2' },
             ],
           },
-        } as any);
+        } as any)
+        .mockResolvedValueOnce({ data: { data: { hash: 'platform-guides-hash-3' } } } as any);
 
       const originalCwd = process.cwd();
       const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-convention-duplicate-'));
@@ -1376,7 +1379,8 @@ describe('CLI Integration Tests', () => {
           data: {
             data: [{ id: 'cv-1', title: 'Rules', category: 'rules', contentMarkdown: '# latest rules' }],
           },
-        } as any);
+        } as any)
+        .mockResolvedValueOnce({ data: { data: { hash: 'platform-guides-hash-4' } } } as any);
 
       const originalCwd = process.cwd();
       const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-convention-cleanup-'));
