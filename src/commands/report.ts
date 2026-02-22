@@ -138,6 +138,10 @@ export async function executeReportCommand(
       if (pullRequestId !== undefined) body.pullRequestId = pullRequestId;
       if (qualityScore !== undefined) body.qualityScore = qualityScore;
 
+      if (body.planId && durationSeconds === undefined) {
+        console.info('[info] durationSeconds is omitted; server will auto-calculate from linked plan timing when available.');
+      }
+
       return withSpinner(
         'Creating report...',
         async () => {
