@@ -160,13 +160,12 @@ describe('CLI Integration Tests', () => {
         }
       );
       expect(axiosGetSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/conventions`,
+        `${API_URL}/api/projects/${PROJECT_ID}/conventions/download-all`,
         {
           headers: {
             'X-API-Key': 'key_oauth_123',
             'Content-Type': 'application/json',
           },
-          params: { page: 1, pageSize: 100 },
         }
       );
 
@@ -189,13 +188,11 @@ describe('CLI Integration Tests', () => {
         .mockResolvedValueOnce({
           data: {
             data: [
-              { id: 'cv-1', title: 'Core Rules', category: 'rules' },
-              { id: 'cv-2', title: 'API Rules', category: 'rules' },
+              { id: 'cv-1', title: 'Core Rules', category: 'rules', contentMarkdown: '# core rules' },
+              { id: 'cv-2', title: 'API Rules', category: 'rules', contentMarkdown: '# api rules' },
             ],
           },
-        } as any)
-        .mockResolvedValueOnce({ data: '# core rules' } as any)
-        .mockResolvedValueOnce({ data: '# api rules' } as any);
+        } as any);
 
       const originalCwd = process.cwd();
       const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-sync-download-'));
@@ -759,8 +756,11 @@ describe('CLI Integration Tests', () => {
 
     it('convention show: should fetch full markdown for all conventions', async () => {
       axiosGetSpy
-        .mockResolvedValueOnce({ data: { data: [{ id: 'cv-1', title: 'Core', category: 'rules' }] } } as any)
-        .mockResolvedValueOnce({ data: '# full markdown' } as any);
+        .mockResolvedValueOnce({
+          data: {
+            data: [{ id: 'cv-1', title: 'Core', category: 'rules', contentMarkdown: '# full markdown' }],
+          },
+        } as any);
 
       const result = await executeCommand('convention', 'show', {});
 
@@ -771,13 +771,8 @@ describe('CLI Integration Tests', () => {
       expect(result).toContain('# full markdown');
       expect(axiosGetSpy).toHaveBeenNthCalledWith(
         1,
-        `${API_URL}/api/projects/${PROJECT_ID}/conventions`,
-        { headers: authHeaders(), params: { page: 1, pageSize: 100 } }
-      );
-      expect(axiosGetSpy).toHaveBeenNthCalledWith(
-        2,
-        `${API_URL}/api/projects/${PROJECT_ID}/conventions/cv-1/download`,
-        { headers: authHeaders(), responseType: 'text' }
+        `${API_URL}/api/projects/${PROJECT_ID}/conventions/download-all`,
+        { headers: authHeaders() }
       );
     });
 
@@ -794,9 +789,14 @@ describe('CLI Integration Tests', () => {
             ],
           },
         } as any)
-        .mockResolvedValueOnce({ data: { data: [{ id: 'cv-1', title: 'Core Rules', category: 'rules' }, { id: 'cv-2', title: 'API Rule', category: 'rules' }] } } as any)
-        .mockResolvedValueOnce({ data: '# downloaded convention 1' } as any)
-        .mockResolvedValueOnce({ data: '# downloaded convention 2' } as any);
+        .mockResolvedValueOnce({
+          data: {
+            data: [
+              { id: 'cv-1', title: 'Core Rules', category: 'rules', contentMarkdown: '# downloaded convention 1' },
+              { id: 'cv-2', title: 'API Rule', category: 'rules', contentMarkdown: '# downloaded convention 2' },
+            ],
+          },
+        } as any);
 
       const originalCwd = process.cwd();
       const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-convention-update-'));
@@ -1243,9 +1243,14 @@ describe('CLI Integration Tests', () => {
         .mockResolvedValueOnce({ data: { data: [{ id: 'ag-1' }] } } as any)
         .mockResolvedValueOnce({ data: { data: { content: '# reporting template\n' } } } as any)
         .mockResolvedValueOnce({ data: { data: [] } } as any)
-        .mockResolvedValueOnce({ data: { data: [{ id: 'cv-1', title: 'Rules', category: 'rules' }, { id: 'cv-2', title: 'Rules', category: 'rules' }] } } as any)
-        .mockResolvedValueOnce({ data: '# rules 1' } as any)
-        .mockResolvedValueOnce({ data: '# rules 2' } as any);
+        .mockResolvedValueOnce({
+          data: {
+            data: [
+              { id: 'cv-1', title: 'Rules', category: 'rules', contentMarkdown: '# rules 1' },
+              { id: 'cv-2', title: 'Rules', category: 'rules', contentMarkdown: '# rules 2' },
+            ],
+          },
+        } as any);
 
       const originalCwd = process.cwd();
       const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-convention-duplicate-'));
@@ -1367,8 +1372,11 @@ describe('CLI Integration Tests', () => {
         .mockResolvedValueOnce({ data: { data: [{ id: 'ag-1' }] } } as any)
         .mockResolvedValueOnce({ data: { data: { content: '# reporting template\n' } } } as any)
         .mockResolvedValueOnce({ data: { data: [] } } as any)
-        .mockResolvedValueOnce({ data: { data: [{ id: 'cv-1', title: 'Rules', category: 'rules' }] } } as any)
-        .mockResolvedValueOnce({ data: '# latest rules' } as any);
+        .mockResolvedValueOnce({
+          data: {
+            data: [{ id: 'cv-1', title: 'Rules', category: 'rules', contentMarkdown: '# latest rules' }],
+          },
+        } as any);
 
       const originalCwd = process.cwd();
       const tempCwd = mkdtempSync(join(tmpdir(), 'agentteams-convention-cleanup-'));

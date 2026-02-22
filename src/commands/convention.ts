@@ -59,6 +59,10 @@ type ConventionListItem = {
   createdAt?: string;
 };
 
+type ConventionDownloadItem = ConventionListItem & {
+  contentMarkdown?: string;
+};
+
 type PlatformGuide = {
   title?: string;
   fileName?: string;
@@ -265,6 +269,24 @@ async function fetchAllConventions(
   return items;
 }
 
+async function fetchConventionsWithContent(
+  apiUrl: string,
+  projectId: string,
+  headers: Record<string, string>
+): Promise<ConventionDownloadItem[]> {
+  const response = await axios.get(
+    `${apiUrl}/api/projects/${projectId}/conventions/download-all`,
+    { headers }
+  );
+
+  const data = response.data?.data;
+  if (!Array.isArray(data)) {
+    throw new Error("Invalid download-all response format");
+  }
+
+  return data;
+}
+
 function toOptionalStringOrNullIfPresent(
   data: Record<string, unknown>,
   key: string
@@ -286,7 +308,7 @@ function toOptionalStringOrNullIfPresent(
 export async function conventionShow(): Promise<any> {
   const { config, apiUrl, headers } = getApiConfigOrThrow();
 
-  const conventions = await fetchAllConventions(apiUrl, config.projectId, headers);
+  const conventions = await fetchConventionsWithContent(apiUrl, config.projectId, headers);
   if (!conventions || conventions.length === 0) {
     throw new Error(
       "No conventions found for this project. Create one via the web dashboard first."
@@ -295,13 +317,10 @@ export async function conventionShow(): Promise<any> {
 
   const sections: string[] = [];
   for (const convention of conventions) {
-    const downloadResponse = await axios.get(
-      `${apiUrl}/api/projects/${config.projectId}/conventions/${convention.id}/download`,
-      { headers, responseType: "text" }
-    );
+    const contentMarkdown = typeof convention.contentMarkdown === "string" ? convention.contentMarkdown : "";
 
     const sectionHeader = `# ${convention.title ?? "untitled"}\ncategory: ${convention.category ?? "uncategorized"}\nid: ${convention.id}`;
-    sections.push(`${sectionHeader}\n\n${downloadResponse.data}`);
+    sections.push(`${sectionHeader}\n\n${contentMarkdown}`);
   }
 
   return sections.join("\n\n---\n\n");
@@ -494,7 +513,7 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
   const conventions = await withSpinner(
     'Downloading conventions...',
     async () => {
-      const conventionList = await fetchAllConventions(apiUrl, config.projectId, headers);
+      const conventionList = await fetchConventionsWithContent(apiUrl, config.projectId, headers);
       if (!conventionList || conventionList.length === 0) {
         return conventionList as any[] | undefined;
       }
@@ -521,10 +540,7 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
       };
 
       for (const convention of conventionList) {
-        const downloadResponse = await axios.get(
-          `${apiUrl}/api/projects/${config.projectId}/conventions/${convention.id}/download`,
-          { headers, responseType: "text" }
-        );
+        const contentMarkdown = typeof convention.contentMarkdown === "string" ? convention.contentMarkdown : "";
 
         const baseFileName = buildConventionFileName(convention);
         const categoryName = typeof convention.category === "string" ? convention.category : "";
@@ -538,7 +554,7 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
           ? baseFileName
           : baseFileName.replace(/\.md$/, `-${seenCount + 1}.md`);
         const filePath = join(projectRoot, CONVENTION_DIR, categoryDir, fileName);
-        writeFileSync(filePath, downloadResponse.data, "utf-8");
+        writeFileSync(filePath, contentMarkdown, "utf-8");
 
         manifest.entries.push({
           conventionId: String(convention.id),
