@@ -1,0 +1,92 @@
+import axios from 'axios';
+import { withoutJsonContentType } from '../utils/httpHeaders.js';
+
+export async function listPlans(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  params?: Record<string, string | number>
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
+  const requestConfig = params && Object.keys(params).length > 0
+    ? { headers, params }
+    : { headers };
+
+  const response = await axios.get(baseUrl, requestConfig);
+  return response.data;
+}
+
+export async function getPlan(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  id: string
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
+  const response = await axios.get(`${baseUrl}/${id}`, { headers });
+  return response.data;
+}
+
+export async function getPlanDependencies(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  id: string
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
+  const response = await axios.get(`${baseUrl}/${id}/dependencies`, { headers });
+  return response.data;
+}
+
+export async function createPlan(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  body: {
+    title: string;
+    content: string;
+    priority: string;
+    status: 'DRAFT';
+  }
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
+  const response = await axios.post(baseUrl, body, { headers });
+  return response.data;
+}
+
+export async function updatePlan(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  id: string,
+  body: Record<string, unknown>
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
+  const response = await axios.put(`${baseUrl}/${id}`, body, { headers });
+  return response.data;
+}
+
+export async function assignPlan(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  id: string,
+  assignedTo: string
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
+  const response = await axios.post(`${baseUrl}/${id}/assign`, { assignedTo }, { headers });
+  return response.data;
+}
+
+export async function deletePlan(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  id: string
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
+  const response = await axios.delete(`${baseUrl}/${id}`, {
+    headers: withoutJsonContentType(headers),
+  });
+  return response.data;
+}
