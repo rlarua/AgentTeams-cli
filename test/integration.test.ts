@@ -1491,6 +1491,41 @@ describe('CLI Integration Tests', () => {
       );
     });
 
+    it('report create: should retry with createdBy for legacy server validation', async () => {
+      axiosPostSpy
+        .mockRejectedValueOnce({
+          isAxiosError: true,
+          response: { data: { message: "body must have required property 'createdBy'" } }
+        } as any)
+        .mockResolvedValueOnce({ data: { data: { id: 'r-legacy' } } } as any);
+
+      await executeCommand('report', 'create', {
+        title: 'Legacy report',
+        content: '# Legacy',
+      });
+
+      expect(axiosPostSpy).toHaveBeenNthCalledWith(
+        1,
+        `${API_URL}/api/projects/${PROJECT_ID}/completion-reports`,
+        expect.objectContaining({
+          title: 'Legacy report',
+          content: '# Legacy',
+        }),
+        { headers: authHeaders() }
+      );
+
+      expect(axiosPostSpy).toHaveBeenNthCalledWith(
+        2,
+        `${API_URL}/api/projects/${PROJECT_ID}/completion-reports`,
+        expect.objectContaining({
+          title: 'Legacy report',
+          content: '# Legacy',
+          createdBy: 'test-agent',
+        }),
+        { headers: authHeaders() }
+      );
+    });
+
     it('report update: should include metric fields in update body', async () => {
       axiosPutSpy.mockResolvedValue({ data: { data: { id: 'r3' } } } as any);
 
@@ -1584,6 +1619,44 @@ describe('CLI Integration Tests', () => {
           title: 'Title',
           content: 'Content',
           actionItems: ['item1', 'item2'],
+        }),
+        { headers: authHeaders() }
+      );
+    });
+
+    it('postmortem create: should retry with createdBy for legacy server validation', async () => {
+      axiosPostSpy
+        .mockRejectedValueOnce({
+          isAxiosError: true,
+          response: { data: { message: "body must have required property 'createdBy'" } }
+        } as any)
+        .mockResolvedValueOnce({ data: { data: { id: 'pm-legacy' } } } as any);
+
+      await executeCommand('postmortem', 'create', {
+        title: 'Legacy PM',
+        content: 'Legacy content',
+        actionItems: 'one,two',
+      });
+
+      expect(axiosPostSpy).toHaveBeenNthCalledWith(
+        1,
+        `${API_URL}/api/projects/${PROJECT_ID}/post-mortems`,
+        expect.objectContaining({
+          title: 'Legacy PM',
+          content: 'Legacy content',
+          actionItems: ['one', 'two'],
+        }),
+        { headers: authHeaders() }
+      );
+
+      expect(axiosPostSpy).toHaveBeenNthCalledWith(
+        2,
+        `${API_URL}/api/projects/${PROJECT_ID}/post-mortems`,
+        expect.objectContaining({
+          title: 'Legacy PM',
+          content: 'Legacy content',
+          actionItems: ['one', 'two'],
+          createdBy: 'test-agent',
         }),
         { headers: authHeaders() }
       );

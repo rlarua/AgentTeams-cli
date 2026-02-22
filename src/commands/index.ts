@@ -17,6 +17,31 @@ import { withSpinner, printFileInfo } from '../utils/spinner.js';
 import { withoutJsonContentType } from '../utils/httpHeaders.js';
 import { collectGitMetrics } from '../utils/git.js';
 
+function isCreatedByRequiredValidationError(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) {
+    return false;
+  }
+
+  const data = error.response?.data as
+    | { message?: unknown; details?: unknown; error?: unknown }
+    | string
+    | undefined;
+
+  const message = typeof data === 'string'
+    ? data
+    : [data?.message, data?.details, data?.error]
+      .filter((value): value is string => typeof value === 'string')
+      .join(' ');
+
+  return /required property ['"]createdBy['"]|body\.createdBy/i.test(message);
+}
+
+function resolveLegacyCreatedBy(options: any): string | undefined {
+  return toNonEmptyString(options.createdBy)
+    ?? toNonEmptyString(options.defaultCreatedBy)
+    ?? undefined;
+}
+
 function findProjectRoot(): string | null {
   const configPath = findProjectConfig(process.cwd());
   if (!configPath) return null;
@@ -781,11 +806,26 @@ async function executeReportCommand(
 
       const response = await withSpinner(
         'Creating report...',
-        () => axios.post(
-          baseUrl,
-          body,
-          { headers }
-        ),
+        async () => {
+          try {
+            return await axios.post(baseUrl, body, { headers });
+          } catch (error) {
+            if (!isCreatedByRequiredValidationError(error)) {
+              throw error;
+            }
+
+            const legacyCreatedBy = resolveLegacyCreatedBy(options);
+            if (!legacyCreatedBy) {
+              throw error;
+            }
+
+            return axios.post(
+              baseUrl,
+              { ...body, createdBy: legacyCreatedBy },
+              { headers }
+            );
+          }
+        },
         'Report created',
       );
       return response.data;
@@ -906,19 +946,36 @@ async function executePostMortemCommand(
       if (!options.content) throw new Error('--content or --file is required for postmortem create');
       if (options.actionItems === undefined) throw new Error('--action-items is required for postmortem create');
 
+      const body: Record<string, unknown> = {
+        planId: options.planId,
+        title: options.title,
+        content: options.content,
+        actionItems: splitCsv(options.actionItems),
+        status: options.status,
+      };
+
       const response = await withSpinner(
         'Creating post-mortem...',
-        () => axios.post(
-          baseUrl,
-          {
-            planId: options.planId,
-            title: options.title,
-            content: options.content,
-            actionItems: splitCsv(options.actionItems),
-            status: options.status,
-          },
-          { headers }
-        ),
+        async () => {
+          try {
+            return await axios.post(baseUrl, body, { headers });
+          } catch (error) {
+            if (!isCreatedByRequiredValidationError(error)) {
+              throw error;
+            }
+
+            const legacyCreatedBy = resolveLegacyCreatedBy(options);
+            if (!legacyCreatedBy) {
+              throw error;
+            }
+
+            return axios.post(
+              baseUrl,
+              { ...body, createdBy: legacyCreatedBy },
+              { headers }
+            );
+          }
+        },
         'Post-mortem created',
       );
       return response.data;

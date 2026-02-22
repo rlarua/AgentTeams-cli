@@ -99,6 +99,9 @@ export interface Plan {
   assignedTo: string | null;
   /** Priority level (e.g., "LOW", "MEDIUM", "HIGH") */
   priority: string;
+  createdByMemberId?: string | null;
+  createdByAgentId?: string | null;
+  createdByType?: string | null;
   /** Creation timestamp (ISO 8601) */
   createdAt: string;
   /** Last update timestamp (ISO 8601) */
@@ -205,6 +208,9 @@ export interface CompletionReport {
   status: string;
   /** Quality score 0-100 (null if not scored) */
   qualityScore: number | null;
+  createdByMemberId?: string | null;
+  createdByAgentId?: string | null;
+  createdByType?: string | null;
   /** Creation timestamp (ISO 8601) */
   createdAt: string;
   /** Last update timestamp (ISO 8601) */
