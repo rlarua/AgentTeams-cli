@@ -1,6 +1,6 @@
 {
   "name": "@rlarua/agentteams-cli",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "CLI tool for AgentTeams API",
   "type": "module",
   "main": "dist/index.js",
