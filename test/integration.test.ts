@@ -27,6 +27,7 @@ describe('CLI Integration Tests', () => {
   const originalEnv = process.env;
   let axiosGetSpy: jest.SpiedFunction<typeof axios.get>;
   let axiosPostSpy: jest.SpiedFunction<typeof axios.post>;
+  let axiosPatchSpy: jest.SpiedFunction<typeof axios.patch>;
   let axiosPutSpy: jest.SpiedFunction<typeof axios.put>;
   let axiosDeleteSpy: jest.SpiedFunction<typeof axios.delete>;
 
@@ -42,6 +43,7 @@ describe('CLI Integration Tests', () => {
 
     axiosGetSpy = jest.spyOn(axios, 'get');
     axiosPostSpy = jest.spyOn(axios, 'post');
+    axiosPatchSpy = jest.spyOn(axios, 'patch');
     axiosPutSpy = jest.spyOn(axios, 'put');
     axiosDeleteSpy = jest.spyOn(axios, 'delete');
   });
@@ -446,6 +448,45 @@ describe('CLI Integration Tests', () => {
       expect(typeof result).toBe('string');
       expect(String(result)).toContain('## Dependencies');
       expect(String(result)).toContain('No dependencies.');
+    });
+
+    it('plan status: should call GET /plans/:id/status', async () => {
+      axiosGetSpy.mockResolvedValue({
+        data: { data: { id: 'plan-1', status: 'IN_PROGRESS' } },
+      } as any);
+
+      await executeCommand('plan', 'status', { id: 'plan-1' });
+
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/status`,
+        { headers: authHeaders() }
+      );
+    });
+
+    it('plan status: should throw when --id is missing', async () => {
+      await expect(executeCommand('plan', 'status', {}))
+        .rejects.toThrow('--id is required for plan status');
+    });
+
+    it('plan set-status: should call PATCH /plans/:id/status', async () => {
+      axiosPatchSpy.mockResolvedValue({
+        data: { data: { id: 'plan-1', status: 'PENDING' } },
+      } as any);
+
+      await executeCommand('plan', 'set-status', { id: 'plan-1', status: 'PENDING' });
+
+      expect(axiosPatchSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/status`,
+        { status: 'PENDING' },
+        { headers: authHeaders() }
+      );
+    });
+
+    it('plan set-status: should throw when --id or --status is missing', async () => {
+      await expect(executeCommand('plan', 'set-status', { status: 'PENDING' }))
+        .rejects.toThrow('--id is required for plan set-status');
+      await expect(executeCommand('plan', 'set-status', { id: 'plan-1' }))
+        .rejects.toThrow('--status is required for plan set-status');
     });
 
     it('plan create: should interpret \\\\n sequences when interpretEscapes is enabled', async () => {

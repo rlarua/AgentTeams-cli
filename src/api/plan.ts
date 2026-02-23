@@ -90,3 +90,26 @@ export async function deletePlan(
   });
   return response.data;
 }
+
+export async function getPlanStatus(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  id: string
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
+  const response = await axios.get(`${baseUrl}/${id}/status`, { headers });
+  return response.data;
+}
+
+export async function patchPlanStatus(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  id: string,
+  status: string
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
+  const response = await axios.patch(`${baseUrl}/${id}/status`, { status }, { headers });
+  return response.data;
+}

@@ -12,7 +12,9 @@ import {
   deletePlan,
   getPlan,
   getPlanDependencies,
+  getPlanStatus,
   listPlans,
+  patchPlanStatus,
   updatePlan,
 } from '../api/plan.js';
 import { reportStatus } from '../api/status.js';
@@ -146,6 +148,15 @@ export async function executePlanCommand(
       }
 
       return response;
+    }
+    case 'status': {
+      if (!options.id) throw new Error('--id is required for plan status');
+      return getPlanStatus(apiUrl, projectId, headers, options.id);
+    }
+    case 'set-status': {
+      if (!options.id) throw new Error('--id is required for plan set-status');
+      if (!options.status) throw new Error('--status is required for plan set-status');
+      return patchPlanStatus(apiUrl, projectId, headers, options.id, options.status);
     }
     case 'start': {
       if (!options.id) throw new Error('--id is required for plan start');

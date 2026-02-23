@@ -193,6 +193,8 @@ agentteams plan list
 agentteams plan get --id <plan-id>
 agentteams plan get --id <plan-id> --include-deps --format text
 agentteams plan show --id <plan-id>  # alias of get
+agentteams plan status --id <plan-id>
+agentteams plan set-status --id <plan-id> --status <status>
 
 agentteams plan create \
   --title "Implement feature" \
