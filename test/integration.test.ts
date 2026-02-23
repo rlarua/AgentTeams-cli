@@ -1476,7 +1476,6 @@ describe('CLI Integration Tests', () => {
         expect.objectContaining({
           title: 'Test report',
           content: '# Report',
-          reportType: 'IMPL_PLAN',
           status: 'COMPLETED',
         }),
         { headers: authHeaders() }
@@ -1615,7 +1614,6 @@ describe('CLI Integration Tests', () => {
 
       await executeCommand('report', 'list', {
         planId: 'plan-1',
-        reportType: 'TASK_COMPLETION',
         status: 'COMPLETED',
         page: '2',
         pageSize: '10',
@@ -1627,7 +1625,6 @@ describe('CLI Integration Tests', () => {
           headers: authHeaders(),
           params: {
             planId: 'plan-1',
-            reportType: 'TASK_COMPLETION',
             status: 'COMPLETED',
             page: 2,
             pageSize: 10,
