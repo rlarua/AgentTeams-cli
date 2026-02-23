@@ -268,7 +268,6 @@ program
   .option('--content <content>', 'Report markdown content (short text; use --file for long content)')
   .option('--file <path>', 'Read report content from a local file (create/update)')
   .option('--template <name>', 'Report content template (minimal)', 'minimal')
-  .option('--report-type <type>', 'Report type (IMPL_PLAN, COMMIT_RANGE, TASK_COMPLETION)')
   .option('--status <status>', 'Report status (COMPLETED, FAILED, PARTIAL)')
   .option('--commit-hash <hash>', 'Git commit hash (manual override)')
   .option('--branch-name <name>', 'Git branch name (manual override)')
@@ -312,7 +311,6 @@ program
         content: options.content,
         file: options.file,
         template: options.template,
-        reportType: options.reportType,
         status: options.status,
         commitHash: options.commitHash,
         branchName: options.branchName,

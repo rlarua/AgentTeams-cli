@@ -187,8 +187,6 @@ export interface CompletionReport {
   title: string;
   /** Report content (markdown supported) */
   content: string;
-  /** Report type (e.g., "TASK_COMPLETION", "SESSION_SUMMARY") */
-  reportType: string;
   /** Git commit hash (null if not applicable) */
   commitHash: string | null;
   /** Git commit range start (null if not applicable) */

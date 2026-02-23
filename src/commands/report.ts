@@ -61,7 +61,6 @@ export async function executeReportCommand(
     case 'list': {
       const params: Record<string, string | number> = {};
       if (options.planId) params.planId = options.planId;
-      if (options.reportType) params.reportType = options.reportType;
       if (options.status) params.status = options.status;
       if (options.search) params.search = options.search;
 
@@ -103,7 +102,6 @@ export async function executeReportCommand(
         throw new Error('--content, --file, or --template is required for report create.');
       }
 
-      const reportType = (options.reportType as string | undefined) ?? 'IMPL_PLAN';
       const status = (options.status as string | undefined) ?? 'COMPLETED';
 
       const autoGitMetrics = options.git === false ? {} : collectGitMetrics();
@@ -124,7 +122,6 @@ export async function executeReportCommand(
         repositoryId: options.repositoryId ?? options.defaultRepositoryId,
         title,
         content,
-        reportType,
         status,
       };
 
@@ -181,7 +178,6 @@ export async function executeReportCommand(
         body.content = readFileSync(filePath, 'utf-8');
         printFileInfo(options.file, body.content);
       }
-      if (options.reportType) body.reportType = options.reportType;
       if (options.status) body.status = options.status;
 
       const commitHash = toNonEmptyString(options.commitHash);

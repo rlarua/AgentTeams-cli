@@ -276,7 +276,6 @@ agentteams report list
 agentteams report create \
   --title "AgentTeams completion report" \
   --content "## TL;DR\n- done" \
-  --report-type IMPL_PLAN \
   --status COMPLETED
 
 # repository linkage
@@ -297,8 +296,6 @@ agentteams report create \
   --content "## Summary\n- done" \
   --no-git
 ```
-
-Report types: `IMPL_PLAN`, `COMMIT_RANGE`, `TASK_COMPLETION`
 
 Status values: `COMPLETED`, `FAILED`, `PARTIAL`
 
