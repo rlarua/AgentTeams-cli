@@ -67,21 +67,15 @@ describe('CLI Integration Tests', () => {
       const callbackPayload = {
         teamId: 'team_1',
         projectId: PROJECT_ID,
+        repositoryId: 'repo-1',
         agentName: 'test-agent',
         apiKey: 'key_oauth_123',
         apiUrl: API_URL,
         configId: '7',
       };
 
-      axiosGetSpy.mockResolvedValueOnce({
-        data: {
-          data: {
-            fileName: 'convention.md',
-            content: '# team convention\n- follow rules\n',
-          },
-        },
-      } as any);
       axiosGetSpy
+        .mockResolvedValueOnce({ data: { data: { content: '# team convention\n- follow rules\n' } } } as any)
         .mockResolvedValueOnce({ data: { data: [{ id: 'ag-1' }] } } as any)
         .mockResolvedValueOnce({ data: { data: { content: '# team convention\n- follow rules\n' } } } as any)
         .mockResolvedValueOnce({
@@ -93,7 +87,8 @@ describe('CLI Integration Tests', () => {
             ],
           },
         } as any)
-        .mockResolvedValueOnce({ data: { data: [] } } as any);
+        .mockResolvedValueOnce({ data: { data: [] } } as any)
+        .mockResolvedValueOnce({ data: { data: { hash: 'platform-guides-hash-init-1' } } } as any);
 
       const mockStartLocalAuthServer = jest.fn().mockReturnValue({
         server: {
@@ -136,6 +131,7 @@ describe('CLI Integration Tests', () => {
       expect(savedConfig).toEqual({
         teamId: 'team_1',
         projectId: PROJECT_ID,
+        repositoryId: 'repo-1',
         agentName: 'test-agent',
         apiKey: 'key_oauth_123',
         apiUrl: API_URL,

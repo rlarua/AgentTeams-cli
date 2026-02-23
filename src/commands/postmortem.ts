@@ -59,6 +59,7 @@ export async function executePostMortemCommand(
 
       const body: Record<string, unknown> = {
         planId: options.planId,
+        repositoryId: options.repositoryId ?? options.defaultRepositoryId,
         title: options.title,
         content: options.content,
         actionItems: splitCsv(options.actionItems),

@@ -27,6 +27,7 @@ The `init` command:
 
 - Opens a browser for OAuth authentication
 - Creates `.agentteams/config.json`
+- Optionally selects a default project repository (saved as `repositoryId` in config)
 - Saves the convention template to `.agentteams/convention.md`
 - Syncs convention files into `.agentteams/<category>/*.md`
 
@@ -201,6 +202,9 @@ agentteams plan create \
   --content "Detailed content" \
   --priority "HIGH"
 
+# repository linkage
+# - `plan create` uses `.agentteams/config.json` -> `repositoryId` when present.
+
 # optional checklist template for create
 agentteams plan create \
   --title "Refactor module" \
@@ -275,6 +279,9 @@ agentteams report create \
   --report-type IMPL_PLAN \
   --status COMPLETED
 
+# repository linkage
+# - `report create` uses `.agentteams/config.json` -> `repositoryId` when present.
+
 # with metrics (auto + manual)
 agentteams report create \
   --title "CLI metrics report" \
@@ -315,6 +322,9 @@ agentteams postmortem create \
   --content "## Root cause\n- Missing configuration" \
   --action-items "Automate rollback,Pre-release checklist" \
   --status RESOLVED
+
+# repository linkage
+# - `postmortem create` uses `.agentteams/config.json` -> `repositoryId` when present.
 ```
 
 Status values: `OPEN`, `IN_PROGRESS`, `RESOLVED`
@@ -343,6 +353,7 @@ Configuration is merged in this priority order (highest first):
 {
   "teamId": "team_xxx",
   "projectId": "proj_xxx",
+  "repositoryId": "repo_xxx",
   "agentName": "my-agent",
   "apiKey": "key_xxx",
   "apiUrl": "https://agent-api.justin-mk.me"

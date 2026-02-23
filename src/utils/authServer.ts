@@ -9,6 +9,7 @@ const CALLBACK_TIMEOUT_MS = 60_000;
 export type AuthResult = {
   teamId: string;
   projectId: string;
+  repositoryId: string;
   agentName: string;
   apiKey: string;
   apiUrl: string;
@@ -94,6 +95,7 @@ function isAuthResult(value: unknown): value is AuthResult {
   return (
     typeof candidate.teamId === 'string' &&
     typeof candidate.projectId === 'string' &&
+    typeof candidate.repositoryId === 'string' &&
     typeof candidate.agentName === 'string' &&
     typeof candidate.apiKey === 'string' &&
     typeof candidate.apiUrl === 'string' &&

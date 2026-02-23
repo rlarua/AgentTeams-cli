@@ -121,6 +121,7 @@ export async function executeReportCommand(
 
       const body: Record<string, unknown> = {
         planId: options.planId,
+        repositoryId: options.repositoryId ?? options.defaultRepositoryId,
         title,
         content,
         reportType,

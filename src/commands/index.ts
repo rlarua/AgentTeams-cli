@@ -49,6 +49,7 @@ export async function executeCommand(
         return executePlanCommand(apiUrl, config.projectId, headers, action, {
           ...options,
           defaultCreatedBy: config.agentName,
+          defaultRepositoryId: config.repositoryId,
         });
       }
 
@@ -84,7 +85,8 @@ export async function executeCommand(
       return executeReportCommand(apiUrl, headers, action, {
         ...options,
         projectId: config.projectId,
-        defaultCreatedBy: config.agentName
+        defaultCreatedBy: config.agentName,
+        defaultRepositoryId: config.repositoryId
       });
     }
     case 'postmortem': {
@@ -113,7 +115,8 @@ export async function executeCommand(
       return executePostMortemCommand(apiUrl, headers, action, {
         ...options,
         projectId: config.projectId,
-        defaultCreatedBy: config.agentName
+        defaultCreatedBy: config.agentName,
+        defaultRepositoryId: config.repositoryId
       });
     }
     case 'dependency':

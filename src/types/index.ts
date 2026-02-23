@@ -22,6 +22,7 @@ export interface Config {
   apiKey: string;
   /** API URL (e.g., "http://localhost:3001") */
   apiUrl: string;
+  repositoryId?: string;
 }
 
 /**

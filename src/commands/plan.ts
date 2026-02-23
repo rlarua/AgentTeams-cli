@@ -267,6 +267,7 @@ export async function executePlanCommand(
           title: options.title,
           content,
           priority: options.priority ?? 'MEDIUM',
+          repositoryId: options.repositoryId ?? options.defaultRepositoryId,
           status: 'DRAFT',
         }),
         'Plan created',

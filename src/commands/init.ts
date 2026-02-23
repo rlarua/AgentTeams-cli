@@ -56,6 +56,7 @@ async function tryOpenBrowser(url: string): Promise<void> {
 function toConfig(authResult: {
   teamId: string;
   projectId: string;
+  repositoryId: string;
   agentName: string;
   apiKey: string;
   apiUrl: string;
@@ -66,6 +67,7 @@ function toConfig(authResult: {
     agentName: authResult.agentName,
     apiKey: authResult.apiKey,
     apiUrl: authResult.apiUrl,
+    repositoryId: authResult.repositoryId,
   };
 }
 
