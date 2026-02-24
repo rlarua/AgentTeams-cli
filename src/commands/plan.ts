@@ -536,7 +536,28 @@ export async function executePlanCommand(
         throw new Error('No agent available for assignment. Set AGENTTEAMS_AGENT_NAME or pass --agent.');
       }
 
-      const planContent = minimalPlanQuickTemplate();
+      // Resolve plan content: --content > --file > template fallback
+      let planContent: string | undefined = undefined;
+      const hasQuickContent = typeof options.content === 'string' && options.content.trim().length > 0;
+      const hasQuickFile = typeof options.file === 'string' && options.file.trim().length > 0;
+
+      if (hasQuickContent) {
+        planContent = options.content as string;
+      } else if (hasQuickFile) {
+        const filePath = resolve(options.file as string);
+        if (!existsSync(filePath)) {
+          throw new Error(`File not found: ${options.file}`);
+        }
+        planContent = readFileSync(filePath, 'utf-8');
+        printFileInfo(options.file as string, planContent);
+      } else {
+        planContent = minimalPlanQuickTemplate();
+      }
+
+      if (typeof planContent === 'string' && options.interpretEscapes) {
+        planContent = interpretEscapes(planContent);
+      }
+
       const priority = (options.priority as string | undefined) ?? 'LOW';
 
       // 1. Create plan
