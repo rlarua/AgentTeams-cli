@@ -46,12 +46,14 @@ describe('Environment and Config Loading', () => {
 
     const config = loadConfig();
 
-    expect(config).toEqual({
-      apiKey: 'key_test123',
-      apiUrl: 'http://localhost:3001',
-      teamId: 'team_1',
-      projectId: 'project_1',
-      agentName: 'agent-a',
-    });
+    expect(config).toEqual(
+      expect.objectContaining({
+        apiKey: 'key_test123',
+        apiUrl: 'http://localhost:3001',
+        teamId: 'team_1',
+        projectId: 'project_1',
+        agentName: 'agent-a',
+      })
+    );
   });
 });

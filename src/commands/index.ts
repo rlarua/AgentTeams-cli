@@ -7,7 +7,6 @@ import { executeCommentCommand } from './comment.js';
 import { executePlanCommand } from './plan.js';
 import { executePostMortemCommand } from './postmortem.js';
 import { executeReportCommand } from './report.js';
-import { executeStatusCommand } from './status.js';
 import { loadConfig } from '../utils/config.js';
 
 export async function executeCommand(
@@ -22,7 +21,6 @@ export async function executeCommand(
       return executeConventionCommand(action, options);
     case 'sync':
       return executeSyncCommand(action, options);
-    case 'status':
     case 'plan':
     case 'comment':
       {
@@ -40,10 +38,6 @@ export async function executeCommand(
         'X-API-Key': config.apiKey,
         'Content-Type': 'application/json',
       };
-
-      if (resource === 'status') {
-        return executeStatusCommand(apiUrl, config.projectId, headers, action, options);
-      }
 
       if (resource === 'plan') {
         return executePlanCommand(apiUrl, config.projectId, headers, action, {

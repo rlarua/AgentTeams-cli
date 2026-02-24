@@ -123,46 +123,6 @@ program
   });
 
 program
-  .command('status')
-  .description('Manage agent statuses')
-  .argument('<action>', 'Action to perform (report, list, get, update, delete)')
-  .option('--id <id>', 'Status ID')
-  .option('--agent <name>', 'Agent name')
-  .option('--status <status>', 'Agent status (IN_PROGRESS, DONE, BLOCKED)')
-  .option('--task <text>', 'Current task summary')
-  .option('--issues <csv>', 'Comma-separated issue list')
-  .option('--remaining <csv>', 'Comma-separated remaining work list')
-  .option('--page <number>', 'Page number (list only)')
-  .option('--page-size <number>', 'Page size (list only)')
-  .option('--format <format>', 'Output format (json, text)', 'json')
-  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
-  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
-  .action(async (action, options) => {
-    try {
-      const result = await executeCommand('status', action, {
-        id: options.id,
-        agent: options.agent,
-        status: options.status,
-        task: options.task,
-        issues: options.issues,
-        remaining: options.remaining,
-        page: options.page,
-        pageSize: options.pageSize,
-      });
-
-      printCommandResult({
-        result,
-        format: normalizeFormat(options.format, 'json'),
-        outputFile: options.outputFile,
-        verbose: options.verbose,
-      });
-    } catch (error) {
-      console.error(handleError(error));
-      process.exit(1);
-    }
-  });
-
-program
   .command('plan')
   .description('Manage plans')
   .argument('<action>', 'Action to perform (list, get, show, create, update, delete, assign, download, cleanup, start, finish, status, set-status)')

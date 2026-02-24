@@ -232,84 +232,6 @@ describe('CLI Integration Tests', () => {
        }
      });
 
-    it('status report: should POST project-scoped path with required payload', async () => {
-      axiosPostSpy.mockResolvedValue({ data: { data: { id: 's1' } } } as any);
-
-      await executeCommand('status', 'report', {
-        agent: 'test-agent',
-        status: 'IN_PROGRESS',
-        task: 'work in progress',
-        issues: 'issue1, issue2',
-        remaining: '',
-      });
-
-      expect(axiosPostSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/agent-statuses`,
-        {
-          agent: 'test-agent',
-          status: 'IN_PROGRESS',
-          task: 'work in progress',
-          issues: ['issue1', 'issue2'],
-          remaining: [],
-        },
-        { headers: authHeaders() }
-      );
-    });
-
-    it('status update: should PUT optional fields only', async () => {
-      axiosPutSpy.mockResolvedValue({ data: { data: { id: 's1' } } } as any);
-
-      await executeCommand('status', 'update', {
-        id: 'status-uuid',
-        status: 'BLOCKED',
-        issues: 'api timeout,auth expired',
-      });
-
-      expect(axiosPutSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/agent-statuses/status-uuid`,
-        {
-          status: 'BLOCKED',
-          issues: ['api timeout', 'auth expired'],
-        },
-        { headers: authHeaders() }
-      );
-    });
-
-    it('status get/list/delete: should call project-scoped paths', async () => {
-      axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
-      axiosDeleteSpy.mockResolvedValue({ data: { message: 'ok' } } as any);
-
-      await executeCommand('status', 'list', {});
-      await executeCommand('status', 'get', { id: 'status-1' });
-      await executeCommand('status', 'delete', { id: 'status-2' });
-
-      expect(axiosGetSpy).toHaveBeenNthCalledWith(
-        1,
-        `${API_URL}/api/projects/${PROJECT_ID}/agent-statuses`,
-        { headers: authHeaders() }
-      );
-      expect(axiosGetSpy).toHaveBeenNthCalledWith(
-        2,
-        `${API_URL}/api/projects/${PROJECT_ID}/agent-statuses/status-1`,
-        { headers: authHeaders() }
-      );
-      expect(axiosDeleteSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/agent-statuses/status-2`,
-        { headers: deleteHeaders() }
-      );
-    });
-
-    it('status list: should pass pagination query params', async () => {
-      axiosGetSpy.mockResolvedValue({ data: { data: [] } } as any);
-
-      await executeCommand('status', 'list', { page: '2', pageSize: '50' });
-
-      expect(axiosGetSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/agent-statuses`,
-        { headers: authHeaders(), params: { page: 2, pageSize: 50 } }
-      );
-    });
-
     it('plan CRUD/assign: should use project-scoped plan endpoints', async () => {
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
       axiosGetSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
@@ -1729,9 +1651,6 @@ describe('CLI Integration Tests', () => {
     });
 
     it('should validate required options for updated contracts', async () => {
-      await expect(executeCommand('status', 'report', { status: 'IN_PROGRESS' })).rejects.toThrow(
-        '--task is required for status report'
-      );
       await expect(
         executeCommand('plan', 'create', { title: 'no desc' })
       ).rejects.toThrow('--content, --file, or --template is required for plan create');
@@ -1753,8 +1672,6 @@ describe('CLI Integration Tests', () => {
       const cliIndex = readFileSync(join(process.cwd(), 'src/index.ts'), 'utf-8');
 
       expect(cliIndex).toContain("--task <text>");
-      expect(cliIndex).toContain("--issues <csv>");
-      expect(cliIndex).toContain("--remaining <csv>");
       expect(cliIndex).toContain("--type <type>");
       expect(cliIndex).toContain("--blocking-plan-id <id>");
       expect(cliIndex).toContain("--commit-hash <hash>");
@@ -1782,7 +1699,7 @@ describe('CLI Integration Tests', () => {
       expect(cliIndex).not.toContain("--metadata <json>");
       expect(cliIndex).not.toContain("--author-id <id>");
       expect(cliIndex).not.toContain("--depends-on <id>");
-      expect(cliIndex).toContain("IN_PROGRESS, DONE, BLOCKED");
+      expect(cliIndex).toContain("DRAFT, PENDING, ASSIGNED, IN_PROGRESS, BLOCKED, DONE, CANCELLED");
     });
 
     it('should throw for unknown resource command', async () => {

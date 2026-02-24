@@ -1,7 +1,7 @@
 # @rlarua/agentteams-cli
 
 A CLI for working with the AgentTeams API from your terminal.
-It supports convention sync, status reporting, and plan/comment/report management.
+It supports convention sync and plan/comment/report management.
 
 ## Installation
 
@@ -160,28 +160,6 @@ Resync convention files.
 ```bash
 agentteams sync
 ```
-
-### `status`
-
-Manage agent statuses.
-
-```bash
-agentteams status report \
-  --agent "my-agent" \
-  --status "IN_PROGRESS" \
-  --task "Working on task" \
-  --issues "" \
-  --remaining "next step"
-
-agentteams status list
-agentteams status get --id <status-id>
-agentteams status update --id <status-id> --status "DONE"
-agentteams status delete --id <status-id>
-```
-
-Note: `--agent` is optional, but your server may require it depending on your setup.
-
-Status values: `IN_PROGRESS`, `DONE`, `BLOCKED`
 
 ### `plan`
 
