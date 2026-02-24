@@ -177,6 +177,9 @@ program
   .option('--priority <priority>', 'Plan priority (LOW, MEDIUM, HIGH)')
   .option('--assigned-to <id>', 'Assigned agent config ID (list filter)')
   .option('--task <text>', 'Task summary for plan start/finish')
+  .option('--report-title <title>', 'Completion report title (plan finish)')
+  .option('--report-content <content>', 'Completion report markdown content (plan finish)')
+  .option('--report-file <path>', 'Read completion report content from a local file (plan finish)')
   .option('--page <number>', 'Page number (list only)')
   .option('--page-size <number>', 'Page size (list only)')
   .option('--agent <agent>', 'Agent name or ID to assign')
@@ -199,6 +202,9 @@ program
         priority: options.priority,
         assignedTo: options.assignedTo,
         task: options.task,
+        reportTitle: options.reportTitle,
+        reportContent: options.reportContent,
+        reportFile: options.reportFile,
         page: options.page,
         pageSize: options.pageSize,
         agent: options.agent,

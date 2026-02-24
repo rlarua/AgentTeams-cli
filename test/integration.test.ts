@@ -575,113 +575,67 @@ describe('CLI Integration Tests', () => {
       );
     });
 
-    it('plan start: should assign then update status and create status report', async () => {
-      axiosGetSpy.mockResolvedValue({ data: { data: { id: 'plan-1', title: 'My Plan', status: 'PENDING' } } } as any);
-      axiosPutSpy.mockResolvedValue({ data: { data: { id: 'plan-1', status: 'IN_PROGRESS' } } } as any);
-      axiosPostSpy.mockResolvedValue({ data: { data: { id: 'st-1' } } } as any);
+    it('plan start: should call single lifecycle endpoint', async () => {
+      axiosPostSpy.mockResolvedValue({ data: { data: { id: 'plan-1' } } } as any);
 
       await executeCommand('plan', 'start', { id: 'plan-1' });
 
-      expect(axiosGetSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
-        { headers: authHeaders() }
-      );
-      expect(axiosPostSpy).toHaveBeenNthCalledWith(
-        1,
-        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/assign`,
+      expect(axiosPostSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/start`,
         { assignedTo: 'test-agent' },
         { headers: authHeaders() }
       );
-      expect(axiosPutSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
-        { status: 'IN_PROGRESS' },
-        { headers: authHeaders() }
-      );
-      expect(axiosPostSpy).toHaveBeenNthCalledWith(
-        2,
-        `${API_URL}/api/projects/${PROJECT_ID}/agent-statuses`,
-        expect.objectContaining({
-          status: 'IN_PROGRESS',
-          task: 'Started plan: My Plan',
-          issues: [],
-          remaining: [],
-        }),
+    });
+
+    it('plan start: should pass custom task to lifecycle endpoint', async () => {
+      axiosPostSpy.mockResolvedValue({ data: { data: { id: 'plan-1' } } } as any);
+
+      await executeCommand('plan', 'start', { id: 'plan-1', task: 'Work started custom' });
+
+      expect(axiosPostSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/start`,
+        { assignedTo: 'test-agent', task: 'Work started custom' },
         { headers: authHeaders() }
       );
     });
 
-    it('plan start (draft): should promote DRAFT → PENDING → ASSIGNED → IN_PROGRESS', async () => {
-      axiosGetSpy.mockResolvedValue({ data: { data: { id: 'plan-1', title: 'My Plan', status: 'DRAFT' } } } as any);
-      axiosPutSpy.mockResolvedValue({ data: { data: { id: 'plan-1', status: 'IN_PROGRESS' } } } as any);
-      axiosPostSpy.mockResolvedValue({ data: { data: { id: 'st-1' } } } as any);
+    it('plan start: should fail when lifecycle endpoint fails', async () => {
+      axiosPostSpy.mockRejectedValue(new Error('start failed'));
 
-      await executeCommand('plan', 'start', { id: 'plan-1' });
+      await expect(executeCommand('plan', 'start', { id: 'plan-1' })).rejects.toThrow('start failed');
 
-      expect(axiosPutSpy).toHaveBeenNthCalledWith(
-        1,
-        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
-        { status: 'PENDING' },
-        { headers: authHeaders() }
-      );
-      expect(axiosPutSpy).toHaveBeenNthCalledWith(
-        2,
-        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
-        { status: 'IN_PROGRESS' },
-        { headers: authHeaders() }
-      );
-      expect(axiosPostSpy).toHaveBeenNthCalledWith(
-        1,
-        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/assign`,
-        { assignedTo: 'test-agent' },
-        { headers: authHeaders() }
-      );
-      expect(axiosPostSpy).toHaveBeenNthCalledWith(
-        2,
-        `${API_URL}/api/projects/${PROJECT_ID}/agent-statuses`,
-        expect.objectContaining({
-          status: 'IN_PROGRESS',
-          task: 'Started plan: My Plan',
-          issues: [],
-          remaining: [],
-        }),
-        { headers: authHeaders() }
-      );
+      expect(axiosPostSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('plan start: should fail when assignment fails', async () => {
-      axiosGetSpy.mockResolvedValue({ data: { data: { id: 'plan-1', title: 'My Plan', status: 'PENDING' } } } as any);
-      axiosPostSpy.mockRejectedValue(new Error('assign failed'));
-
-      await expect(executeCommand('plan', 'start', { id: 'plan-1' })).rejects.toThrow('assign failed');
-
-      expect(axiosPutSpy).not.toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
-        { status: 'IN_PROGRESS' },
-        { headers: authHeaders() }
-      );
-    });
-
-    it('plan finish: should update plan status and create status report', async () => {
-      axiosGetSpy.mockResolvedValue({ data: { data: { id: 'plan-1', title: 'My Plan' } } } as any);
-      axiosPutSpy.mockResolvedValue({ data: { data: { id: 'plan-1', status: 'DONE' } } } as any);
-
-      axiosPostSpy.mockResolvedValueOnce({ data: { data: { id: 'st-1' } } } as any);
+    it('plan finish: should call single lifecycle endpoint', async () => {
+      axiosPostSpy.mockResolvedValue({ data: { data: { id: 'plan-1' } } } as any);
 
       await executeCommand('plan', 'finish', { id: 'plan-1' });
 
-      expect(axiosPutSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
-        { status: 'DONE' },
+      expect(axiosPostSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/finish`,
+        {},
         { headers: authHeaders() }
       );
+    });
+
+    it('plan finish: should include completion report when provided', async () => {
+      axiosPostSpy.mockResolvedValue({ data: { data: { id: 'plan-1' } } } as any);
+
+      await executeCommand('plan', 'finish', {
+        id: 'plan-1',
+        reportTitle: 'Completion summary',
+        reportContent: '## Summary\n- done',
+      });
+
       expect(axiosPostSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/agent-statuses`,
-        expect.objectContaining({
-          status: 'DONE',
-          task: 'Finished plan: My Plan',
-          issues: [],
-          remaining: [],
-        }),
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/finish`,
+        {
+          completionReport: {
+            title: 'Completion summary',
+            content: '## Summary\n- done',
+          },
+        },
         { headers: authHeaders() }
       );
     });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { buildFreshnessNoticeLines } from '../src/commands/plan.js';
+import { buildFreshnessNoticeLines, buildUniquePlanRunbookFileName } from '../src/commands/plan.js';
 
 
 describe('buildFreshnessNoticeLines', () => {
@@ -30,5 +30,22 @@ describe('buildFreshnessNoticeLines', () => {
       '⚠ Updated conventions found:',
       '  - new: testing.md',
     ]);
+  });
+});
+
+describe('buildUniquePlanRunbookFileName', () => {
+  it('replaces spaces with hyphens in runbook filename', () => {
+    const fileName = buildUniquePlanRunbookFileName('My Plan Title', []);
+    expect(fileName).toBe('my-plan-title.md');
+  });
+
+  it('adds numeric suffix when filename already exists', () => {
+    const fileName = buildUniquePlanRunbookFileName('My Plan Title', ['my-plan-title.md', 'my-plan-title-2.md']);
+    expect(fileName).toBe('my-plan-title-3.md');
+  });
+
+  it('avoids collisions for non-ascii-only titles by suffixing fallback name', () => {
+    const fileName = buildUniquePlanRunbookFileName('플랜 제목', ['plan.md']);
+    expect(fileName).toBe('plan-2.md');
   });
 });

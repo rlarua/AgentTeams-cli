@@ -10,14 +10,15 @@ import {
   assignPlan,
   createPlan,
   deletePlan,
+  finishPlanLifecycle,
   getPlan,
   getPlanDependencies,
   getPlanStatus,
   listPlans,
   patchPlanStatus,
+  startPlanLifecycle,
   updatePlan,
 } from '../api/plan.js';
-import { reportStatus } from '../api/status.js';
 
 function findProjectRoot(): string | null {
   const configPath = findProjectConfig(process.cwd());
@@ -51,6 +52,20 @@ export function buildFreshnessNoticeLines(freshness: {
   }
 
   return lines;
+}
+
+export function buildUniquePlanRunbookFileName(title: string, existingFileNames: string[]): string {
+  const safeName = toSafeFileName(title) || 'plan';
+  const used = new Set(existingFileNames.map((name) => name.toLowerCase()));
+
+  let fileName = `${safeName}.md`;
+  let sequence = 2;
+  while (used.has(fileName.toLowerCase())) {
+    fileName = `${safeName}-${sequence}.md`;
+    sequence += 1;
+  }
+
+  return fileName;
 }
 
 
@@ -160,71 +175,70 @@ export async function executePlanCommand(
     }
     case 'start': {
       if (!options.id) throw new Error('--id is required for plan start');
-
-      const planResponse = await getPlan(apiUrl, projectId, headers, options.id);
-      const plan = (planResponse as any)?.data;
-      const planTitle = plan?.title ?? options.id;
-      const planStatus = plan?.status as string | undefined;
       const assignAgent = (options.agent as string | undefined)
         ?? (options.defaultCreatedBy as string | undefined);
 
-      const updatedPlan = await withSpinner('Starting plan...', async () => {
-        if (planStatus === 'DRAFT') {
-          await updatePlan(apiUrl, projectId, headers, options.id, { status: 'PENDING' });
-        }
+      if (!assignAgent) {
+        throw new Error('No agent available for assignment. Set AGENTTEAMS_AGENT_NAME or pass --agent.');
+      }
 
-        if (planStatus === 'DRAFT' || planStatus === 'PENDING') {
-          if (!assignAgent) {
-            throw new Error('No agent available for assignment. Set AGENTTEAMS_AGENT_NAME or pass --agent.');
-          }
-
-          await assignPlan(apiUrl, projectId, headers, options.id, assignAgent);
-        }
-
-        return updatePlan(apiUrl, projectId, headers, options.id, { status: 'IN_PROGRESS' });
-      }, 'Plan started');
-
-      const statusReport = await reportStatus(apiUrl, projectId, headers, {
-        agent: options.agent,
-        status: 'IN_PROGRESS',
-        task: options.task ?? `Started plan: ${planTitle}`,
-        issues: [],
-        remaining: [],
-      });
-
-      return {
-        data: {
-          plan: updatedPlan,
-          statusReport,
-        },
+      const body: { assignedTo?: string; task?: string } = {
+        assignedTo: assignAgent,
       };
+      if (options.task) {
+        body.task = options.task;
+      }
+
+      return withSpinner(
+        'Starting plan...',
+        () => startPlanLifecycle(apiUrl, projectId, headers, options.id, body),
+        'Plan started',
+      );
     }
     case 'finish': {
       if (!options.id) throw new Error('--id is required for plan finish');
 
-      const planResponse = await getPlan(apiUrl, projectId, headers, options.id);
-      const planTitle = (planResponse as any)?.data?.title ?? options.id;
+      let reportContent = options.reportContent as string | undefined;
+      if (options.reportFile) {
+        const reportFilePath = resolve(options.reportFile);
+        if (!existsSync(reportFilePath)) {
+          throw new Error(`File not found: ${options.reportFile}`);
+        }
+        reportContent = readFileSync(reportFilePath, 'utf-8');
+        printFileInfo(options.reportFile, reportContent);
+      }
 
-      const updatedPlan = await withSpinner(
+      const includeCompletionReport =
+        typeof reportContent === 'string' && reportContent.trim().length > 0;
+
+      const body: {
+        task?: string;
+        completionReport?: {
+          title: string;
+          content: string;
+        };
+      } = {};
+
+      if (options.task) {
+        body.task = options.task;
+      }
+
+      if (includeCompletionReport) {
+        const reportTitle = typeof options.reportTitle === 'string' && options.reportTitle.trim().length > 0
+          ? options.reportTitle.trim()
+          : 'Work completion summary';
+
+        body.completionReport = {
+          title: reportTitle,
+          content: reportContent!.trim(),
+        };
+      }
+
+      return withSpinner(
         'Finishing plan...',
-        () => updatePlan(apiUrl, projectId, headers, options.id, { status: 'DONE' }),
+        () => finishPlanLifecycle(apiUrl, projectId, headers, options.id, body),
         'Plan finished',
       );
-
-      const statusReport = await reportStatus(apiUrl, projectId, headers, {
-        agent: options.agent,
-        status: 'DONE',
-        task: options.task ?? `Finished plan: ${planTitle}`,
-        issues: [],
-        remaining: [],
-      });
-
-      return {
-        data: {
-          plan: updatedPlan,
-          statusReport,
-        },
-      };
     }
     case 'create': {
       if (!options.title) throw new Error('--title is required for plan create');
@@ -373,8 +387,8 @@ export async function executePlanCommand(
             mkdirSync(activePlanDir, { recursive: true });
           }
 
-          const safeName = toSafeFileName(plan.title) || 'plan';
-          const fileName = `${safeName}.md`;
+          const existingFiles = readdirSync(activePlanDir).filter((name) => name.endsWith('.md'));
+          const fileName = buildUniquePlanRunbookFileName(plan.title, existingFiles);
           const filePath = join(activePlanDir, fileName);
 
           const frontmatter = [
