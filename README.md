@@ -188,6 +188,7 @@ agentteams plan create \
   --title "Refactor module" \
   --template "refactor-minimal"
 
+agentteams plan quick --title "Quick task" --report-title "Work completion summary" --report-file .agentteams/temp/report.md
 agentteams plan update --id <plan-id> --status "PENDING"
 agentteams plan update --id <plan-id> --status "IN_PROGRESS"
 agentteams plan assign --id <plan-id> --agent "agent-name"
@@ -200,7 +201,14 @@ Status values: `DRAFT`, `PENDING`, `ASSIGNED`, `IN_PROGRESS`, `BLOCKED`, `DONE`,
 
 Priorities: `LOW`, `MEDIUM`, `HIGH`
 
-Plan template values (create): `refactor-minimal`
+Plan template values (create): `refactor-minimal`, `quick-minimal`
+
+`plan quick` behavior:
+
+- Creates a plan with the `quick-minimal` template
+- Uses `LOW` as the default priority (override with `--priority`)
+- Starts and finishes the plan in one flow
+- If `--report-content` or `--report-file` is provided, attaches a completion report on finish
 
 `--include-deps` (get/show): also fetches dependency data and appends a `Dependencies` section in text output; in json output it adds `data.dependencies` with `blocking` and `dependents` arrays.
 
@@ -351,7 +359,7 @@ Most resource commands support `--format json|text`.
 
 Output behavior by default:
 
-- `plan create|update|start|finish`: prints short summary lines on stdout by default.
+- `plan create|update|start|finish|quick`: prints short summary lines on stdout by default.
 - `plan list|get` and other read-oriented commands: keep full output by default.
 - `--verbose`: always prints full output to stdout.
 - `--output-file <path>`: always writes full output to file and keeps stdout short.
