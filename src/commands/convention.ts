@@ -630,7 +630,7 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
     async () => {
       const conventionList = await fetchConventionsWithContent(apiUrl, config.projectId, headers);
       if (!conventionList || conventionList.length === 0) {
-        return conventionList as any[] | undefined;
+        return conventionList;
       }
 
       const legacyDir = join(projectRoot, CONVENTION_DIR, LEGACY_CONVENTION_DOWNLOAD_DIR);

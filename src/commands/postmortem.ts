@@ -32,7 +32,7 @@ export async function executePostMortemCommand(
       const limitVal = toPositiveInteger(options.limit);
       const pageSizeVal = toPositiveInteger(options.pageSize);
       if (limitVal !== undefined && pageSizeVal !== undefined) {
-        console.warn('[warn] --limit and --page-size both specified; --limit takes precedence.');
+        process.stderr.write('[warn] --limit and --page-size both specified; --limit takes precedence.\n');
       }
       const pageSize = limitVal ?? pageSizeVal;
       if (page !== undefined) params.page = page;
@@ -92,7 +92,7 @@ export async function executePostMortemCommand(
     }
     case 'update': {
       if (!options.id) throw new Error('--id is required for postmortem update');
-      const body: Record<string, any> = {};
+      const body: Record<string, string | string[] | undefined> = {};
 
       if (Object.prototype.hasOwnProperty.call(options, 'planId')) {
         body.planId = options.planId;

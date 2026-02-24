@@ -444,6 +444,24 @@ describe('CLI Integration Tests', () => {
       );
     });
 
+    it('plan create: should use quick-minimal template when content is missing', async () => {
+      axiosPostSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
+
+      await executeCommand('plan', 'create', {
+        title: 'Quick plan',
+        template: 'quick-minimal',
+      });
+
+      expect(axiosPostSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans`,
+        expect.objectContaining({
+          title: 'Quick plan',
+          content: expect.stringContaining('## TL;DR'),
+        }),
+        { headers: authHeaders() }
+      );
+    });
+
     it('plan update: should interpret \\\\n sequences when interpretEscapes is enabled', async () => {
       axiosPutSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
 
@@ -556,6 +574,26 @@ describe('CLI Integration Tests', () => {
           completionReport: {
             title: 'Completion summary',
             content: '## Summary\n- done',
+          },
+        },
+        { headers: authHeaders() }
+      );
+    });
+
+    it('plan finish: should include minimal completion report when reportTemplate is provided', async () => {
+      axiosPostSpy.mockResolvedValue({ data: { data: { id: 'plan-1' } } } as any);
+
+      await executeCommand('plan', 'finish', {
+        id: 'plan-1',
+        reportTemplate: 'minimal',
+      });
+
+      expect(axiosPostSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/finish`,
+        {
+          completionReport: {
+            title: 'Work completion summary',
+            content: expect.stringContaining('## Summary'),
           },
         },
         { headers: authHeaders() }

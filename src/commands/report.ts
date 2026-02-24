@@ -68,7 +68,7 @@ export async function executeReportCommand(
       const limitVal = toPositiveInteger(options.limit);
       const pageSizeVal = toPositiveInteger(options.pageSize);
       if (limitVal !== undefined && pageSizeVal !== undefined) {
-        console.warn('[warn] --limit and --page-size both specified; --limit takes precedence.');
+        process.stderr.write('[warn] --limit and --page-size both specified; --limit takes precedence.\n');
       }
       const pageSize = limitVal ?? pageSizeVal;
       if (page !== undefined) params.page = page;
@@ -137,7 +137,7 @@ export async function executeReportCommand(
       if (qualityScore !== undefined) body.qualityScore = qualityScore;
 
       if (body.planId && durationSeconds === undefined) {
-        console.info('[info] durationSeconds is omitted; server will auto-calculate from linked plan timing when available.');
+        process.stderr.write('[info] durationSeconds is omitted; server will auto-calculate from linked plan timing when available.\n');
       }
 
       return withSpinner(
@@ -166,7 +166,7 @@ export async function executeReportCommand(
     }
     case 'update': {
       if (!options.id) throw new Error('--id is required for report update');
-      const body: Record<string, any> = {};
+      const body: Record<string, string | number> = {};
 
       if (options.title ?? options.summary) body.title = options.title ?? options.summary;
       if (options.content) body.content = options.content;

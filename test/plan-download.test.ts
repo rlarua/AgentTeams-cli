@@ -34,18 +34,30 @@ describe('buildFreshnessNoticeLines', () => {
 });
 
 describe('buildUniquePlanRunbookFileName', () => {
-  it('replaces spaces with hyphens in runbook filename', () => {
-    const fileName = buildUniquePlanRunbookFileName('My Plan Title', []);
-    expect(fileName).toBe('my-plan-title.md');
+  const planId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+
+  it('includes planId prefix in runbook filename', () => {
+    const fileName = buildUniquePlanRunbookFileName('My Plan Title', planId, []);
+    expect(fileName).toBe('my-plan-title-a1b2c3d4.md');
   });
 
   it('adds numeric suffix when filename already exists', () => {
-    const fileName = buildUniquePlanRunbookFileName('My Plan Title', ['my-plan-title.md', 'my-plan-title-2.md']);
-    expect(fileName).toBe('my-plan-title-3.md');
+    const fileName = buildUniquePlanRunbookFileName('My Plan Title', planId, ['my-plan-title-a1b2c3d4.md']);
+    expect(fileName).toBe('my-plan-title-a1b2c3d4-2.md');
   });
 
-  it('avoids collisions for non-ascii-only titles by suffixing fallback name', () => {
-    const fileName = buildUniquePlanRunbookFileName('플랜 제목', ['plan.md']);
-    expect(fileName).toBe('plan-2.md');
+  it('uses planId prefix for non-ascii-only titles', () => {
+    const fileName = buildUniquePlanRunbookFileName('플랜 제목', planId, []);
+    expect(fileName).toBe('plan-a1b2c3d4.md');
+  });
+
+  it('different planIds produce different filenames for same title', () => {
+    const id1 = 'aaaaaaaa-1111-2222-3333-444444444444';
+    const id2 = 'bbbbbbbb-1111-2222-3333-444444444444';
+    const f1 = buildUniquePlanRunbookFileName('플랜', id1, []);
+    const f2 = buildUniquePlanRunbookFileName('플랜', id2, []);
+    expect(f1).toBe('plan-aaaaaaaa.md');
+    expect(f2).toBe('plan-bbbbbbbb.md');
+    expect(f1).not.toBe(f2);
   });
 });

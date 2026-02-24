@@ -54,14 +54,16 @@ export function buildFreshnessNoticeLines(freshness: {
   return lines;
 }
 
-export function buildUniquePlanRunbookFileName(title: string, existingFileNames: string[]): string {
+export function buildUniquePlanRunbookFileName(title: string, planId: string, existingFileNames: string[]): string {
+  const idPrefix = planId.slice(0, 8);
   const safeName = toSafeFileName(title) || 'plan';
+  const baseName = `${safeName}-${idPrefix}`;
   const used = new Set(existingFileNames.map((name) => name.toLowerCase()));
 
-  let fileName = `${safeName}.md`;
+  let fileName = `${baseName}.md`;
   let sequence = 2;
   while (used.has(fileName.toLowerCase())) {
-    fileName = `${safeName}-${sequence}.md`;
+    fileName = `${baseName}-${sequence}.md`;
     sequence += 1;
   }
 
@@ -96,14 +98,58 @@ function minimalPlanRefactorChecklistTemplate(): string {
   ].join('\n');
 }
 
+function minimalPlanQuickTemplate(): string {
+  return [
+    '## TL;DR',
+    '- Goal: <what will be done>',
+    '- Out of scope: <what will NOT be done>',
+    '- Done when: <how we verify>',
+    '',
+    '## Tasks',
+    '- [ ] Implement the change',
+    '- [ ] Update or add tests',
+    '- [ ] Run verification (`npm test`, `npm run build`) and record outcomes',
+    '',
+  ].join('\n');
+}
+
+function minimalCompletionReportTemplate(): string {
+  return [
+    '## Summary',
+    '- What changed and why',
+    '',
+    '## Verification',
+    '- typecheck: ...',
+    '- tests: ...',
+    '',
+    '## Notes',
+    '- risks / follow-ups',
+    '',
+    '## Conventions Referenced',
+    '- `.agentteams/rules/...`  # list conventions you referenced during this work',
+    '',
+  ].join('\n');
+}
+
+function resolveCompletionReportTemplate(template: unknown): string | undefined {
+  if (template === undefined || template === null) return undefined;
+  const value = String(template).trim();
+  if (value.length === 0) return undefined;
+
+  if (value === 'minimal') return minimalCompletionReportTemplate();
+
+  throw new Error(`Unsupported completion report template: ${value}. Only 'minimal' is supported.`);
+}
+
 function resolvePlanTemplate(template: unknown): string | undefined {
   if (template === undefined || template === null) return undefined;
   const value = String(template).trim();
   if (value.length === 0) return undefined;
 
   if (value === 'refactor-minimal') return minimalPlanRefactorChecklistTemplate();
+  if (value === 'quick-minimal') return minimalPlanQuickTemplate();
 
-  throw new Error(`Unsupported plan template: ${value}. Only 'refactor-minimal' is supported.`);
+  throw new Error(`Unsupported plan template: ${value}. Only 'refactor-minimal' and 'quick-minimal' are supported.`);
 }
 
 export async function executePlanCommand(
@@ -189,16 +235,26 @@ export async function executePlanCommand(
         body.task = options.task;
       }
 
-      return withSpinner(
+      const result = await withSpinner(
         'Starting plan...',
         () => startPlanLifecycle(apiUrl, projectId, headers, options.id, body),
         'Plan started',
       );
+      process.stderr.write(`\n  Hint: Run 'agentteams plan download --id ${options.id}' to save the plan locally.\n`);
+      return result;
     }
     case 'finish': {
       if (!options.id) throw new Error('--id is required for plan finish');
 
       let reportContent = options.reportContent as string | undefined;
+      const hasExplicitReportContent = typeof options.reportContent === 'string' && options.reportContent.trim().length > 0;
+      const hasExplicitReportFile = typeof options.reportFile === 'string' && options.reportFile.trim().length > 0;
+      const templateContent = resolveCompletionReportTemplate(options.reportTemplate);
+
+      if ((hasExplicitReportContent || hasExplicitReportFile) && templateContent) {
+        process.stderr.write('[warn] plan finish: --report-template is ignored because --report-content/--report-file was provided.\n');
+      }
+
       if (options.reportFile) {
         const reportFilePath = resolve(options.reportFile);
         if (!existsSync(reportFilePath)) {
@@ -206,6 +262,10 @@ export async function executePlanCommand(
         }
         reportContent = readFileSync(reportFilePath, 'utf-8');
         printFileInfo(options.reportFile, reportContent);
+      }
+
+      if (!hasExplicitReportContent && !hasExplicitReportFile && templateContent) {
+        reportContent = templateContent;
       }
 
       const includeCompletionReport =
@@ -253,7 +313,7 @@ export async function executePlanCommand(
       }
 
       if ((hasExplicitContent || hasExplicitFile) && templateContent) {
-        console.warn('[warn] plan create: --template is ignored because --content/--file was provided.');
+        process.stderr.write('[warn] plan create: --template is ignored because --content/--file was provided.\n');
       }
 
       if (options.file) {
@@ -272,7 +332,7 @@ export async function executePlanCommand(
       }
 
       if (options.status && options.status !== 'DRAFT') {
-        console.warn(`[warn] plan create: --status ${options.status} is ignored. Plans are always created as DRAFT.`);
+        process.stderr.write(`[warn] plan create: --status ${options.status} is ignored. Plans are always created as DRAFT.\n`);
       }
 
       return withSpinner(
@@ -373,7 +433,7 @@ export async function executePlanCommand(
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        console.warn(`[warn] Convention freshness check failed: ${message}`);
+        process.stderr.write(`[warn] Convention freshness check failed: ${message}\n`);
       }
 
       const result = await withSpinner(
@@ -388,7 +448,7 @@ export async function executePlanCommand(
           }
 
           const existingFiles = readdirSync(activePlanDir).filter((name) => name.endsWith('.md'));
-          const fileName = buildUniquePlanRunbookFileName(plan.title, existingFiles);
+          const fileName = buildUniquePlanRunbookFileName(plan.title, plan.id, existingFiles);
           const filePath = join(activePlanDir, fileName);
 
           const frontmatter = [
@@ -465,6 +525,79 @@ export async function executePlanCommand(
           ? `Deleted ${deletedFiles.length} file(s).`
           : 'No matching files found.',
         deletedFiles,
+      };
+    }
+    case 'quick': {
+      if (!options.title) throw new Error('--title is required for plan quick');
+
+      const assignAgent = (options.agent as string | undefined)
+        ?? (options.defaultCreatedBy as string | undefined);
+      if (!assignAgent) {
+        throw new Error('No agent available for assignment. Set AGENTTEAMS_AGENT_NAME or pass --agent.');
+      }
+
+      const planContent = minimalPlanQuickTemplate();
+      const priority = (options.priority as string | undefined) ?? 'LOW';
+
+      // 1. Create plan
+      const createResult = await withSpinner(
+        'Creating quick plan...',
+        () => createPlan(apiUrl, projectId, headers, {
+          title: options.title,
+          content: planContent,
+          priority,
+          repositoryId: options.repositoryId ?? options.defaultRepositoryId,
+          status: 'DRAFT',
+        }),
+        'Plan created',
+      );
+
+      const planId: string = createResult?.data?.id;
+      if (!planId) {
+        throw new Error('Failed to create plan: no plan ID returned.');
+      }
+
+      // 2. Start plan
+      await withSpinner(
+        'Starting plan...',
+        () => startPlanLifecycle(apiUrl, projectId, headers, planId, { assignedTo: assignAgent }),
+        'Plan started',
+      );
+
+      // 3. Resolve report content
+      let reportContent = options.reportContent as string | undefined;
+      if (options.reportFile) {
+        const reportFilePath = resolve(options.reportFile);
+        if (!existsSync(reportFilePath)) {
+          throw new Error(`File not found: ${options.reportFile}`);
+        }
+        reportContent = readFileSync(reportFilePath, 'utf-8');
+        printFileInfo(options.reportFile, reportContent);
+      }
+
+      // 4. Finish plan (with optional report)
+      const finishBody: {
+        completionReport?: { title: string; content: string };
+      } = {};
+
+      if (typeof reportContent === 'string' && reportContent.trim().length > 0) {
+        const reportTitle = typeof options.reportTitle === 'string' && options.reportTitle.trim().length > 0
+          ? options.reportTitle.trim()
+          : 'Work completion summary';
+        finishBody.completionReport = { title: reportTitle, content: reportContent.trim() };
+      }
+
+      const finishResult = await withSpinner(
+        'Finishing plan...',
+        () => finishPlanLifecycle(apiUrl, projectId, headers, planId, finishBody),
+        'Plan finished',
+      );
+
+      return {
+        message: `Quick plan completed (${planId})`,
+        planId,
+        create: createResult,
+        finish: finishResult,
       };
     }
     default:

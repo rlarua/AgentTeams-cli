@@ -125,14 +125,14 @@ program
 program
   .command('plan')
   .description('Manage plans')
-  .argument('<action>', 'Action to perform (list, get, show, create, update, delete, assign, download, cleanup, start, finish, status, set-status)')
+  .argument('<action>', 'Action to perform (list, get, show, create, update, delete, assign, download, cleanup, start, finish, quick, status, set-status)')
   .option('--id <id>', 'Plan ID')
   .option('--title <title>', 'Plan title')
   .option('--search <text>', 'Plan title/ID search keyword (list only)')
   .option('--content <content>', 'Plan content (plain text or Tiptap JSON)')
   .option('--interpret-escapes', 'Interpret \\n sequences in --content as newlines (create/update only)', false)
   .option('--file <path>', 'Read plan content from a local file (create/update)')
-  .option('--template <name>', 'Plan content template (refactor-minimal, create only)')
+  .option('--template <name>', 'Plan content template (refactor-minimal, quick-minimal, create only)')
   .option('--status <status>', 'Plan status (DRAFT, PENDING, ASSIGNED, IN_PROGRESS, BLOCKED, DONE, CANCELLED)')
   .option('--priority <priority>', 'Plan priority (LOW, MEDIUM, HIGH)')
   .option('--assigned-to <id>', 'Assigned agent config ID (list filter)')
@@ -140,6 +140,7 @@ program
   .option('--report-title <title>', 'Completion report title (plan finish)')
   .option('--report-content <content>', 'Completion report markdown content (plan finish)')
   .option('--report-file <path>', 'Read completion report content from a local file (plan finish)')
+  .option('--report-template <name>', 'Completion report template (minimal, plan finish)')
   .option('--page <number>', 'Page number (list only)')
   .option('--page-size <number>', 'Page size (list only)')
   .option('--agent <agent>', 'Agent name or ID to assign')
@@ -165,6 +166,7 @@ program
         reportTitle: options.reportTitle,
         reportContent: options.reportContent,
         reportFile: options.reportFile,
+        reportTemplate: options.reportTemplate,
         page: options.page,
         pageSize: options.pageSize,
         agent: options.agent,
@@ -263,10 +265,10 @@ program
   .action(async (action, options) => {
     try {
       if (typeof options.summary === 'string' && options.summary.trim().length > 0) {
-        console.warn('[warn] --summary is deprecated. Use --title instead.');
+        process.stderr.write('[warn] --summary is deprecated. Use --title instead.\n');
       }
       if (typeof options.details === 'string' && options.details.trim().length > 0) {
-        console.warn('[warn] --details is deprecated. Use --content instead.');
+        process.stderr.write('[warn] --details is deprecated. Use --content instead.\n');
       }
 
       const normalizedFormat = normalizeFormat(options.format, 'json');

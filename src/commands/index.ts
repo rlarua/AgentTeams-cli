@@ -8,12 +8,45 @@ import { executePlanCommand } from './plan.js';
 import { executePostMortemCommand } from './postmortem.js';
 import { executeReportCommand } from './report.js';
 import { loadConfig } from '../utils/config.js';
+import type { Config } from '../types/index.js';
+
+const CONFIG_OVERRIDE_KEYS = ['apiKey', 'apiUrl', 'teamId', 'projectId', 'agentName'] as const;
+
+function buildConfigOverrides(options: Record<string, unknown>): Partial<Config> {
+  const overrides: Record<string, string> = {};
+  for (const key of CONFIG_OVERRIDE_KEYS) {
+    const value = options[key];
+    if (typeof value === 'string' && value.length > 0) {
+      overrides[key] = value;
+    }
+  }
+  return overrides;
+}
+
+function loadRequiredConfig(overrides?: Partial<Config>): Config {
+  const config = loadConfig(overrides);
+  if (!config) {
+    throw new Error(
+      "Configuration not found. Run 'agentteams init' first or set AGENTTEAMS_* environment variables."
+    );
+  }
+  return config;
+}
+
+function resolveApiContext(config: Config): { apiUrl: string; headers: Record<string, string> } {
+  const apiUrl = config.apiUrl.endsWith('/') ? config.apiUrl.slice(0, -1) : config.apiUrl;
+  const headers = {
+    'X-API-Key': config.apiKey,
+    'Content-Type': 'application/json',
+  };
+  return { apiUrl, headers };
+}
 
 export async function executeCommand(
   resource: string,
   action: string,
-  options: any
-): Promise<any> {
+  options: Record<string, unknown>
+): Promise<unknown> {
   switch (resource) {
     case 'init':
       return executeInitCommand(options);
@@ -24,20 +57,8 @@ export async function executeCommand(
     case 'plan':
     case 'comment':
       {
-      const config = loadConfig();
-
-      if (!config) {
-        throw new Error(
-          "Configuration not found. Run 'agentteams init' first or set AGENTTEAMS_* environment variables."
-        );
-      }
-
-      const apiUrl = config.apiUrl.endsWith('/') ? config.apiUrl.slice(0, -1) : config.apiUrl;
-
-      const headers = {
-        'X-API-Key': config.apiKey,
-        'Content-Type': 'application/json',
-      };
+      const config = loadRequiredConfig();
+      const { apiUrl, headers } = resolveApiContext(config);
 
       if (resource === 'plan') {
         return executePlanCommand(apiUrl, config.projectId, headers, action, {
@@ -54,63 +75,25 @@ export async function executeCommand(
       throw new Error(`Unknown resource: ${resource}`);
     }
     case 'report': {
-      const configOverrides: Record<string, string> = {
-        ...(typeof options.apiKey === 'string' && options.apiKey.length > 0 ? { apiKey: options.apiKey } : {}),
-        ...(typeof options.apiUrl === 'string' && options.apiUrl.length > 0 ? { apiUrl: options.apiUrl } : {}),
-        ...(typeof options.teamId === 'string' && options.teamId.length > 0 ? { teamId: options.teamId } : {}),
-        ...(typeof options.projectId === 'string' && options.projectId.length > 0 ? { projectId: options.projectId } : {}),
-        ...(typeof options.agentName === 'string' && options.agentName.length > 0 ? { agentName: options.agentName } : {})
-      };
-
-      const config = loadConfig(configOverrides);
-
-      if (!config) {
-        throw new Error(
-          "Configuration not found. Run 'agentteams init' first or set AGENTTEAMS_* environment variables."
-        );
-      }
-
-      const apiUrl = config.apiUrl.endsWith('/') ? config.apiUrl.slice(0, -1) : config.apiUrl;
-      const headers = {
-        'X-API-Key': config.apiKey,
-        'Content-Type': 'application/json'
-      };
+      const config = loadRequiredConfig(buildConfigOverrides(options));
+      const { apiUrl, headers } = resolveApiContext(config);
 
       return executeReportCommand(apiUrl, headers, action, {
         ...options,
         projectId: config.projectId,
         defaultCreatedBy: config.agentName,
-        defaultRepositoryId: config.repositoryId
+        defaultRepositoryId: config.repositoryId,
       });
     }
     case 'postmortem': {
-      const configOverrides: Record<string, string> = {
-        ...(typeof options.apiKey === 'string' && options.apiKey.length > 0 ? { apiKey: options.apiKey } : {}),
-        ...(typeof options.apiUrl === 'string' && options.apiUrl.length > 0 ? { apiUrl: options.apiUrl } : {}),
-        ...(typeof options.teamId === 'string' && options.teamId.length > 0 ? { teamId: options.teamId } : {}),
-        ...(typeof options.projectId === 'string' && options.projectId.length > 0 ? { projectId: options.projectId } : {}),
-        ...(typeof options.agentName === 'string' && options.agentName.length > 0 ? { agentName: options.agentName } : {})
-      };
-
-      const config = loadConfig(configOverrides);
-
-      if (!config) {
-        throw new Error(
-          "Configuration not found. Run 'agentteams init' first or set AGENTTEAMS_* environment variables."
-        );
-      }
-
-      const apiUrl = config.apiUrl.endsWith('/') ? config.apiUrl.slice(0, -1) : config.apiUrl;
-      const headers = {
-        'X-API-Key': config.apiKey,
-        'Content-Type': 'application/json'
-      };
+      const config = loadRequiredConfig(buildConfigOverrides(options));
+      const { apiUrl, headers } = resolveApiContext(config);
 
       return executePostMortemCommand(apiUrl, headers, action, {
         ...options,
         projectId: config.projectId,
         defaultCreatedBy: config.agentName,
-        defaultRepositoryId: config.repositoryId
+        defaultRepositoryId: config.repositoryId,
       });
     }
     case 'dependency':

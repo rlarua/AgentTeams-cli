@@ -1,4 +1,4 @@
-import { AxiosError } from 'axios';
+import { AxiosError, isAxiosError } from 'axios';
 
 type ApiErrorPayload = {
   message?: unknown;
@@ -97,6 +97,3 @@ Details: ${message}`;
   return String(error);
 }
 
-function isAxiosError(error: unknown): error is AxiosError {
-  return (error as AxiosError).isAxiosError === true;
-}
