@@ -18,7 +18,6 @@ const summaryDefaultActions: Record<string, Set<string>> = {
 const nextActionHints: Record<string, Record<string, string>> = {
   plan: {
     create: 'Next: agentteams plan start --id <id>',
-    start: 'Next: agentteams plan download --id <id>',
     finish: 'Next: agentteams report create --plan-id <id>',
   },
 };

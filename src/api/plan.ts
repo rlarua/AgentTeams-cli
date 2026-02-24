@@ -79,6 +79,51 @@ export async function assignPlan(
   return response.data;
 }
 
+export async function startPlanLifecycle(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  id: string,
+  body: {
+    assignedTo?: string;
+    task?: string;
+  }
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
+  const response = await axios.post(`${baseUrl}/${id}/start`, body, { headers });
+  return response.data;
+}
+
+export async function finishPlanLifecycle(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  id: string,
+  body: {
+    task?: string;
+    completionReport?: {
+      repositoryId?: string;
+      title: string;
+      content: string;
+      commitHash?: string;
+      commitStart?: string;
+      commitEnd?: string;
+      branchName?: string;
+      pullRequestId?: string;
+      durationSeconds?: number;
+      filesModified?: number;
+      linesAdded?: number;
+      linesDeleted?: number;
+      status?: string;
+      qualityScore?: number;
+    };
+  }
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
+  const response = await axios.post(`${baseUrl}/${id}/finish`, body, { headers });
+  return response.data;
+}
+
 export async function deletePlan(
   apiUrl: string,
   projectId: string,

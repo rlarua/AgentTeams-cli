@@ -89,7 +89,7 @@ describe('outputPolicy', () => {
     expect(lines[0]).toBe('Plan downloaded');
   });
 
-  it('creates next action hint for plan start', () => {
+  it('does not create next action hint for plan start', () => {
     const lines = createSummaryLines(
       {
         data: {
@@ -100,7 +100,7 @@ describe('outputPolicy', () => {
       { resource: 'plan', action: 'start' }
     );
 
-    expect(lines).toContain('Next: agentteams plan download --id plan-456');
+    expect(lines.some((line) => line.startsWith('Next:'))).toBe(false);
   });
 
   it('creates next action hint for plan finish', () => {
