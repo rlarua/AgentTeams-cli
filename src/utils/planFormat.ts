@@ -50,11 +50,12 @@ export function formatPlanWithDependenciesText(
   appendLineIfExists(lines, 'id', planData.id);
   appendLineIfExists(lines, 'title', planData.title);
   appendLineIfExists(lines, 'status', planData.status);
+  appendLineIfExists(lines, 'type', planData.type);
   appendLineIfExists(lines, 'priority', planData.priority);
   appendLineIfExists(lines, 'updatedAt', planData.updatedAt);
   appendLineIfExists(lines, 'createdAt', planData.createdAt);
 
-  const ignoredKeys = new Set(['id', 'title', 'status', 'priority', 'updatedAt', 'createdAt', 'dependencies']);
+  const ignoredKeys = new Set(['id', 'title', 'status', 'type', 'priority', 'updatedAt', 'createdAt', 'dependencies']);
   for (const [key, value] of Object.entries(planData)) {
     if (ignoredKeys.has(key) || value === null || value === undefined) {
       continue;

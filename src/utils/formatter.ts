@@ -27,7 +27,7 @@ function formatObject(obj: any): string {
   }
 
   const lines: string[] = [];
-  const preferredOrder = ['id', 'title', 'status', 'priority', 'updatedAt', 'createdAt'];
+  const preferredOrder = ['id', 'title', 'status', 'type', 'priority', 'updatedAt', 'createdAt'];
   const entries = Object.entries(obj).sort(([a], [b]) => {
     const leftPriority = preferredOrder.indexOf(a);
     const rightPriority = preferredOrder.indexOf(b);

@@ -173,6 +173,7 @@ export async function executePlanCommand(
       if (options.title) params.title = options.title;
       if (options.search) params.search = options.search;
       if (options.status) params.status = options.status;
+      if (options.type) params.type = options.type;
       if (options.assignedTo) params.assignedTo = options.assignedTo;
       const page = toPositiveInteger(options.page);
       const pageSize = toPositiveInteger(options.pageSize);
@@ -384,6 +385,7 @@ export async function executePlanCommand(
         () => createPlan(apiUrl, projectId, headers, {
           title: options.title,
           content,
+          type: options.type,
           priority: options.priority ?? 'MEDIUM',
           repositoryId: options.repositoryId ?? options.defaultRepositoryId,
           status: 'DRAFT',
@@ -409,6 +411,7 @@ export async function executePlanCommand(
         }
       }
       if (options.status) body.status = options.status;
+      if (options.type) body.type = options.type;
       if (options.priority) body.priority = options.priority;
 
       return withSpinner(
@@ -610,6 +613,7 @@ export async function executePlanCommand(
         () => createPlan(apiUrl, projectId, headers, {
           title: options.title,
           content: planContent,
+          type: options.type,
           priority,
           repositoryId: options.repositoryId ?? options.defaultRepositoryId,
           status: 'DRAFT',

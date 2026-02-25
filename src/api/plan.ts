@@ -45,6 +45,7 @@ export async function createPlan(
   body: {
     title: string;
     content: string;
+    type?: string;
     priority: string;
     repositoryId?: string;
     status: 'DRAFT';

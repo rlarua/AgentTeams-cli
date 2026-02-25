@@ -94,6 +94,7 @@ export interface Plan {
   title: string;
   /** Detailed description */
   description: string;
+  type?: string | null;
   /** Current status (e.g., "PENDING", "IN_PROGRESS", "DONE") */
   status: string;
   /** ID of assigned agent/user (null if unassigned) */
