@@ -7,6 +7,7 @@ import { executeCommentCommand } from './comment.js';
 import { executePlanCommand } from './plan.js';
 import { executePostMortemCommand } from './postmortem.js';
 import { executeReportCommand } from './report.js';
+import { executeFeedbackCommand } from './feedback.js';
 import { loadConfig } from '../utils/config.js';
 import type { Config } from '../types/index.js';
 
@@ -98,6 +99,11 @@ export async function executeCommand(
     }
     case 'dependency':
       return executeDependencyCommand(action, options);
+    case 'feedback': {
+      const config = loadRequiredConfig(buildConfigOverrides(options));
+      const { apiUrl, headers } = resolveApiContext(config);
+      return executeFeedbackCommand(apiUrl, headers, action, options);
+    }
     case 'agent-config':
       return executeAgentConfigCommand(action, options);
     case 'config':

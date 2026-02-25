@@ -404,6 +404,50 @@ program
   });
 
 program
+  .command('feedback')
+  .description('Manage platform feedback')
+  .argument('<action>', 'Action to perform (create)')
+  .option('--category <category>', 'Feedback category (BUG, SUGGESTION, CONVENTION, UX)')
+  .option('--title <title>', 'Feedback title')
+  .option('--content <content>', 'Feedback content')
+  .option('--api-url <url>', 'Override API URL (optional)')
+  .option('--api-key <key>', 'Override API key (optional)')
+  .option('--project-id <id>', 'Override project ID (optional)')
+  .option('--team-id <id>', 'Override team ID (optional)')
+  .option('--agent-name <name>', 'Override agent name (optional)')
+  .option('--format <format>', 'Output format (json, text)', 'text')
+  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
+  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
+  .action(async (action, options) => {
+    try {
+      const normalizedFormat = normalizeFormat(options.format, 'text');
+      const result = await executeCommand('feedback', action, {
+        category: options.category,
+        title: options.title,
+        content: options.content,
+        apiUrl: options.apiUrl,
+        apiKey: options.apiKey,
+        projectId: options.projectId,
+        teamId: options.teamId,
+        agentName: options.agentName,
+      });
+
+      printCommandResult({
+        result,
+        format: normalizedFormat,
+        outputFile: options.outputFile,
+        verbose: options.verbose,
+        resource: 'feedback',
+        action,
+        formatExplicit: typeof options.format === 'string',
+      });
+    } catch (error) {
+      console.error(handleError(error));
+      process.exit(1);
+    }
+  });
+
+program
   .command('convention')
   .description('Manage project conventions')
   .argument('<action>', 'Action to perform (list, show, download, create, update, delete)')
