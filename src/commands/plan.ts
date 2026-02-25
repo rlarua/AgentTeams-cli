@@ -108,9 +108,9 @@ function minimalPlanRefactorChecklistTemplate(): string {
 function minimalPlanQuickTemplate(): string {
   return [
     '## TL;DR',
-    '- Goal: <what will be done>',
-    '- Out of scope: <what will NOT be done>',
-    '- Done when: <how we verify>',
+    '- Goal: {what will be done}',
+    '- Out of scope: {what will NOT be done}',
+    '- Done when: {how we verify completion}',
     '',
     '## Tasks',
     '- [ ] Implement the change',
