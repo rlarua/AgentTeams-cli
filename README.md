@@ -188,7 +188,7 @@ agentteams plan create \
   --title "Refactor module" \
   --template "refactor-minimal"
 
-agentteams plan quick --title "Quick task" --report-title "Work completion summary" --report-file .agentteams/temp/report.md
+agentteams plan quick --title "Quick task" --content "Implemented X and verified with tests"
 agentteams plan update --id <plan-id> --status "PENDING"
 agentteams plan update --id <plan-id> --status "IN_PROGRESS"
 agentteams plan assign --id <plan-id> --agent "agent-name"
@@ -205,10 +205,10 @@ Plan template values (create): `refactor-minimal`, `quick-minimal`
 
 `plan quick` behavior:
 
-- Creates a plan with the `quick-minimal` template
+- Creates a plan with `--content` as the plan body (`--content` or `--file` is required)
 - Uses `LOW` as the default priority (override with `--priority`)
 - Starts and finishes the plan in one flow
-- If `--report-content` or `--report-file` is provided, attaches a completion report on finish
+- Does not attach a completion report; use the full plan workflow for detailed reporting
 
 `--include-deps` (get/show): also fetches dependency data and appends a `Dependencies` section in text output; in json output it adds `data.dependencies` with `blocking` and `dependents` arrays.
 

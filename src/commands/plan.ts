@@ -595,7 +595,7 @@ export async function executePlanCommand(
         planContent = readFileSync(filePath, 'utf-8');
         printFileInfo(options.file as string, planContent);
       } else {
-        planContent = minimalPlanQuickTemplate();
+        throw new Error('--content or --file is required for plan quick. Provide the actual work description instead of using a template.');
       }
 
       if (typeof planContent === 'string' && options.interpretEscapes) {
@@ -629,75 +629,10 @@ export async function executePlanCommand(
         'Plan started',
       );
 
-      // 3. Resolve report content
-      let reportContent = options.reportContent as string | undefined;
-      if (options.reportFile) {
-        const reportFilePath = resolve(options.reportFile);
-        if (!existsSync(reportFilePath)) {
-          throw new Error(`File not found: ${options.reportFile}`);
-        }
-        reportContent = readFileSync(reportFilePath, 'utf-8');
-        printFileInfo(options.reportFile, reportContent);
-      }
-
-      // 4. Finish plan (with optional report)
-      const finishBody: {
-        completionReport?: {
-          title: string;
-          content: string;
-          status?: string;
-          qualityScore?: number;
-          commitHash?: string;
-          branchName?: string;
-          filesModified?: number;
-          linesAdded?: number;
-          linesDeleted?: number;
-          durationSeconds?: number;
-          commitStart?: string;
-          commitEnd?: string;
-          pullRequestId?: string;
-        };
-      } = {};
-
-      if (typeof reportContent === 'string' && reportContent.trim().length > 0) {
-        const autoGitMetrics = options.git === false ? {} : collectGitMetrics();
-
-        const commitHash = toNonEmptyString(options.commitHash) ?? autoGitMetrics.commitHash;
-        const branchName = toNonEmptyString(options.branchName) ?? autoGitMetrics.branchName;
-        const filesModified = toNonNegativeInteger(options.filesModified) ?? autoGitMetrics.filesModified;
-        const linesAdded = toNonNegativeInteger(options.linesAdded) ?? autoGitMetrics.linesAdded;
-        const linesDeleted = toNonNegativeInteger(options.linesDeleted) ?? autoGitMetrics.linesDeleted;
-        const durationSeconds = toNonNegativeInteger(options.durationSeconds);
-        const commitStart = toNonEmptyString(options.commitStart);
-        const commitEnd = toNonEmptyString(options.commitEnd);
-        const pullRequestId = toNonEmptyString(options.pullRequestId);
-        const qualityScore = toNonNegativeInteger(options.qualityScore);
-        const reportStatus = toNonEmptyString(options.reportStatus);
-
-        const reportTitle = typeof options.reportTitle === 'string' && options.reportTitle.trim().length > 0
-          ? options.reportTitle.trim()
-          : 'Work completion summary';
-        finishBody.completionReport = {
-          title: reportTitle,
-          content: reportContent.trim(),
-        };
-
-        if (reportStatus !== undefined) finishBody.completionReport.status = reportStatus;
-        if (qualityScore !== undefined) finishBody.completionReport.qualityScore = qualityScore;
-        if (commitHash !== undefined) finishBody.completionReport.commitHash = commitHash;
-        if (branchName !== undefined) finishBody.completionReport.branchName = branchName;
-        if (filesModified !== undefined) finishBody.completionReport.filesModified = filesModified;
-        if (linesAdded !== undefined) finishBody.completionReport.linesAdded = linesAdded;
-        if (linesDeleted !== undefined) finishBody.completionReport.linesDeleted = linesDeleted;
-        if (durationSeconds !== undefined) finishBody.completionReport.durationSeconds = durationSeconds;
-        if (commitStart !== undefined) finishBody.completionReport.commitStart = commitStart;
-        if (commitEnd !== undefined) finishBody.completionReport.commitEnd = commitEnd;
-        if (pullRequestId !== undefined) finishBody.completionReport.pullRequestId = pullRequestId;
-      }
-
+      // 3. Finish plan (no completion report for quick plans)
       const finishResult = await withSpinner(
         'Finishing plan...',
-        () => finishPlanLifecycle(apiUrl, projectId, headers, planId, finishBody),
+        () => finishPlanLifecycle(apiUrl, projectId, headers, planId, {}),
         'Plan finished',
       );
 
