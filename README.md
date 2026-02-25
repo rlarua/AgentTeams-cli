@@ -151,19 +151,19 @@ agentteams plan create \
   --title "Implement feature" \
   --content "Detailed content" \
   --type FEATURE \
-  --priority "HIGH"
-
-# repository linkage
-# - `plan create` uses `.agentteams/config.json` -> `repositoryId` when present.
+  --priority HIGH
 
 # optional checklist template for create
 agentteams plan create \
   --title "Refactor module" \
   --template "refactor-minimal"
 
+  # repository linkage
+  # - `plan create` uses `.agentteams/config.json` -> `repositoryId` when present.
+
 agentteams plan quick --title "Quick task" --content "Implemented X and verified with tests" --type CHORE
-agentteams plan update --id <plan-id> --status "PENDING"
-agentteams plan update --id <plan-id> --status "IN_PROGRESS"
+agentteams plan update --id <plan-id> --status PENDING
+agentteams plan update --id <plan-id> --status IN_PROGRESS
 agentteams plan assign --id <plan-id> --agent "agent-name"
 agentteams plan download --id <plan-id>
 agentteams plan cleanup --id <plan-id>
@@ -172,9 +172,9 @@ agentteams plan delete --id <plan-id>
 
 Status values: `DRAFT`, `PENDING`, `ASSIGNED`, `IN_PROGRESS`, `BLOCKED`, `DONE`, `CANCELLED`
 
-Priorities: `LOW`, `MEDIUM`, `HIGH`
-
 Types: `FEATURE`, `BUG_FIX`, `ISSUE`, `REFACTOR`, `CHORE`
+
+Priorities: `LOW`, `MEDIUM`, `HIGH`
 
 Plan template values (create): `refactor-minimal`, `quick-minimal`
 
