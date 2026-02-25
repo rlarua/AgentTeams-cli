@@ -141,6 +141,18 @@ program
   .option('--report-content <content>', 'Completion report markdown content (plan finish)')
   .option('--report-file <path>', 'Read completion report content from a local file (plan finish)')
   .option('--report-template <name>', 'Completion report template (minimal, plan finish)')
+  .option('--report-status <status>', 'Completion report status: COMPLETED, FAILED, PARTIAL (plan finish/quick)')
+  .option('--quality-score <n>', 'Quality score 0-100 (plan finish/quick)')
+  .option('--commit-hash <hash>', 'Git commit hash (plan finish/quick, manual override)')
+  .option('--branch-name <name>', 'Git branch name (plan finish/quick, manual override)')
+  .option('--files-modified <n>', 'Number of modified files (plan finish/quick, manual override)')
+  .option('--lines-added <n>', 'Number of added lines (plan finish/quick, manual override)')
+  .option('--lines-deleted <n>', 'Number of deleted lines (plan finish/quick, manual override)')
+  .option('--duration-seconds <n>', 'Duration in seconds (plan finish/quick, manual only)')
+  .option('--commit-start <hash>', 'Commit range start hash (plan finish/quick, manual only)')
+  .option('--commit-end <hash>', 'Commit range end hash (plan finish/quick, manual only)')
+  .option('--pull-request-id <id>', 'Pull request ID (plan finish/quick, manual only)')
+  .option('--no-git', 'Disable git metrics auto-collection (plan finish/quick)')
   .option('--page <number>', 'Page number (list only)')
   .option('--page-size <number>', 'Page size (list only)')
   .option('--agent <agent>', 'Agent name or ID to assign')
@@ -167,6 +179,18 @@ program
         reportContent: options.reportContent,
         reportFile: options.reportFile,
         reportTemplate: options.reportTemplate,
+        reportStatus: options.reportStatus,
+        qualityScore: options.qualityScore,
+        commitHash: options.commitHash,
+        branchName: options.branchName,
+        filesModified: options.filesModified,
+        linesAdded: options.linesAdded,
+        linesDeleted: options.linesDeleted,
+        durationSeconds: options.durationSeconds,
+        commitStart: options.commitStart,
+        commitEnd: options.commitEnd,
+        pullRequestId: options.pullRequestId,
+        git: options.git,
         page: options.page,
         pageSize: options.pageSize,
         agent: options.agent,

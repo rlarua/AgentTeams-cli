@@ -3,9 +3,16 @@ import { existsSync, mkdirSync, writeFileSync, rmSync, readdirSync, readFileSync
 import { join, resolve } from 'node:path';
 import { checkConventionFreshness, conventionDownload } from './convention.js';
 import { findProjectConfig } from '../utils/config.js';
+import { collectGitMetrics } from '../utils/git.js';
 import { withSpinner, printFileInfo } from '../utils/spinner.js';
 import { formatPlanWithDependenciesText, mergePlanWithDependencies, normalizeDependencies } from '../utils/planFormat.js';
-import { interpretEscapes, toPositiveInteger, toSafeFileName } from '../utils/parsers.js';
+import {
+  interpretEscapes,
+  toNonEmptyString,
+  toNonNegativeInteger,
+  toPositiveInteger,
+  toSafeFileName,
+} from '../utils/parsers.js';
 import {
   assignPlan,
   createPlan,
@@ -276,6 +283,17 @@ export async function executePlanCommand(
         completionReport?: {
           title: string;
           content: string;
+          status?: string;
+          qualityScore?: number;
+          commitHash?: string;
+          branchName?: string;
+          filesModified?: number;
+          linesAdded?: number;
+          linesDeleted?: number;
+          durationSeconds?: number;
+          commitStart?: string;
+          commitEnd?: string;
+          pullRequestId?: string;
         };
       } = {};
 
@@ -284,6 +302,20 @@ export async function executePlanCommand(
       }
 
       if (includeCompletionReport) {
+        const autoGitMetrics = options.git === false ? {} : collectGitMetrics();
+
+        const commitHash = toNonEmptyString(options.commitHash) ?? autoGitMetrics.commitHash;
+        const branchName = toNonEmptyString(options.branchName) ?? autoGitMetrics.branchName;
+        const filesModified = toNonNegativeInteger(options.filesModified) ?? autoGitMetrics.filesModified;
+        const linesAdded = toNonNegativeInteger(options.linesAdded) ?? autoGitMetrics.linesAdded;
+        const linesDeleted = toNonNegativeInteger(options.linesDeleted) ?? autoGitMetrics.linesDeleted;
+        const durationSeconds = toNonNegativeInteger(options.durationSeconds);
+        const commitStart = toNonEmptyString(options.commitStart);
+        const commitEnd = toNonEmptyString(options.commitEnd);
+        const pullRequestId = toNonEmptyString(options.pullRequestId);
+        const qualityScore = toNonNegativeInteger(options.qualityScore);
+        const reportStatus = toNonEmptyString(options.reportStatus);
+
         const reportTitle = typeof options.reportTitle === 'string' && options.reportTitle.trim().length > 0
           ? options.reportTitle.trim()
           : 'Work completion summary';
@@ -292,6 +324,18 @@ export async function executePlanCommand(
           title: reportTitle,
           content: reportContent!.trim(),
         };
+
+        if (reportStatus !== undefined) body.completionReport.status = reportStatus;
+        if (qualityScore !== undefined) body.completionReport.qualityScore = qualityScore;
+        if (commitHash !== undefined) body.completionReport.commitHash = commitHash;
+        if (branchName !== undefined) body.completionReport.branchName = branchName;
+        if (filesModified !== undefined) body.completionReport.filesModified = filesModified;
+        if (linesAdded !== undefined) body.completionReport.linesAdded = linesAdded;
+        if (linesDeleted !== undefined) body.completionReport.linesDeleted = linesDeleted;
+        if (durationSeconds !== undefined) body.completionReport.durationSeconds = durationSeconds;
+        if (commitStart !== undefined) body.completionReport.commitStart = commitStart;
+        if (commitEnd !== undefined) body.completionReport.commitEnd = commitEnd;
+        if (pullRequestId !== undefined) body.completionReport.pullRequestId = pullRequestId;
       }
 
       return withSpinner(
@@ -598,14 +642,57 @@ export async function executePlanCommand(
 
       // 4. Finish plan (with optional report)
       const finishBody: {
-        completionReport?: { title: string; content: string };
+        completionReport?: {
+          title: string;
+          content: string;
+          status?: string;
+          qualityScore?: number;
+          commitHash?: string;
+          branchName?: string;
+          filesModified?: number;
+          linesAdded?: number;
+          linesDeleted?: number;
+          durationSeconds?: number;
+          commitStart?: string;
+          commitEnd?: string;
+          pullRequestId?: string;
+        };
       } = {};
 
       if (typeof reportContent === 'string' && reportContent.trim().length > 0) {
+        const autoGitMetrics = options.git === false ? {} : collectGitMetrics();
+
+        const commitHash = toNonEmptyString(options.commitHash) ?? autoGitMetrics.commitHash;
+        const branchName = toNonEmptyString(options.branchName) ?? autoGitMetrics.branchName;
+        const filesModified = toNonNegativeInteger(options.filesModified) ?? autoGitMetrics.filesModified;
+        const linesAdded = toNonNegativeInteger(options.linesAdded) ?? autoGitMetrics.linesAdded;
+        const linesDeleted = toNonNegativeInteger(options.linesDeleted) ?? autoGitMetrics.linesDeleted;
+        const durationSeconds = toNonNegativeInteger(options.durationSeconds);
+        const commitStart = toNonEmptyString(options.commitStart);
+        const commitEnd = toNonEmptyString(options.commitEnd);
+        const pullRequestId = toNonEmptyString(options.pullRequestId);
+        const qualityScore = toNonNegativeInteger(options.qualityScore);
+        const reportStatus = toNonEmptyString(options.reportStatus);
+
         const reportTitle = typeof options.reportTitle === 'string' && options.reportTitle.trim().length > 0
           ? options.reportTitle.trim()
           : 'Work completion summary';
-        finishBody.completionReport = { title: reportTitle, content: reportContent.trim() };
+        finishBody.completionReport = {
+          title: reportTitle,
+          content: reportContent.trim(),
+        };
+
+        if (reportStatus !== undefined) finishBody.completionReport.status = reportStatus;
+        if (qualityScore !== undefined) finishBody.completionReport.qualityScore = qualityScore;
+        if (commitHash !== undefined) finishBody.completionReport.commitHash = commitHash;
+        if (branchName !== undefined) finishBody.completionReport.branchName = branchName;
+        if (filesModified !== undefined) finishBody.completionReport.filesModified = filesModified;
+        if (linesAdded !== undefined) finishBody.completionReport.linesAdded = linesAdded;
+        if (linesDeleted !== undefined) finishBody.completionReport.linesDeleted = linesDeleted;
+        if (durationSeconds !== undefined) finishBody.completionReport.durationSeconds = durationSeconds;
+        if (commitStart !== undefined) finishBody.completionReport.commitStart = commitStart;
+        if (commitEnd !== undefined) finishBody.completionReport.commitEnd = commitEnd;
+        if (pullRequestId !== undefined) finishBody.completionReport.pullRequestId = pullRequestId;
       }
 
       const finishResult = await withSpinner(

@@ -3,7 +3,6 @@ import { basename, join, relative, resolve } from "node:path";
 import axios from "axios";
 import matter from "gray-matter";
 import { diffLines, createTwoFilesPatch } from "diff";
-import { normalizeMarkdownToTiptap } from "@agentteams/markdown-tiptap";
 import { loadConfig, findProjectConfig } from "../utils/config.js";
 import { withSpinner } from "../utils/spinner.js";
 import { withoutJsonContentType } from "../utils/httpHeaders.js";
@@ -753,7 +752,7 @@ export async function conventionCreate(options: ConventionCreateOptions): Promis
     const frontmatter = (parsed.data ?? {}) as Record<string, unknown>;
     const bodyMarkdown = String(parsed.content ?? "");
 
-    const content = await normalizeMarkdownToTiptap(bodyMarkdown);
+    const content = bodyMarkdown;
 
     const title = toOptionalString(frontmatter.title)?.trim() || fileNameToTitle(fileName);
 
@@ -879,7 +878,7 @@ export async function conventionUpdate(options: ConventionUploadOptions): Promis
     const frontmatter = (parsed.data ?? {}) as Record<string, unknown>;
     const bodyMarkdown = String(parsed.content ?? "");
 
-    const content = await normalizeMarkdownToTiptap(bodyMarkdown);
+    const content = bodyMarkdown;
 
     if (typeof serverDetail?.updatedAt !== "string" || serverDetail.updatedAt.length === 0) {
       throw new Error(`[ERROR] ${fileRelativePath}: Server response is missing updatedAt.`);

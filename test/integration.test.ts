@@ -566,6 +566,7 @@ describe('CLI Integration Tests', () => {
         id: 'plan-1',
         reportTitle: 'Completion summary',
         reportContent: '## Summary\n- done',
+        git: false,
       });
 
       expect(axiosPostSpy).toHaveBeenCalledWith(
@@ -586,6 +587,7 @@ describe('CLI Integration Tests', () => {
       await executeCommand('plan', 'finish', {
         id: 'plan-1',
         reportTemplate: 'minimal',
+        git: false,
       });
 
       expect(axiosPostSpy).toHaveBeenCalledWith(
