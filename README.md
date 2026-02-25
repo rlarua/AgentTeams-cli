@@ -9,12 +9,6 @@ It supports convention sync and plan/comment/report management.
 npm install -g @rlarua/agentteams-cli
 ```
 
-Or run with `npx`:
-
-```bash
-npx @rlarua/agentteams-cli init
-```
-
 ## Quick Start
 
 ### 1. Initialize
@@ -38,28 +32,6 @@ In SSH/remote environments, open the URL printed in the terminal manually.
 The CLI talks to two services:
 
 - Web app (OAuth flow): defaults to `https://agent-web.justin-mk.me`
-- API: no hardcoded default; it is read from `.agentteams/config.json` (created by `init`) or overridden via `AGENTTEAMS_API_URL` (commonly `https://agent-api.justin-mk.me`)
-
-Typical usage:
-
-- Production: run `agentteams init` and do not set any URL overrides.
-- If you need to point the CLI to a different environment, override URLs with environment variables.
-
-Override examples (production):
-
-```bash
-export AGENTTEAMS_API_URL="https://agent-api.justin-mk.me"
-```
-
-Override examples (advanced):
-
-```bash
-# Override the web app used by `agentteams init` (OAuth authorize page)
-export AGENTTEAMS_WEB_URL="https://your-agentteams-web.example.com"
-
-# Override the API base URL used by all API calls
-export AGENTTEAMS_API_URL="https://your-agentteams-api.example.com"
-```
 
 ### 2. Protect Sensitive Data
 
