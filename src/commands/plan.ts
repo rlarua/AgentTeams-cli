@@ -96,11 +96,11 @@ async function promptConventionDownload(): Promise<boolean> {
 function minimalPlanRefactorChecklistTemplate(): string {
   return [
     '## Refactor Checklist',
-    '- [ ] Define current pain points and target behavior',
-    '- [ ] Identify impacted modules and side effects',
-    '- [ ] Keep API/schema contracts backward-compatible',
-    '- [ ] Add or update related tests',
-    '- [ ] Run verification (`npm test`, `npm run build`) and record outcomes',
+    '- Define current pain points and target behavior',
+    '- Identify impacted modules and side effects',
+    '- Keep API/schema contracts backward-compatible',
+    '- Add or update related tests',
+    '- Run verification (`npm test`, `npm run build`) and record outcomes',
     '',
   ].join('\n');
 }
@@ -113,9 +113,9 @@ function minimalPlanQuickTemplate(): string {
     '- Done when: {how we verify completion}',
     '',
     '## Tasks',
-    '- [ ] Implement the change',
-    '- [ ] Update or add tests',
-    '- [ ] Run verification (`npm test`, `npm run build`) and record outcomes',
+    '- Implement the change',
+    '- Update or add tests',
+    '- Run verification (`npm test`, `npm run build`) and record outcomes',
     '',
   ].join('\n');
 }
