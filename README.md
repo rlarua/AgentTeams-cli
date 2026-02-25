@@ -150,6 +150,7 @@ agentteams plan set-status --id <plan-id> --status <status>
 agentteams plan create \
   --title "Implement feature" \
   --content "Detailed content" \
+  --type FEATURE \
   --priority "HIGH"
 
 # repository linkage
@@ -160,7 +161,7 @@ agentteams plan create \
   --title "Refactor module" \
   --template "refactor-minimal"
 
-agentteams plan quick --title "Quick task" --content "Implemented X and verified with tests"
+agentteams plan quick --title "Quick task" --content "Implemented X and verified with tests" --type CHORE
 agentteams plan update --id <plan-id> --status "PENDING"
 agentteams plan update --id <plan-id> --status "IN_PROGRESS"
 agentteams plan assign --id <plan-id> --agent "agent-name"
@@ -172,6 +173,8 @@ agentteams plan delete --id <plan-id>
 Status values: `DRAFT`, `PENDING`, `ASSIGNED`, `IN_PROGRESS`, `BLOCKED`, `DONE`, `CANCELLED`
 
 Priorities: `LOW`, `MEDIUM`, `HIGH`
+
+Types: `FEATURE`, `BUG_FIX`, `ISSUE`, `REFACTOR`, `CHORE`
 
 Plan template values (create): `refactor-minimal`, `quick-minimal`
 
