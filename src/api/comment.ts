@@ -36,6 +36,7 @@ export async function createComment(
   body: {
     type: string;
     content: string;
+    affectedFiles?: string[];
   }
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/plans/${planId}/comments`;
@@ -50,6 +51,7 @@ export async function updateComment(
   commentId: string,
   body: {
     content: string;
+    affectedFiles?: string[];
   }
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/comments/${commentId}`;

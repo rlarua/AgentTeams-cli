@@ -224,6 +224,7 @@ program
   .option('--plan-id <id>', 'Plan ID')
   .option('--type <type>', 'Comment type (RISK, MODIFICATION, GENERAL)')
   .option('--content <content>', 'Comment content')
+  .option('--affected-files <files>', 'Comma-separated list of affected file paths (create/update)')
   .option('--page <number>', 'Page number (list only)')
   .option('--page-size <number>', 'Page size (list only)')
   .option('--format <format>', 'Output format (json, text)', 'json')
@@ -236,6 +237,7 @@ program
         planId: options.planId,
         type: options.type,
         content: options.content,
+        affectedFiles: options.affectedFiles,
         page: options.page,
         pageSize: options.pageSize,
       });

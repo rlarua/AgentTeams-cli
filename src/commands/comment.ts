@@ -30,18 +30,28 @@ export async function executeCommentCommand(
       if (!options.type) throw new Error('--type is required for comment create');
       if (!options.content) throw new Error('--content is required for comment create');
 
-      return createComment(apiUrl, projectId, headers, options.planId, {
+      const body: { type: string; content: string; affectedFiles?: string[] } = {
         type: options.type,
         content: options.content,
-      });
+      };
+      if (options.affectedFiles) {
+        body.affectedFiles = options.affectedFiles.split(',').map((f: string) => f.trim());
+      }
+
+      return createComment(apiUrl, projectId, headers, options.planId, body);
     }
     case 'update': {
       if (!options.id) throw new Error('--id is required for comment update');
       if (!options.content) throw new Error('--content is required for comment update');
 
-      return updateComment(apiUrl, projectId, headers, options.id, {
+      const body: { content: string; affectedFiles?: string[] } = {
         content: options.content,
-      });
+      };
+      if (options.affectedFiles) {
+        body.affectedFiles = options.affectedFiles.split(',').map((f: string) => f.trim());
+      }
+
+      return updateComment(apiUrl, projectId, headers, options.id, body);
     }
     case 'delete': {
       if (!options.id) throw new Error('--id is required for comment delete');
