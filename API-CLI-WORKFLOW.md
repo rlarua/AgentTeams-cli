@@ -245,11 +245,11 @@ sequenceDiagram
   CLI->>API: POST /api/projects/:projectId/plans/:planId/comments
   API-->>CLI: { data: comment }
 
-  U->>CLI: plan finish --id {planId}
+  U->>CLI: plan finish --id {planId} [경로 A: --report-* 옵션으로 완료보고 함께 생성 가능]
   CLI->>API: POST /api/projects/:projectId/plans/:id/finish
-  API-->>CLI: { data: { id, plan, completionReport } }
-
-  U->>CLI: report create --plan-id {planId}
+  API-->>CLI: { data: { id, plan, completionReport: null | {...} } }
+  Note right of U: 경로 A(plan finish --report-*)와 경로 B(report create)는 둘 중 하나만 선택
+  U->>CLI: [경로 B: report create --plan-id {planId}]
   CLI->>API: POST /api/projects/:projectId/completion-reports
   API-->>CLI: { data: report }
 ```
@@ -268,7 +268,7 @@ sequenceDiagram
 
   U->>CLI: plan finish --id {planId}
   CLI->>API: POST /api/projects/:projectId/plans/:id/finish
-  API-->>CLI: { data: { id, plan, completionReport } }
+  API-->>CLI: { data: { id, plan, completionReport: null | {...} } }
 ```
 
 ---

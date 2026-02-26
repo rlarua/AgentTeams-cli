@@ -103,12 +103,13 @@ describe('outputPolicy', () => {
     expect(lines.some((line) => line.startsWith('Next:'))).toBe(false);
   });
 
-  it('creates next action hint for plan finish', () => {
+  it('creates next action hint for plan finish when no completion report was created', () => {
     const lines = createSummaryLines(
       {
         data: {
           id: 'plan-789',
           title: 'Finished plan',
+          completionReport: null,
         },
       },
       { resource: 'plan', action: 'finish' }
@@ -116,4 +117,20 @@ describe('outputPolicy', () => {
 
     expect(lines).toContain('Next: agentteams report create --plan-id plan-789');
   });
+
+  it('suppresses next action hint for plan finish when completion report was already created', () => {
+    const lines = createSummaryLines(
+      {
+        data: {
+          id: 'plan-789',
+          title: 'Finished plan',
+          completionReport: { id: 'report-001', title: 'Work done' },
+        },
+      },
+      { resource: 'plan', action: 'finish' }
+    );
+
+    expect(lines.some((line) => line.startsWith('Next:'))).toBe(false);
+  });
 });
+
