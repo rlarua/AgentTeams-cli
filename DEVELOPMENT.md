@@ -6,24 +6,19 @@ This guide is for contributors and developers who want to work on the CLI itself
 
 - Node.js 24+
 - npm 10+
-- Local API server running (see [../api/README.md](../api/README.md))
+- Access to a running AgentTeams API server
 
 ## Local Setup
 
-### 1. Start Local API Server
+### 1. Prepare API Endpoint
 
-```bash
-# From project root
-cd api
-docker-compose up
-```
+Use an available AgentTeams API endpoint for local development.
 
-API will be available at `http://localhost:3001`
+Default local endpoint example: `http://localhost:3001`
 
 ### 2. Install CLI Dependencies
 
 ```bash
-cd cli
 npm install
 ```
 
@@ -178,7 +173,7 @@ node dist/index.js init
 
 ## Publishing (Maintainers Only)
 
-See [Publishing Guide](../README.md#publishing) in the main README.
+See `README.md` in this repository for install and usage details.
 
 For development testing, use `npm link` instead of publishing:
 
@@ -229,6 +224,6 @@ npm run build
 
 ## Questions?
 
-- Check [../README.md](../README.md) for overall project documentation
-- Check [../api/README.md](../api/README.md) for API server setup
+- Check `README.md` for overall CLI usage and configuration
+- Confirm your API endpoint is reachable and correctly configured in environment variables
 - Open an issue on GitHub
