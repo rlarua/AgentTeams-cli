@@ -80,7 +80,26 @@ function resolveNextActionHint(
   context: Pick<OutputPolicyContext, 'resource' | 'action'>
 ): string | undefined {
   if (!context.resource || !context.action) return undefined;
+
+  // plan finish: completionReport가 이미 생성된 경우 힌트 표시 안 함
+  if (context.resource === 'plan' && context.action === 'finish') {
+    const cr = extractCompletionReportFromResult(result);
+    if (cr !== null && cr !== undefined) return undefined;
+  }
+
   const actionMap = nextActionHints[context.resource];
+
+function extractCompletionReportFromResult(result: unknown): Record<string, unknown> | null | undefined {
+  if (!result || typeof result !== 'object') return undefined;
+  const data = (result as Record<string, unknown>).data;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return undefined;
+  const dataObj = data as Record<string, unknown>;
+  if (!('completionReport' in dataObj)) return undefined;
+  const cr = dataObj.completionReport;
+  if (cr === null) return null;
+  if (typeof cr === 'object' && !Array.isArray(cr)) return cr as Record<string, unknown>;
+  return undefined;
+}
   if (!actionMap) return undefined;
   const template = actionMap[context.action];
   if (!template) return undefined;
