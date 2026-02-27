@@ -8,6 +8,7 @@ import { withSpinner, printFileInfo } from '../utils/spinner.js';
 import { formatPlanWithDependenciesText, mergePlanWithDependencies, normalizeDependencies } from '../utils/planFormat.js';
 import {
   interpretEscapes,
+  stripFrontmatter,
   toNonEmptyString,
   toNonNegativeInteger,
   toPositiveInteger,
@@ -366,7 +367,7 @@ export async function executePlanCommand(
         if (!existsSync(filePath)) {
           throw new Error(`File not found: ${options.file}`);
         }
-        content = readFileSync(filePath, 'utf-8');
+        content = stripFrontmatter(readFileSync(filePath, 'utf-8'));
         printFileInfo(options.file, content);
       }
       if (typeof content === 'string' && options.interpretEscapes) {
@@ -402,7 +403,7 @@ export async function executePlanCommand(
         if (!existsSync(filePath)) {
           throw new Error(`File not found: ${options.file}`);
         }
-        body.content = readFileSync(filePath, 'utf-8');
+        body.content = stripFrontmatter(readFileSync(filePath, 'utf-8'));
         printFileInfo(options.file, body.content);
       } else if (options.content) {
         body.content = options.content;
@@ -595,7 +596,7 @@ export async function executePlanCommand(
         if (!existsSync(filePath)) {
           throw new Error(`File not found: ${options.file}`);
         }
-        planContent = readFileSync(filePath, 'utf-8');
+        planContent = stripFrontmatter(readFileSync(filePath, 'utf-8'));
         printFileInfo(options.file as string, planContent);
       } else {
         throw new Error('--content or --file is required for plan quick. Provide the actual work description instead of using a template.');

@@ -54,6 +54,10 @@ export function interpretEscapes(content: string): string {
     .replace(/\\n/g, '\n');
 }
 
+export function stripFrontmatter(content: string): string {
+  return content.replace(/^---[\r\n][\s\S]*?[\r\n]---[\r\n]?/, '').trimStart();
+}
+
 export function toSafeFileName(input: string): string {
   return input
     .toLowerCase()

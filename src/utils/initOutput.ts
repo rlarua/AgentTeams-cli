@@ -44,5 +44,7 @@ export function printInitResult(result: unknown, format: OutputFormat): void {
   console.log('  2. Link convention.md to your agent:');
   console.log('     - Claude Code → CLAUDE.md');
   console.log('     - opencode    → AGENTS.md');
-  console.log('  3. agentteams convention show');
+  console.log('     Always reference `.agentteams/convention.md`.');
+  console.log('  3. Copy the convention content to your agent\'s instruction file:');
+  console.log('     agentteams convention show');
 }
