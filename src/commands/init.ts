@@ -8,7 +8,7 @@ import { withSpinner } from '../utils/spinner.js';
 import { conventionDownload } from './convention.js';
 import type { Config } from '../types/index.js';
 
-const AUTH_BASE_URL = process.env.AGENTTEAMS_WEB_URL || 'https://agent-web.justin-mk.me';
+const AUTH_BASE_URL = process.env.AGENTTEAMS_WEB_URL || 'https://agentteams.run';
 const CONFIG_DIR = '.agentteams';
 const CONFIG_FILE = 'config.json';
 const CONVENTION_FILE = 'convention.md';
