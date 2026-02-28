@@ -7,46 +7,6 @@ import { isCreatedByRequiredValidationError, resolveLegacyCreatedBy } from '../u
 import { toNonEmptyString, toNonNegativeInteger, toPositiveInteger, toSafeFileName } from '../utils/parsers.js';
 import { printFileInfo, withSpinner } from '../utils/spinner.js';
 
-function toDetailsAsMarkdown(details: unknown): string | undefined {
-  if (typeof details !== 'string' || details.trim().length === 0) {
-    return undefined;
-  }
-
-  try {
-    const parsed = JSON.parse(details) as unknown;
-    return `\n\n## Details\n\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\`\n`;
-  } catch {
-    return `\n\n## Details\n\n${details}\n`;
-  }
-}
-
-function minimalCompletionReportTemplate(): string {
-  return [
-    '## Summary',
-    '- What changed and why',
-    '',
-    '## Verification',
-    '- typecheck: ...',
-    '- tests: ...',
-    '',
-    '## Notes',
-    '- risks / follow-ups',
-    '',
-    '## Conventions Referenced',
-    '- `.agentteams/rules/...`  # list conventions you referenced during this work',
-    '',
-  ].join('\n');
-}
-
-function resolveReportTemplate(template: unknown): string | undefined {
-  if (template === undefined || template === null) return undefined;
-  const value = String(template).trim();
-  if (value.length === 0) return undefined;
-
-  if (value === 'minimal') return minimalCompletionReportTemplate();
-
-  throw new Error(`Unsupported template: ${value}. Only 'minimal' is supported.`);
-}
 
 export async function executeReportCommand(
   apiUrl: string,
@@ -87,20 +47,17 @@ export async function executeReportCommand(
         throw new Error('--title is required for report create (or use --summary)');
       }
 
-      const rawContent = options.content as string | undefined;
-      let content = rawContent
-        ?? toDetailsAsMarkdown(options.details)
-        ?? resolveReportTemplate(options.template);
-      if (options.file) {
-        const filePath = resolve(options.file);
-        if (!existsSync(filePath)) {
-          throw new Error(`File not found: ${options.file}`);
-        }
-        content = readFileSync(filePath, 'utf-8');
-        printFileInfo(options.file, content);
+      if (!options.file) {
+        throw new Error('--file is required for report create.');
       }
+      const filePath = resolve(options.file);
+      if (!existsSync(filePath)) {
+        throw new Error(`File not found: ${options.file}`);
+      }
+      const content = readFileSync(filePath, 'utf-8');
+      printFileInfo(options.file, content);
       if (!content || content.trim().length === 0) {
-        throw new Error('--content, --file, or --template is required for report create.');
+        throw new Error('Report file is empty.');
       }
 
       const status = (options.status as string | undefined) ?? 'COMPLETED';
@@ -169,8 +126,7 @@ export async function executeReportCommand(
       if (!options.id) throw new Error('--id is required for report update');
       const body: Record<string, string | number> = {};
 
-      if (options.title ?? options.summary) body.title = options.title ?? options.summary;
-      if (options.content) body.content = options.content;
+      if (options.title) body.title = options.title;
       if (options.file) {
         const filePath = resolve(options.file);
         if (!existsSync(filePath)) {

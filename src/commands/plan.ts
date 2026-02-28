@@ -121,33 +121,6 @@ function minimalPlanQuickTemplate(): string {
   ].join('\n');
 }
 
-function minimalCompletionReportTemplate(): string {
-  return [
-    '## Summary',
-    '- What changed and why',
-    '',
-    '## Verification',
-    '- typecheck: ...',
-    '- tests: ...',
-    '',
-    '## Notes',
-    '- risks / follow-ups',
-    '',
-    '## Conventions Referenced',
-    '- `.agentteams/rules/...`  # list conventions you referenced during this work',
-    '',
-  ].join('\n');
-}
-
-function resolveCompletionReportTemplate(template: unknown): string | undefined {
-  if (template === undefined || template === null) return undefined;
-  const value = String(template).trim();
-  if (value.length === 0) return undefined;
-
-  if (value === 'minimal') return minimalCompletionReportTemplate();
-
-  throw new Error(`Unsupported completion report template: ${value}. Only 'minimal' is supported.`);
-}
 
 function resolvePlanTemplate(template: unknown): string | undefined {
   if (template === undefined || template === null) return undefined;
@@ -255,14 +228,7 @@ export async function executePlanCommand(
     case 'finish': {
       if (!options.id) throw new Error('--id is required for plan finish');
 
-      let reportContent = options.reportContent as string | undefined;
-      const hasExplicitReportContent = typeof options.reportContent === 'string' && options.reportContent.trim().length > 0;
-      const hasExplicitReportFile = typeof options.reportFile === 'string' && options.reportFile.trim().length > 0;
-      const templateContent = resolveCompletionReportTemplate(options.reportTemplate);
-
-      if ((hasExplicitReportContent || hasExplicitReportFile) && templateContent) {
-        process.stderr.write('[warn] plan finish: --report-template is ignored because --report-content/--report-file was provided.\n');
-      }
+      let reportContent: string | undefined;
 
       if (options.reportFile) {
         const reportFilePath = resolve(options.reportFile);
@@ -271,10 +237,6 @@ export async function executePlanCommand(
         }
         reportContent = readFileSync(reportFilePath, 'utf-8');
         printFileInfo(options.reportFile, reportContent);
-      }
-
-      if (!hasExplicitReportContent && !hasExplicitReportFile && templateContent) {
-        reportContent = templateContent;
       }
 
       const includeCompletionReport =

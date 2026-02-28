@@ -169,8 +169,7 @@ text 출력에서 객체 필드는 핵심 식별 필드(`id/title/status/priorit
   - `agentteams plan finish --id <planId>`
     - 내부적으로 `POST /api/projects/:projectId/plans/:id/finish`를 호출합니다.
     - 요청에 completion report payload가 포함되면, 서버는 completion report를 생성합니다.
-    - (추가) `--report-template minimal`을 사용하면 completion report 본문 템플릿을 자동으로 첨부할 수 있습니다.
-      - `--report-content` 또는 `--report-file`이 제공되면 `--report-template`은 무시됩니다.
+    - `--report-file`을 사용하여 보고서 파일을 첨부할 수 있습니다.
 
 ### Comment (plan-scoped)
 
@@ -198,13 +197,9 @@ Convention commands are tightly coupled to `.agentteams/`.
 
 CLI supports `--api-url`, `--api-key`, `--team-id`, `--project-id`, `--agent-name` overrides for environments without local config.
 
-#### (추가) `report create`의 템플릿/Deprecated 옵션
+#### `report create` 입력 규칙
 
-- `--template minimal`
-  - `--content`가 없을 때 최소 템플릿을 자동으로 채워서 생성할 수 있습니다.
-- Deprecated(호환 유지, 경고 출력)
-  - `--summary`: `--title`의 별칭(Deprecated)
-  - `--details`: `--content`가 없을 때 Details 섹션으로 삽입(Deprecated)
+- `--file <path>`: 보고서 내용을 로컬 파일에서 읽습니다 (필수).
 
 ---
 
@@ -383,10 +378,9 @@ agentteams plan download --id <planId>
   # Start/finish shortcuts
   agentteams plan start --id <planId>
   agentteams plan finish --id <planId>
-  agentteams plan finish --id <planId> --report-template minimal
 
-# Create completion report (recommended flags)
-agentteams report create --plan-id <planId> --title "Done" --template minimal
+# Create completion report (file required)
+agentteams report create --plan-id <planId> --title "Done" --file .agentteams/temp/report.md
 ```
 
 Environment-only mode (no config file):

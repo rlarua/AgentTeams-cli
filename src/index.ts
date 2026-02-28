@@ -9,6 +9,7 @@ import { formatOutput } from './utils/formatter.js';
 import { handleError } from './utils/errors.js';
 import { createSummaryLines, shouldPrintSummary, type OutputFormat } from './utils/outputPolicy.js';
 import { printInitResult } from './utils/initOutput.js';
+import { startUpdateCheck } from './utils/updateCheck.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json') as { version: string };
@@ -139,9 +140,6 @@ program
   .option('--assigned-to <id>', 'Assigned agent config ID (list filter)')
   .option('--task <text>', 'Task summary for plan start/finish')
   .option('--report-title <title>', 'Completion report title (plan finish)')
-  .option('--report-content <content>', 'Completion report markdown content (plan finish)')
-  .option('--report-file <path>', 'Read completion report content from a local file (plan finish)')
-  .option('--report-template <name>', 'Completion report template (minimal, plan finish)')
   .option('--report-status <status>', 'Completion report status: COMPLETED, FAILED, PARTIAL (plan finish)')
   .option('--quality-score <n>', 'Quality score 0-100 (plan finish)')
   .option('--commit-hash <hash>', 'Git commit hash (plan finish, manual override)')
@@ -178,9 +176,7 @@ program
         assignedTo: options.assignedTo,
         task: options.task,
         reportTitle: options.reportTitle,
-        reportContent: options.reportContent,
         reportFile: options.reportFile,
-        reportTemplate: options.reportTemplate,
         reportStatus: options.reportStatus,
         qualityScore: options.qualityScore,
         commitHash: options.commitHash,
@@ -261,9 +257,7 @@ program
   .option('--id <id>', 'Report ID')
   .option('--plan-id <id>', 'Plan ID (optional)')
   .option('--title <title>', 'Report title')
-  .option('--content <content>', 'Report markdown content (short text; use --file for long content)')
   .option('--file <path>', 'Read report content from a local file (create/update)')
-  .option('--template <name>', 'Report content template (minimal)', 'minimal')
   .option('--status <status>', 'Report status (COMPLETED, FAILED, PARTIAL)')
   .option('--commit-hash <hash>', 'Git commit hash (manual override)')
   .option('--branch-name <name>', 'Git branch name (manual override)')
@@ -280,8 +274,6 @@ program
   .option('--page-size <number>', 'Page size (list only)')
   .option('--search <text>', 'Title keyword search (list only)')
   .option('--limit <n>', 'Max results per page, alias for --page-size (list only)')
-  .option('--summary <summary>', '[Deprecated] Alias for --title')
-  .option('--details <details>', '[Deprecated] Will be embedded in content as JSON')
   .option('--api-url <url>', 'Override API URL (optional)')
   .option('--api-key <key>', 'Override API key (optional)')
   .option('--project-id <id>', 'Override project ID (optional)')
@@ -292,21 +284,13 @@ program
   .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (action, options) => {
     try {
-      if (typeof options.summary === 'string' && options.summary.trim().length > 0) {
-        process.stderr.write('[warn] --summary is deprecated. Use --title instead.\n');
-      }
-      if (typeof options.details === 'string' && options.details.trim().length > 0) {
-        process.stderr.write('[warn] --details is deprecated. Use --content instead.\n');
-      }
 
       const normalizedFormat = normalizeFormat(options.format, 'json');
       const result = await executeCommand('report', action, {
         id: options.id,
         planId: options.planId,
         title: options.title,
-        content: options.content,
         file: options.file,
-        template: options.template,
         status: options.status,
         commitHash: options.commitHash,
         branchName: options.branchName,
@@ -323,8 +307,6 @@ program
         pageSize: options.pageSize,
         search: options.search,
         limit: options.limit,
-        summary: options.summary,
-        details: options.details,
         apiUrl: options.apiUrl,
         apiKey: options.apiKey,
         projectId: options.projectId,
@@ -564,4 +546,12 @@ program
     }
   });
 
+const updateCheckPromise = startUpdateCheck(pkg.version);
+
 program.parse();
+
+process.on('beforeExit', () => {
+  updateCheckPromise.then((message) => {
+    if (message) process.stderr.write(message);
+  }).catch(() => {});
+});

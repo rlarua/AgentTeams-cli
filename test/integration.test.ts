@@ -559,13 +559,17 @@ describe('CLI Integration Tests', () => {
       );
     });
 
-    it('plan finish: should include completion report when provided', async () => {
+    it('plan finish: should include completion report when report file is provided', async () => {
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 'plan-1' } } } as any);
+
+      const reportDir = mkdtempSync(join(tmpdir(), 'report-'));
+      const reportFile = join(reportDir, 'report.md');
+      writeFileSync(reportFile, '## Summary\n- done', 'utf-8');
 
       await executeCommand('plan', 'finish', {
         id: 'plan-1',
         reportTitle: 'Completion summary',
-        reportContent: '## Summary\n- done',
+        reportFile,
         git: false,
       });
 
@@ -579,28 +583,8 @@ describe('CLI Integration Tests', () => {
         },
         { headers: authHeaders() }
       );
-    });
 
-    it('plan finish: should include minimal completion report when reportTemplate is provided', async () => {
-      axiosPostSpy.mockResolvedValue({ data: { data: { id: 'plan-1' } } } as any);
-
-      await executeCommand('plan', 'finish', {
-        id: 'plan-1',
-        reportTemplate: 'minimal',
-        reportTitle: 'Work completion summary',
-        git: false,
-      });
-
-      expect(axiosPostSpy).toHaveBeenCalledWith(
-        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/finish`,
-        {
-          completionReport: {
-            title: 'Work completion summary',
-            content: expect.stringContaining('## Summary'),
-          },
-        },
-        { headers: authHeaders() }
-      );
+      rmSync(reportDir, { recursive: true, force: true });
     });
 
     it('comment CRUD: should use project-scoped endpoints and required type', async () => {
@@ -1379,9 +1363,13 @@ describe('CLI Integration Tests', () => {
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 'r1' } } } as any);
 
       await executeCommand('report', 'list', {});
+      const reportDir = mkdtempSync(join(tmpdir(), 'report-'));
+      const reportFile = join(reportDir, 'report.md');
+      writeFileSync(reportFile, '# Report', 'utf-8');
+
       await executeCommand('report', 'create', {
         title: 'Test report',
-        content: '# Report',
+        file: reportFile,
       });
 
       expect(axiosGetSpy).toHaveBeenCalledWith(
@@ -1397,32 +1385,43 @@ describe('CLI Integration Tests', () => {
         }),
         { headers: authHeaders() }
       );
+      rmSync(reportDir, { recursive: true, force: true });
     });
 
-    it('report create: should use minimal template when content is missing', async () => {
+    it('report create: should create report from file', async () => {
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 'r1' } } } as any);
 
+      const reportDir = mkdtempSync(join(tmpdir(), 'report-'));
+      const reportFile = join(reportDir, 'report.md');
+      writeFileSync(reportFile, '## Summary\n- done', 'utf-8');
+
       await executeCommand('report', 'create', {
-        title: 'Template report',
-        template: 'minimal',
+        title: 'File report',
+        file: reportFile,
       });
 
       expect(axiosPostSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/completion-reports`,
         expect.objectContaining({
-          title: 'Template report',
-          content: expect.stringContaining('## Summary'),
+          title: 'File report',
+          content: '## Summary\n- done',
         }),
         { headers: authHeaders() }
       );
+
+      rmSync(reportDir, { recursive: true, force: true });
     });
 
     it('report create: should include manual metrics and disable git auto collection with --no-git', async () => {
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 'r2' } } } as any);
 
+      const reportDir = mkdtempSync(join(tmpdir(), 'report-'));
+      const reportFile = join(reportDir, 'report.md');
+      writeFileSync(reportFile, '# Metric report', 'utf-8');
+
       await executeCommand('report', 'create', {
         title: 'Metric report',
-        content: '# Metric report',
+        file: reportFile,
         git: false,
         commitHash: 'abc123',
         branchName: 'feature/report',
@@ -1454,6 +1453,7 @@ describe('CLI Integration Tests', () => {
         }),
         { headers: authHeaders() }
       );
+      rmSync(reportDir, { recursive: true, force: true });
     });
 
     it('report create: should retry with createdBy for legacy server validation', async () => {
@@ -1464,9 +1464,13 @@ describe('CLI Integration Tests', () => {
         } as any)
         .mockResolvedValueOnce({ data: { data: { id: 'r-legacy' } } } as any);
 
+      const reportDir = mkdtempSync(join(tmpdir(), 'report-'));
+      const reportFile = join(reportDir, 'report.md');
+      writeFileSync(reportFile, '# Legacy', 'utf-8');
+
       await executeCommand('report', 'create', {
         title: 'Legacy report',
-        content: '# Legacy',
+        file: reportFile,
       });
 
       expect(axiosPostSpy).toHaveBeenNthCalledWith(
@@ -1489,6 +1493,8 @@ describe('CLI Integration Tests', () => {
         }),
         { headers: authHeaders() }
       );
+
+      rmSync(reportDir, { recursive: true, force: true });
     });
 
     it('report update: should include metric fields in update body', async () => {
