@@ -7,7 +7,7 @@ function captureOutput(spy: ReturnType<typeof jest.spyOn>): string {
 
 const MOCK_INIT_RESULT = {
   success: true as const,
-  authUrl: 'https://agent-web.justin-mk.me/cli/authorize?port=3333',
+  authUrl: 'https://agentteams.run/cli/authorize?port=3333',
   configPath: '/project/.agentteams/config.json',
   conventionPath: '/project/.agentteams/convention.md',
   teamId: 'team-abc',
