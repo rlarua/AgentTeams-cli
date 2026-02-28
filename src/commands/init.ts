@@ -1,5 +1,5 @@
-import { writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { basename, dirname, join, resolve } from 'node:path';
 import axios from 'axios';
 import open from 'open';
 import { startLocalAuthServer } from '../utils/authServer.js';
@@ -31,25 +31,26 @@ function isSshEnvironment(): boolean {
   return Boolean(process.env.SSH_CONNECTION || process.env.SSH_CLIENT || process.env.SSH_TTY);
 }
 
-function buildAuthorizeUrl(port: number): string {
-  return `${AUTH_BASE_URL}/cli/authorize?port=${port}`;
+function buildAuthorizeUrl(port: number, projectName: string): string {
+  return `${AUTH_BASE_URL}/cli/authorize?port=${port}&projectName=${encodeURIComponent(projectName)}`;
 }
 
 function printAuthorizeUrl(url: string): void {
-  console.log('Open this URL to continue authentication:');
+  console.log('🚀 Complete a free login in 1 second to download the template:');
   console.log(url);
 }
 
 async function tryOpenBrowser(url: string): Promise<void> {
+  printAuthorizeUrl(url);
+
   if (isSshEnvironment()) {
-    printAuthorizeUrl(url);
     return;
   }
 
   try {
     await open(url);
   } catch {
-    printAuthorizeUrl(url);
+    // Already printed
   }
 }
 
@@ -99,10 +100,42 @@ async function fetchConventionTemplate(authResult: {
   return content;
 }
 
+function generateAgentEntryPointFiles(cwd: string): void {
+  const DEFAULT_CONVENTION_REFERENCE = `---  
+alwaysApply: true  
+agentInstruction: |  
+**Always refer to \`.agentteams/convention.md\`.**  
+---  
+`;
+
+  const files = [
+    'CLAUDE.md',
+    'AGENTS.md',
+    'GEMINI.md',
+    '.cursor/rules/agentteams.mdc'
+  ];
+
+  for (const relativePath of files) {
+    const fullPath = join(cwd, relativePath);
+    if (!existsSync(fullPath)) {
+      const dir = dirname(fullPath);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      writeFileSync(fullPath, DEFAULT_CONVENTION_REFERENCE, 'utf-8');
+      console.log(`✅ Agent integration file created: ${relativePath}`);
+    } else {
+      console.log(`⏭️ Agent integration file skipped (already exists): ${relativePath}`);
+    }
+  }
+}
+
 export async function executeInitCommand(options?: InitOptions): Promise<InitResult> {
   const cwd = resolve(options?.cwd ?? process.cwd());
   const configPath = join(cwd, CONFIG_DIR, CONFIG_FILE);
   const conventionPath = join(cwd, CONFIG_DIR, CONVENTION_FILE);
+
+  const projectName = basename(cwd);
 
   let authContext;
 
@@ -114,7 +147,7 @@ export async function executeInitCommand(options?: InitOptions): Promise<InitRes
     );
   }
 
-  const authUrl = buildAuthorizeUrl(authContext.port);
+  const authUrl = buildAuthorizeUrl(authContext.port, projectName);
   await tryOpenBrowser(authUrl);
 
   try {
@@ -131,6 +164,7 @@ export async function executeInitCommand(options?: InitOptions): Promise<InitRes
     saveConfig(configPath, config);
     writeFileSync(conventionPath, conventionContent, 'utf-8');
     await conventionDownload({ cwd, config });
+    generateAgentEntryPointFiles(cwd);
 
     return {
       success: true,
