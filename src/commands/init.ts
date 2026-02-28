@@ -101,11 +101,15 @@ async function fetchConventionTemplate(authResult: {
 }
 
 function generateAgentEntryPointFiles(cwd: string): void {
-  const DEFAULT_CONVENTION_REFERENCE = `---  
-alwaysApply: true  
-agentInstruction: |  
-**Always refer to \`.agentteams/convention.md\`.**  
----  
+  const DEFAULT_CONVENTION_REFERENCE = `---
+alwaysApply: true
+agentInstruction: |
+**Always refer to \`.agentteams/convention.md\`.**
+---
+
+# AgentTeams Convention
+
+**Before starting any task, always refer to \`.agentteams/convention.md\`.**
 `;
 
   const files = [
