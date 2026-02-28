@@ -587,6 +587,7 @@ describe('CLI Integration Tests', () => {
       await executeCommand('plan', 'finish', {
         id: 'plan-1',
         reportTemplate: 'minimal',
+        reportTitle: 'Work completion summary',
         git: false,
       });
 
