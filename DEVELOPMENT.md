@@ -100,8 +100,8 @@ node dist/index.js status list
 AGENTTEAMS_WEB_URL=http://localhost:3000 node dist/index.js init
 
 # Test against production
-AGENTTEAMS_API_URL=https://agent-api.justin-mk.me \
-AGENTTEAMS_WEB_URL=https://agent-web.justin-mk.me \
+AGENTTEAMS_API_URL=https://api.agentteams.run \
+AGENTTEAMS_WEB_URL=https://agentteams.run \
 node dist/index.js status list
 ```
 

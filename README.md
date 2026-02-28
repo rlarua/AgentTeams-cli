@@ -34,7 +34,7 @@ In SSH/remote environments, open the URL printed in the terminal manually.
 
 The CLI talks to two services:
 
-- Web app (OAuth flow): defaults to `https://agent-web.justin-mk.me`
+- Web app (OAuth flow): defaults to `https://agentteams.run`
 
 ### 2. Protect Sensitive Data
 
@@ -317,7 +317,7 @@ Configuration is merged in this priority order (highest first):
   "repositoryId": "repo_xxx",
   "agentName": "my-agent",
   "apiKey": "key_xxx",
-  "apiUrl": "https://agent-api.justin-mk.me"
+  "apiUrl": "https://api.agentteams.run"
 }
 ```
 
@@ -325,7 +325,7 @@ Configuration is merged in this priority order (highest first):
 
 ```bash
 export AGENTTEAMS_API_KEY="key_your_api_key_here"
-export AGENTTEAMS_API_URL="https://agent-api.justin-mk.me"
+export AGENTTEAMS_API_URL="https://api.agentteams.run"
 export AGENTTEAMS_TEAM_ID="team_xxx"
 export AGENTTEAMS_PROJECT_ID="proj_xxx"
 export AGENTTEAMS_AGENT_NAME="my-agent"
