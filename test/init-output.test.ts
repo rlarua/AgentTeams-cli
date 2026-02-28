@@ -70,11 +70,12 @@ describe('printInitResult', () => {
       expect(output).toContain('AGENTS.md');
     });
 
-    it('convention show 명령어 힌트를 출력한다', () => {
+    it('agentInstruction 프론트메터 블록 안내를 출력한다', () => {
       printInitResult(MOCK_INIT_RESULT, 'text');
 
       const output = captureOutput(logSpy);
-      expect(output).toContain('agentteams convention show');
+      expect(output).toContain('agentInstruction');
+      expect(output).toContain('.agentteams/convention.md');
     });
   });
 

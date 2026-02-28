@@ -320,7 +320,7 @@ export async function executePlanCommand(
 
         const reportTitle = typeof options.reportTitle === 'string' && options.reportTitle.trim().length > 0
           ? options.reportTitle.trim()
-          : 'Work completion summary';
+          : (() => { throw new Error('--report-title is required when attaching a completion report'); })();
 
         body.completionReport = {
           title: reportTitle,

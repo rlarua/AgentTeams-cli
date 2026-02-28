@@ -1,9 +1,10 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { createReport, deleteReport, getReport, listReports, updateReport } from '../api/report.js';
 import { collectGitMetrics } from '../utils/git.js';
+import { findProjectConfig } from '../utils/config.js';
 import { isCreatedByRequiredValidationError, resolveLegacyCreatedBy } from '../utils/legacyCompat.js';
-import { toNonEmptyString, toNonNegativeInteger, toPositiveInteger } from '../utils/parsers.js';
+import { toNonEmptyString, toNonNegativeInteger, toPositiveInteger, toSafeFileName } from '../utils/parsers.js';
 import { printFileInfo, withSpinner } from '../utils/spinner.js';
 
 function toDetailsAsMarkdown(details: unknown): string | undefined {
@@ -208,6 +209,63 @@ export async function executeReportCommand(
       if (!options.id) throw new Error('--id is required for report delete');
       await deleteReport(apiUrl, options.projectId, headers, options.id);
       return { message: `Report ${options.id} deleted successfully` };
+    }
+    case 'download': {
+      if (!options.id) throw new Error('--id is required for report download');
+      const projectRoot = (() => {
+        const configPath = findProjectConfig(process.cwd());
+        if (!configPath) return null;
+        return resolve(configPath, '..', '..');
+      })();
+      if (!projectRoot) {
+        throw new Error("Project root not found. Run 'agentteams init' first.");
+      }
+
+      return withSpinner(
+        'Downloading report...',
+        async () => {
+          const response = await getReport(apiUrl, options.projectId, headers, options.id);
+          const report = response.data;
+
+          const downloadDir = join(projectRoot, '.agentteams', 'active-plan');
+          if (!existsSync(downloadDir)) {
+            mkdirSync(downloadDir, { recursive: true });
+          }
+
+          const existingFiles = readdirSync(downloadDir).filter((name) => name.endsWith('.md'));
+          const idPrefix = report.id.slice(0, 8);
+          const safeName = toSafeFileName(report.title) || 'report';
+          const baseName = `${safeName}-${idPrefix}`;
+          const used = new Set(existingFiles.map((name) => name.toLowerCase()));
+          let fileName = `${baseName}.md`;
+          let sequence = 2;
+          while (used.has(fileName.toLowerCase())) {
+            fileName = `${baseName}-${sequence}.md`;
+            sequence += 1;
+          }
+
+          const filePath = join(downloadDir, fileName);
+          const frontmatter = [
+            '---',
+            `reportId: ${report.id}`,
+            `title: ${report.title}`,
+            `status: ${report.status}`,
+            report.planId ? `planId: ${report.planId}` : null,
+            report.planTitle ? `planTitle: ${report.planTitle}` : null,
+            `downloadedAt: ${new Date().toISOString()}`,
+            '---',
+          ].filter(Boolean).join('\n');
+
+          const content = report.content ?? '';
+          writeFileSync(filePath, `${frontmatter}\n\n${content}`, 'utf-8');
+
+          return {
+            message: `Report downloaded to ${fileName}`,
+            filePath: `.agentteams/active-plan/${fileName}`,
+          };
+        },
+        'Report downloaded',
+      );
     }
     default:
       throw new Error(`Unknown action: ${action}`);

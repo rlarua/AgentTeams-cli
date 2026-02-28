@@ -41,10 +41,22 @@ export function printInitResult(result: unknown, format: OutputFormat): void {
   console.log('');
   console.log('Next steps:');
   console.log('  1. Add .agentteams/ to .gitignore');
-  console.log('  2. Link convention.md to your agent:');
-  console.log('     - Claude Code → CLAUDE.md');
-  console.log('     - opencode    → AGENTS.md');
-  console.log('     Always reference `.agentteams/convention.md`.');
-  console.log('  3. Copy the convention content to your agent\'s instruction file:');
-  console.log('     agentteams convention show');
+  console.log('  2. Add the following to the top of your AI agent\'s convention file (e.g., as frontmatter):');
+  console.log('');
+  console.log('       ---');
+  console.log('       alwaysApply: true');
+  console.log('       agentInstruction: |');
+  console.log('         Always refer to `.agentteams/convention.md`.');
+  console.log('       ---');
+  console.log('');
+  console.log('     AI Agent     Convention File');
+  console.log('     Claude Code  CLAUDE.md');
+  console.log('     OpenCode     AGENTS.md');
+  console.log('     Codex        AGENTS.md');
+  console.log('     Cursor       .cursor/rules/*.mdc');
+  console.log('     Antigravity  GEMINI.md');
+  console.log('');
+  console.log('  3. Try saying to your AI agent:');
+  console.log('       Analyze the codebase and create conventions.');
+  console.log('       Create a plan to improve test coverage for this project.');
 }

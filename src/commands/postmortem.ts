@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import {
   createPostMortem,
   deletePostMortem,
@@ -7,8 +7,9 @@ import {
   listPostMortems,
   updatePostMortem,
 } from '../api/postmortem.js';
+import { findProjectConfig } from '../utils/config.js';
 import { isCreatedByRequiredValidationError, resolveLegacyCreatedBy } from '../utils/legacyCompat.js';
-import { splitCsv, toPositiveInteger } from '../utils/parsers.js';
+import { splitCsv, toPositiveInteger, toSafeFileName } from '../utils/parsers.js';
 import { printFileInfo, withSpinner } from '../utils/spinner.js';
 
 export async function executePostMortemCommand(
@@ -116,6 +117,64 @@ export async function executePostMortemCommand(
       if (!options.id) throw new Error('--id is required for postmortem delete');
       await deletePostMortem(apiUrl, options.projectId, headers, options.id);
       return { message: `PostMortem ${options.id} deleted successfully` };
+    }
+    case 'download': {
+      if (!options.id) throw new Error('--id is required for postmortem download');
+      const projectRoot = (() => {
+        const configPath = findProjectConfig(process.cwd());
+        if (!configPath) return null;
+        return resolve(configPath, '..', '..');
+      })();
+      if (!projectRoot) {
+        throw new Error("Project root not found. Run 'agentteams init' first.");
+      }
+
+      return withSpinner(
+        'Downloading post-mortem...',
+        async () => {
+          const response = await getPostMortem(apiUrl, options.projectId, headers, options.id);
+          const pm = response.data;
+
+          const downloadDir = join(projectRoot, '.agentteams', 'active-plan');
+          if (!existsSync(downloadDir)) {
+            mkdirSync(downloadDir, { recursive: true });
+          }
+
+          const existingFiles = readdirSync(downloadDir).filter((name) => name.endsWith('.md'));
+          const idPrefix = pm.id.slice(0, 8);
+          const safeName = toSafeFileName(pm.title) || 'postmortem';
+          const baseName = `${safeName}-${idPrefix}`;
+          const used = new Set(existingFiles.map((name) => name.toLowerCase()));
+          let fileName = `${baseName}.md`;
+          let sequence = 2;
+          while (used.has(fileName.toLowerCase())) {
+            fileName = `${baseName}-${sequence}.md`;
+            sequence += 1;
+          }
+
+          const filePath = join(downloadDir, fileName);
+          const frontmatter = [
+            '---',
+            `postMortemId: ${pm.id}`,
+            `title: ${pm.title}`,
+            `status: ${pm.status}`,
+            pm.planId ? `planId: ${pm.planId}` : null,
+            pm.planTitle ? `planTitle: ${pm.planTitle}` : null,
+            pm.actionItems ? `actionItems: ${JSON.stringify(pm.actionItems)}` : null,
+            `downloadedAt: ${new Date().toISOString()}`,
+            '---',
+          ].filter(Boolean).join('\n');
+
+          const content = pm.content ?? '';
+          writeFileSync(filePath, `${frontmatter}\n\n${content}`, 'utf-8');
+
+          return {
+            message: `Post-mortem downloaded to ${fileName}`,
+            filePath: `.agentteams/active-plan/${fileName}`,
+          };
+        },
+        'Post-mortem downloaded',
+      );
     }
     default:
       throw new Error(`Unknown action: ${action}`);
