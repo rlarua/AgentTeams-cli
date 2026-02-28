@@ -239,7 +239,7 @@ agentteams report list
 
 agentteams report create \
   --title "AgentTeams completion report" \
-  --content "## TL;DR\n- done" \
+  --file ./report.md \
   --status COMPLETED
 
 # repository linkage
@@ -248,7 +248,7 @@ agentteams report create \
 # with metrics (auto + manual)
 agentteams report create \
   --title "CLI metrics report" \
-  --content "## Summary\n- done" \
+  --file ./report.md \
   --files-modified 5 \
   --lines-added 120 \
   --lines-deleted 30 \
@@ -257,7 +257,7 @@ agentteams report create \
 # disable git auto collection
 agentteams report create \
   --title "Manual metrics report" \
-  --content "## Summary\n- done" \
+  --file ./report.md \
   --no-git
 ```
 
