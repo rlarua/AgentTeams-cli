@@ -2,10 +2,15 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join, resolve } from 'node:path';
 import {
   createCoAction,
+  createCoActionGoal,
   deleteCoAction,
+  deleteCoActionGoal,
   getCoAction,
+  listCoActionGoals,
+  listCoActionHistories,
   listCoActions,
   updateCoAction,
+  updateCoActionGoal,
   linkPlanToCoAction,
   unlinkPlanFromCoAction,
   linkCompletionReportToCoAction,
@@ -48,6 +53,104 @@ export async function executeCoActionCommand(
     case 'get': {
       if (!options.id) throw new Error('--id is required for coaction get');
       return getCoAction(apiUrl, options.projectId, headers, options.id);
+    }
+    case 'goal-list': {
+      if (!options.id) throw new Error('--id is required for coaction goal-list');
+
+      const params: Record<string, string | number> = {};
+      const page = toPositiveInteger(options.page);
+      const limitVal = toPositiveInteger(options.limit);
+      const pageSizeVal = toPositiveInteger(options.pageSize);
+      if (limitVal !== undefined && pageSizeVal !== undefined) {
+        process.stderr.write('[warn] --limit and --page-size both specified; --limit takes precedence.\n');
+      }
+      const pageSize = limitVal ?? pageSizeVal;
+      if (page !== undefined) params.page = page;
+      if (pageSize !== undefined) params.pageSize = pageSize;
+
+      return withSpinner(
+        'Loading co-action goals...',
+        () => listCoActionGoals(apiUrl, options.projectId, headers, options.id, params),
+        'Co-action goals loaded',
+      );
+    }
+    case 'goal-create': {
+      if (!options.id) throw new Error('--id is required for coaction goal-create');
+      if (options.file) {
+        const filePath = resolve(options.file);
+        if (!existsSync(filePath)) {
+          throw new Error(`File not found: ${options.file}`);
+        }
+        options.content = readFileSync(filePath, 'utf-8');
+        printFileInfo(options.file, options.content);
+      }
+      if (!options.content) throw new Error('--content or --file is required for coaction goal-create');
+
+      const body: Record<string, unknown> = {
+        content: options.content,
+      };
+
+      return withSpinner(
+        'Creating co-action goal...',
+        () => createCoActionGoal(apiUrl, options.projectId, headers, options.id, body),
+        'Co-action goal created',
+      );
+    }
+    case 'goal-update': {
+      if (!options.id) throw new Error('--id is required for coaction goal-update');
+      if (!options.goalId) throw new Error('--goal-id is required for coaction goal-update');
+      if (options.file) {
+        const filePath = resolve(options.file);
+        if (!existsSync(filePath)) {
+          throw new Error(`File not found: ${options.file}`);
+        }
+        options.content = readFileSync(filePath, 'utf-8');
+        printFileInfo(options.file, options.content);
+      }
+      if (!options.content) throw new Error('--content or --file is required for coaction goal-update');
+
+      const body: Record<string, unknown> = {
+        content: options.content,
+      };
+
+      return withSpinner(
+        'Updating co-action goal...',
+        () => updateCoActionGoal(apiUrl, options.projectId, headers, options.id, options.goalId, body),
+        'Co-action goal updated',
+      );
+    }
+    case 'goal-delete': {
+      if (!options.id) throw new Error('--id is required for coaction goal-delete');
+      if (!options.goalId) throw new Error('--goal-id is required for coaction goal-delete');
+
+      return withSpinner(
+        'Deleting co-action goal...',
+        async () => {
+          await deleteCoActionGoal(apiUrl, options.projectId, headers, options.id, options.goalId);
+          return { message: `CoAction goal ${options.goalId} deleted successfully` };
+        },
+        'Co-action goal deleted',
+      );
+    }
+    case 'history': {
+      if (!options.id) throw new Error('--id is required for coaction history');
+
+      const params: Record<string, string | number> = {};
+      const page = toPositiveInteger(options.page);
+      const limitVal = toPositiveInteger(options.limit);
+      const pageSizeVal = toPositiveInteger(options.pageSize);
+      if (limitVal !== undefined && pageSizeVal !== undefined) {
+        process.stderr.write('[warn] --limit and --page-size both specified; --limit takes precedence.\n');
+      }
+      const pageSize = limitVal ?? pageSizeVal;
+      if (page !== undefined) params.page = page;
+      if (pageSize !== undefined) params.pageSize = pageSize;
+
+      return withSpinner(
+        'Loading co-action histories...',
+        () => listCoActionHistories(apiUrl, options.projectId, headers, options.id, params),
+        'Co-action histories loaded',
+      );
     }
     case 'create': {
       if (!options.title) throw new Error('--title is required for coaction create');

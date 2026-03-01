@@ -63,6 +63,77 @@ export async function deleteCoAction(
   return response.data;
 }
 
+export async function listCoActionGoals(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  coActionId: string,
+  params?: Record<string, string | number>
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions/${coActionId}/goals`;
+  const requestConfig = params && Object.keys(params).length > 0
+    ? { headers, params }
+    : { headers };
+
+  const response = await httpClient.get(baseUrl, requestConfig);
+  return response.data;
+}
+
+export async function createCoActionGoal(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  coActionId: string,
+  body: Record<string, unknown>
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions/${coActionId}/goals`;
+  const response = await httpClient.post(baseUrl, body, { headers });
+  return response.data;
+}
+
+export async function updateCoActionGoal(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  coActionId: string,
+  goalId: string,
+  body: Record<string, unknown>
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions/${coActionId}/goals`;
+  const response = await httpClient.put(`${baseUrl}/${goalId}`, body, { headers });
+  return response.data;
+}
+
+export async function deleteCoActionGoal(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  coActionId: string,
+  goalId: string
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions/${coActionId}/goals`;
+  const response = await httpClient.delete(`${baseUrl}/${goalId}`, {
+    headers: withoutJsonContentType(headers),
+  });
+  return response.data;
+}
+
+export async function listCoActionHistories(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  coActionId: string,
+  params?: Record<string, string | number>
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions/${coActionId}/histories`;
+  const requestConfig = params && Object.keys(params).length > 0
+    ? { headers, params }
+    : { headers };
+
+  const response = await httpClient.get(baseUrl, requestConfig);
+  return response.data;
+}
+
 export async function linkPlanToCoAction(
   apiUrl: string,
   projectId: string,

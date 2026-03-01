@@ -392,8 +392,9 @@ program
 program
   .command('coaction')
   .description('Manage co-actions (session context dumps)')
-  .argument('<action>', 'Action to perform (list, get, create, update, delete, download, link-plan, unlink-plan, link-completion-report, unlink-completion-report, link-post-mortem, unlink-post-mortem)')
+  .argument('<action>', 'Action to perform (list, get, create, update, delete, download, goal-list, goal-create, goal-update, goal-delete, history, link-plan, unlink-plan, link-completion-report, unlink-completion-report, link-post-mortem, unlink-post-mortem)')
   .option('--id <id>', 'Co-action ID')
+  .option('--goal-id <id>', 'Co-action goal ID (for goal-update/goal-delete)')
   .option('--plan-id <id>', 'Plan ID (for link-plan/unlink-plan)')
   .option('--completion-report-id <id>', 'Completion report ID for linking/unlinking')
   .option('--post-mortem-id <id>', 'Post-mortem ID for linking/unlinking')
@@ -419,6 +420,7 @@ program
       const normalizedFormat = normalizeFormat(options.format, 'json');
       const result = await executeCommand('coaction', action, {
         id: options.id,
+        goalId: options.goalId,
         planId: options.planId,
         completionReportId: options.completionReportId,
         postMortemId: options.postMortemId,
