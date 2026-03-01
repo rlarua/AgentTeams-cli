@@ -63,14 +63,14 @@ export async function deleteCoAction(
   return response.data;
 }
 
-export async function listCoActionGoals(
+export async function listCoActionTakeaways(
   apiUrl: string,
   projectId: string,
   headers: any,
   coActionId: string,
   params?: Record<string, string | number>
 ): Promise<any> {
-  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions/${coActionId}/goals`;
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions/${coActionId}/takeaways`;
   const requestConfig = params && Object.keys(params).length > 0
     ? { headers, params }
     : { headers };
@@ -79,40 +79,40 @@ export async function listCoActionGoals(
   return response.data;
 }
 
-export async function createCoActionGoal(
+export async function createCoActionTakeaway(
   apiUrl: string,
   projectId: string,
   headers: any,
   coActionId: string,
   body: Record<string, unknown>
 ): Promise<any> {
-  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions/${coActionId}/goals`;
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions/${coActionId}/takeaways`;
   const response = await httpClient.post(baseUrl, body, { headers });
   return response.data;
 }
 
-export async function updateCoActionGoal(
+export async function updateCoActionTakeaway(
   apiUrl: string,
   projectId: string,
   headers: any,
   coActionId: string,
-  goalId: string,
+  takeawayId: string,
   body: Record<string, unknown>
 ): Promise<any> {
-  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions/${coActionId}/goals`;
-  const response = await httpClient.put(`${baseUrl}/${goalId}`, body, { headers });
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions/${coActionId}/takeaways`;
+  const response = await httpClient.put(`${baseUrl}/${takeawayId}`, body, { headers });
   return response.data;
 }
 
-export async function deleteCoActionGoal(
+export async function deleteCoActionTakeaway(
   apiUrl: string,
   projectId: string,
   headers: any,
   coActionId: string,
-  goalId: string
+  takeawayId: string
 ): Promise<any> {
-  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions/${coActionId}/goals`;
-  const response = await httpClient.delete(`${baseUrl}/${goalId}`, {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions/${coActionId}/takeaways`;
+  const response = await httpClient.delete(`${baseUrl}/${takeawayId}`, {
     headers: withoutJsonContentType(headers),
   });
   return response.data;

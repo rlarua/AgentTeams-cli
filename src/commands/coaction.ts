@@ -2,15 +2,15 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join, resolve } from 'node:path';
 import {
   createCoAction,
-  createCoActionGoal,
+  createCoActionTakeaway,
   deleteCoAction,
-  deleteCoActionGoal,
+  deleteCoActionTakeaway,
   getCoAction,
-  listCoActionGoals,
+  listCoActionTakeaways,
   listCoActionHistories,
   listCoActions,
   updateCoAction,
-  updateCoActionGoal,
+  updateCoActionTakeaway,
   linkPlanToCoAction,
   unlinkPlanFromCoAction,
   linkCompletionReportToCoAction,
@@ -54,8 +54,8 @@ export async function executeCoActionCommand(
       if (!options.id) throw new Error('--id is required for coaction get');
       return getCoAction(apiUrl, options.projectId, headers, options.id);
     }
-    case 'goal-list': {
-      if (!options.id) throw new Error('--id is required for coaction goal-list');
+    case 'takeaway-list': {
+      if (!options.id) throw new Error('--id is required for coaction takeaway-list');
 
       const params: Record<string, string | number> = {};
       const page = toPositiveInteger(options.page);
@@ -69,13 +69,13 @@ export async function executeCoActionCommand(
       if (pageSize !== undefined) params.pageSize = pageSize;
 
       return withSpinner(
-        'Loading co-action goals...',
-        () => listCoActionGoals(apiUrl, options.projectId, headers, options.id, params),
-        'Co-action goals loaded',
+        'Loading co-action takeaways...',
+        () => listCoActionTakeaways(apiUrl, options.projectId, headers, options.id, params),
+        'Co-action takeaways loaded',
       );
     }
-    case 'goal-create': {
-      if (!options.id) throw new Error('--id is required for coaction goal-create');
+    case 'takeaway-create': {
+      if (!options.id) throw new Error('--id is required for coaction takeaway-create');
       if (options.file) {
         const filePath = resolve(options.file);
         if (!existsSync(filePath)) {
@@ -84,21 +84,21 @@ export async function executeCoActionCommand(
         options.content = readFileSync(filePath, 'utf-8');
         printFileInfo(options.file, options.content);
       }
-      if (!options.content) throw new Error('--content or --file is required for coaction goal-create');
+      if (!options.content) throw new Error('--content or --file is required for coaction takeaway-create');
 
       const body: Record<string, unknown> = {
         content: options.content,
       };
 
       return withSpinner(
-        'Creating co-action goal...',
-        () => createCoActionGoal(apiUrl, options.projectId, headers, options.id, body),
-        'Co-action goal created',
+        'Creating co-action takeaway...',
+        () => createCoActionTakeaway(apiUrl, options.projectId, headers, options.id, body),
+        'Co-action takeaway created',
       );
     }
-    case 'goal-update': {
-      if (!options.id) throw new Error('--id is required for coaction goal-update');
-      if (!options.goalId) throw new Error('--goal-id is required for coaction goal-update');
+    case 'takeaway-update': {
+      if (!options.id) throw new Error('--id is required for coaction takeaway-update');
+      if (!options.takeawayId) throw new Error('--takeaway-id is required for coaction takeaway-update');
       if (options.file) {
         const filePath = resolve(options.file);
         if (!existsSync(filePath)) {
@@ -107,31 +107,32 @@ export async function executeCoActionCommand(
         options.content = readFileSync(filePath, 'utf-8');
         printFileInfo(options.file, options.content);
       }
-      if (!options.content) throw new Error('--content or --file is required for coaction goal-update');
+      if (!options.content) throw new Error('--content or --file is required for coaction takeaway-update');
 
       const body: Record<string, unknown> = {
         content: options.content,
       };
 
       return withSpinner(
-        'Updating co-action goal...',
-        () => updateCoActionGoal(apiUrl, options.projectId, headers, options.id, options.goalId, body),
-        'Co-action goal updated',
+        'Updating co-action takeaway...',
+        () => updateCoActionTakeaway(apiUrl, options.projectId, headers, options.id, options.takeawayId, body),
+        'Co-action takeaway updated',
       );
     }
-    case 'goal-delete': {
-      if (!options.id) throw new Error('--id is required for coaction goal-delete');
-      if (!options.goalId) throw new Error('--goal-id is required for coaction goal-delete');
+    case 'takeaway-delete': {
+      if (!options.id) throw new Error('--id is required for coaction takeaway-delete');
+      if (!options.takeawayId) throw new Error('--takeaway-id is required for coaction takeaway-delete');
 
       return withSpinner(
-        'Deleting co-action goal...',
+        'Deleting co-action takeaway...',
         async () => {
-          await deleteCoActionGoal(apiUrl, options.projectId, headers, options.id, options.goalId);
-          return { message: `CoAction goal ${options.goalId} deleted successfully` };
+          await deleteCoActionTakeaway(apiUrl, options.projectId, headers, options.id, options.takeawayId);
+          return { message: `CoAction takeaway ${options.takeawayId} deleted successfully` };
         },
-        'Co-action goal deleted',
+        'Co-action takeaway deleted',
       );
     }
+
     case 'history': {
       if (!options.id) throw new Error('--id is required for coaction history');
 
@@ -242,7 +243,7 @@ export async function executeCoActionCommand(
           const linkedPlans = (coAction.linkedPlans ?? []) as Array<{ id: string; title: string }>;
           const linkedCRs = (coAction.linkedCompletionReports ?? []) as Array<{ id: string; title: string }>;
           const linkedPMs = (coAction.linkedPostMortems ?? []) as Array<{ id: string; title: string }>;
-          const goals = (coAction.linkedGoals ?? []) as Array<{ id: string; content: string; createdByName?: string; createdAt: string }>;
+          const takeaways = (coAction.linkedTakeaways ?? []) as Array<{ id: string; content: string; createdByName?: string; createdAt: string }>;
 
           const frontmatterLines = [
             '---',
@@ -251,7 +252,7 @@ export async function executeCoActionCommand(
             `status: ${coAction.status}`,
             `visibility: ${coAction.visibility}`,
             `createdBy: ${coAction.createdByName ?? '-'}`,
-            `goals: ${goals.length}`,
+            `takeaways: ${takeaways.length}`,
           ];
           if (linkedPlans.length > 0) {
             frontmatterLines.push('linkedPlans:');
@@ -278,12 +279,12 @@ export async function executeCoActionCommand(
           frontmatterLines.push('---');
           const frontmatter = frontmatterLines.join('\n');
 
-          const goalsSection = goals.length > 0
-            ? '\n## Goals\n\n' + goals.map((g, i) => `${i + 1}. ${g.content} _(${g.createdByName ?? '-'}, ${g.createdAt})_`).join('\n') + '\n'
+          const takeawaysSection = takeaways.length > 0
+            ? '\n## Takeaways\n\n' + takeaways.map((t, i) => `${i + 1}. ${t.content} _(${t.createdByName ?? '-'}, ${t.createdAt})_`).join('\n') + '\n'
             : '';
 
           const content = coAction.content ?? '';
-          writeFileSync(filePath, `${frontmatter}\n${goalsSection}\n${content}`, 'utf-8');
+          writeFileSync(filePath, `${frontmatter}\n${takeawaysSection}\n${content}`, 'utf-8');
 
           return {
             message: `Co-action downloaded to ${fileName}`,
