@@ -390,6 +390,66 @@ program
   });
 
 program
+  .command('coaction')
+  .description('Manage co-actions (session context dumps)')
+  .argument('<action>', 'Action to perform (list, get, create, update, delete, download, link-plan, unlink-plan)')
+  .option('--id <id>', 'Co-action ID')
+  .option('--plan-id <id>', 'Plan ID (for link-plan/unlink-plan)')
+  .option('--title <title>', 'Co-action title')
+  .option('--content <content>', 'Co-action content (short text; use --file for long content)')
+  .option('--file <path>', 'Read co-action content from a local file (create/update)')
+  .option('--status <status>', 'Co-action status (OPEN, CLOSED)')
+  .option('--visibility <visibility>', 'Co-action visibility (PRIVATE, PROJECT)')
+  .option('--page <number>', 'Page number (list only)')
+  .option('--page-size <number>', 'Page size (list only)')
+  .option('--search <text>', 'Title keyword search (list only)')
+  .option('--limit <n>', 'Max results per page, alias for --page-size (list only)')
+  .option('--api-url <url>', 'Override API URL (optional)')
+  .option('--api-key <key>', 'Override API key (optional)')
+  .option('--project-id <id>', 'Override project ID (optional)')
+  .option('--team-id <id>', 'Override team ID (optional)')
+  .option('--agent-name <name>', 'Override agent name (optional)')
+  .option('--format <format>', 'Output format (json, text)')
+  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
+  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
+  .action(async (action, options) => {
+    try {
+      const normalizedFormat = normalizeFormat(options.format, 'json');
+      const result = await executeCommand('coaction', action, {
+        id: options.id,
+        planId: options.planId,
+        title: options.title,
+        content: options.content,
+        file: options.file,
+        status: options.status,
+        visibility: options.visibility,
+        page: options.page,
+        pageSize: options.pageSize,
+        search: options.search,
+        limit: options.limit,
+        apiUrl: options.apiUrl,
+        apiKey: options.apiKey,
+        projectId: options.projectId,
+        teamId: options.teamId,
+        agentName: options.agentName,
+      });
+
+      printCommandResult({
+        result,
+        format: normalizedFormat,
+        outputFile: options.outputFile,
+        verbose: options.verbose,
+        resource: 'coaction',
+        action,
+        formatExplicit: typeof options.format === 'string',
+      });
+    } catch (error) {
+      console.error(handleError(error));
+      process.exit(1);
+    }
+  });
+
+program
   .command('feedback')
   .description('Manage platform feedback')
   .argument('<action>', 'Action to perform (create)')

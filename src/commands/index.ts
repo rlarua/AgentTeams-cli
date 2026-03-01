@@ -6,6 +6,7 @@ import { executeDependencyCommand } from './dependencyCommand.js';
 import { executeCommentCommand } from './comment.js';
 import { executePlanCommand } from './plan.js';
 import { executePostMortemCommand } from './postmortem.js';
+import { executeCoActionCommand } from './coaction.js';
 import { executeReportCommand } from './report.js';
 import { executeFeedbackCommand } from './feedback.js';
 import { loadConfig } from '../utils/config.js';
@@ -95,6 +96,14 @@ export async function executeCommand(
         projectId: config.projectId,
         defaultCreatedBy: config.agentName,
         defaultRepositoryId: config.repositoryId,
+      });
+    }
+    case 'coaction': {
+      const config = loadRequiredConfig(buildConfigOverrides(options));
+      const { apiUrl, headers } = resolveApiContext(config);
+      return executeCoActionCommand(apiUrl, headers, action, {
+        ...options,
+        projectId: config.projectId,
       });
     }
     case 'dependency':
