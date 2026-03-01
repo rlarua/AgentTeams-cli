@@ -1,5 +1,9 @@
+import { createRequire } from "node:module";
 import axios from "axios";
 import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+
+const require = createRequire(import.meta.url);
+const pkg = require("../../package.json") as { version: string };
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1_000;
@@ -28,8 +32,11 @@ const getRetryDelay = (error: AxiosError, attempt: number): number => {
   return BASE_DELAY_MS * 2 ** attempt;
 };
 
-const httpClient = axios.create();
-
+const httpClient = axios.create({
+  headers: {
+    "X-CLI-Version": pkg.version,
+  },
+});
 httpClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
