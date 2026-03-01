@@ -33,12 +33,9 @@ const getRetryDelay = (error: AxiosError, attempt: number): number => {
   return BASE_DELAY_MS * 2 ** attempt;
 };
 
-const httpClient = axios.create({
-  headers: {
-    "X-CLI-Version": pkg.version,
-  },
-});
-httpClient.interceptors.response.use(
+axios.defaults.headers.common["X-CLI-Version"] = pkg.version;
+
+axios.interceptors.response.use(
   (response: AxiosResponse) => {
     const latestVersion = response.headers["x-cli-latest-version"] as string | undefined;
     if (latestVersion) {
@@ -63,8 +60,8 @@ httpClient.interceptors.response.use(
     const delay = getRetryDelay(error, retryCount);
 
     await sleep(delay);
-    return httpClient.request(config);
+    return axios.request(config);
   }
 );
 
-export default httpClient;
+export default axios;
