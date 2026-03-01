@@ -16,7 +16,7 @@ function getCachePath(): string {
   return join(homedir(), '.agentteams', 'update-check.json');
 }
 
-function readCache(): CacheData | null {
+export function readCache(): CacheData | null {
   try {
     const cachePath = getCachePath();
     if (!existsSync(cachePath)) return null;
@@ -26,7 +26,7 @@ function readCache(): CacheData | null {
   }
 }
 
-function writeCache(data: CacheData): void {
+export function writeCache(data: CacheData): void {
   try {
     const cachePath = getCachePath();
     const dir = join(homedir(), '.agentteams');
@@ -37,6 +37,7 @@ function writeCache(data: CacheData): void {
   }
 }
 
+/** Fallback: npm registry에서 최신 버전 조회 (API 헤더가 없는 경우에만 사용) */
 async function fetchLatestVersion(): Promise<string | null> {
   try {
     const controller = new AbortController();
@@ -71,9 +72,14 @@ function compareVersions(current: string, latest: string): boolean {
 /**
  * Start an async update check. Call early, collect the message later.
  * Never throws, never blocks CLI execution.
+ *
+ * 우선순위:
+ *   1. API 응답 헤더(X-CLI-Latest-Version)로 갱신된 캐시 확인
+ *   2. 캐시 만료 시 npm registry fallback
  */
 export function startUpdateCheck(currentVersion: string): Promise<string | null> {
   return (async () => {
+    // 1. 캐시 확인 (httpClient가 API 헤더로 이미 갱신했을 수 있음)
     const cache = readCache();
 
     if (cache && Date.now() - cache.lastCheck < CHECK_INTERVAL_MS) {
@@ -83,6 +89,7 @@ export function startUpdateCheck(currentVersion: string): Promise<string | null>
       return null;
     }
 
+    // 2. 캐시 없거나 만료 → npm registry fallback
     const latestVersion = await fetchLatestVersion();
     if (!latestVersion) return null;
 

@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 import axios from "axios";
 import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import { writeCache } from "./updateCheck.js";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../../package.json") as { version: string };
@@ -38,7 +39,13 @@ const httpClient = axios.create({
   },
 });
 httpClient.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (response: AxiosResponse) => {
+    const latestVersion = response.headers["x-cli-latest-version"] as string | undefined;
+    if (latestVersion) {
+      writeCache({ lastCheck: Date.now(), latestVersion });
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const config = error.config as RetryConfig | undefined;
 
