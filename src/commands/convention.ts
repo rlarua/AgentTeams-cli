@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, unlinkSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
-import axios from "axios";
+import httpClient from "../utils/httpClient.js"
+import { isAxiosError } from "axios";
 import matter from "gray-matter";
 import { diffLines, createTwoFilesPatch } from "diff";
 import { loadConfig, findProjectConfig } from "../utils/config.js";
@@ -252,7 +253,7 @@ async function fetchAllConventions(
   const items: ConventionListItem[] = [];
 
   while (true) {
-    const response = await axios.get(
+    const response = await httpClient.get(
       `${apiUrl}/api/projects/${projectId}/conventions`,
       { headers, params: { page, pageSize } }
     );
@@ -288,7 +289,7 @@ async function fetchConventionsWithContent(
   projectId: string,
   headers: Record<string, string>
 ): Promise<ConventionDownloadItem[]> {
-  const response = await axios.get(
+  const response = await httpClient.get(
     `${apiUrl}/api/projects/${projectId}/conventions/download-all`,
     { headers }
   );
@@ -305,7 +306,7 @@ async function fetchPlatformGuidesHash(
   apiUrl: string,
   headers: Record<string, string>
 ): Promise<string> {
-  const response = await axios.get(
+  const response = await httpClient.get(
     `${apiUrl}/api/platform/guides/hash`,
     { headers }
   );
@@ -517,7 +518,7 @@ async function downloadPlatformGuides(
   headers: Record<string, string>
 ): Promise<number> {
   try {
-    const response = await axios.get(
+    const response = await httpClient.get(
       `${apiUrl}/api/platform/guides`,
       { headers }
     );
@@ -554,7 +555,7 @@ async function downloadPlatformGuides(
 
     return written;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
+    if (isAxiosError(error) && error.response?.status === 404) {
       return 0;
     }
 
@@ -568,7 +569,7 @@ async function downloadReportingTemplate(
   apiUrl: string,
   headers: Record<string, string>
 ): Promise<boolean> {
-  const agentConfigResponse = await axios.get(
+  const agentConfigResponse = await httpClient.get(
     `${apiUrl}/api/projects/${config.projectId}/agent-configs`,
     { headers }
   );
@@ -583,7 +584,7 @@ async function downloadReportingTemplate(
     return false;
   }
 
-  const templateResponse = await axios.get(
+  const templateResponse = await httpClient.get(
     `${apiUrl}/api/projects/${config.projectId}/agent-configs/${firstAgentConfig.id}/convention`,
     { headers }
   );
@@ -775,7 +776,7 @@ export async function conventionCreate(options: ConventionCreateOptions): Promis
 
     const response = await withSpinner(
       `Creating convention for ${fileRelativePath}...`,
-      () => axios.post(
+      () => httpClient.post(
         `${apiUrl}/api/projects/${config.projectId}/conventions`,
         payload,
         { headers }
@@ -848,11 +849,11 @@ export async function conventionUpdate(options: ConventionUploadOptions): Promis
     const [serverDetail, serverMarkdown, localMarkdown] = await withSpinner(
       `Preparing update for ${fileRelativePath}...`,
       async () => {
-        const detailResponse = await axios.get(
+        const detailResponse = await httpClient.get(
           `${apiUrl}/api/projects/${config.projectId}/conventions/${conventionId}`,
           { headers }
         );
-        const downloadResponse = await axios.get(
+        const downloadResponse = await httpClient.get(
           `${apiUrl}/api/projects/${config.projectId}/conventions/${conventionId}/download`,
           { headers, responseType: "text" }
         );
@@ -899,7 +900,7 @@ export async function conventionUpdate(options: ConventionUploadOptions): Promis
 
     const updatedResponse = await withSpinner(
       `Uploading ${fileRelativePath}...`,
-      () => axios.put(
+      () => httpClient.put(
         `${apiUrl}/api/projects/${config.projectId}/conventions/${conventionId}`,
         payload,
         { headers }
@@ -965,7 +966,7 @@ export async function conventionDelete(options: ConventionDeleteOptions): Promis
 
     await withSpinner(
       `Deleting convention for ${fileRelativePath}...`,
-      () => axios.delete(
+      () => httpClient.delete(
         `${apiUrl}/api/projects/${config.projectId}/conventions/${conventionId}`,
         { headers: withoutJsonContentType(headers) }
       )

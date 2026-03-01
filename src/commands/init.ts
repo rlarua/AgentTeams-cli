@@ -1,6 +1,6 @@
 import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
-import axios from 'axios';
+import httpClient from '../utils/httpClient.js';
 import open from 'open';
 import { startLocalAuthServer } from '../utils/authServer.js';
 import { saveConfig } from '../utils/config.js';
@@ -82,7 +82,7 @@ async function fetchConventionTemplate(authResult: {
     ? authResult.apiUrl.slice(0, -1)
     : authResult.apiUrl;
 
-  const response = await axios.get(
+  const response = await httpClient.get(
     `${apiUrl}/api/projects/${authResult.projectId}/agent-configs/${authResult.configId}/convention`,
     {
       headers: {

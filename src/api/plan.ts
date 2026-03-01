@@ -1,4 +1,4 @@
-import axios from 'axios';
+import httpClient from '../utils/httpClient.js';
 import { withoutJsonContentType } from '../utils/httpHeaders.js';
 
 export async function listPlans(
@@ -12,7 +12,7 @@ export async function listPlans(
     ? { headers, params }
     : { headers };
 
-  const response = await axios.get(baseUrl, requestConfig);
+  const response = await httpClient.get(baseUrl, requestConfig);
   return response.data;
 }
 
@@ -23,7 +23,7 @@ export async function getPlan(
   id: string
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
-  const response = await axios.get(`${baseUrl}/${id}`, { headers });
+  const response = await httpClient.get(`${baseUrl}/${id}`, { headers });
   return response.data;
 }
 
@@ -34,7 +34,7 @@ export async function getPlanDependencies(
   id: string
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
-  const response = await axios.get(`${baseUrl}/${id}/dependencies`, { headers });
+  const response = await httpClient.get(`${baseUrl}/${id}/dependencies`, { headers });
   return response.data;
 }
 
@@ -52,7 +52,7 @@ export async function createPlan(
   }
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
-  const response = await axios.post(baseUrl, body, { headers });
+  const response = await httpClient.post(baseUrl, body, { headers });
   return response.data;
 }
 
@@ -64,7 +64,7 @@ export async function updatePlan(
   body: Record<string, unknown>
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
-  const response = await axios.put(`${baseUrl}/${id}`, body, { headers });
+  const response = await httpClient.put(`${baseUrl}/${id}`, body, { headers });
   return response.data;
 }
 
@@ -76,7 +76,7 @@ export async function assignPlan(
   assignedTo: string
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
-  const response = await axios.post(`${baseUrl}/${id}/assign`, { assignedTo }, { headers });
+  const response = await httpClient.post(`${baseUrl}/${id}/assign`, { assignedTo }, { headers });
   return response.data;
 }
 
@@ -91,7 +91,7 @@ export async function startPlanLifecycle(
   }
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
-  const response = await axios.post(`${baseUrl}/${id}/start`, body, { headers });
+  const response = await httpClient.post(`${baseUrl}/${id}/start`, body, { headers });
   return response.data;
 }
 
@@ -121,7 +121,7 @@ export async function finishPlanLifecycle(
   }
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
-  const response = await axios.post(`${baseUrl}/${id}/finish`, body, { headers });
+  const response = await httpClient.post(`${baseUrl}/${id}/finish`, body, { headers });
   return response.data;
 }
 
@@ -132,7 +132,7 @@ export async function deletePlan(
   id: string
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
-  const response = await axios.delete(`${baseUrl}/${id}`, {
+  const response = await httpClient.delete(`${baseUrl}/${id}`, {
     headers: withoutJsonContentType(headers),
   });
   return response.data;
@@ -145,7 +145,7 @@ export async function getPlanStatus(
   id: string
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
-  const response = await axios.get(`${baseUrl}/${id}/status`, { headers });
+  const response = await httpClient.get(`${baseUrl}/${id}/status`, { headers });
   return response.data;
 }
 
@@ -157,6 +157,6 @@ export async function patchPlanStatus(
   status: string
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/plans`;
-  const response = await axios.patch(`${baseUrl}/${id}/status`, { status }, { headers });
+  const response = await httpClient.patch(`${baseUrl}/${id}/status`, { status }, { headers });
   return response.data;
 }

@@ -1,4 +1,4 @@
-import axios from "axios";
+import httpClient from "../utils/httpClient.js";
 
 export async function createFeedback(
   apiUrl: string,
@@ -10,6 +10,6 @@ export async function createFeedback(
     content: string;
   }
 ): Promise<any> {
-  const response = await axios.post(`${apiUrl}/api/feedbacks`, body, { headers });
+  const response = await httpClient.post(`${apiUrl}/api/feedbacks`, body, { headers });
   return response.data;
 }

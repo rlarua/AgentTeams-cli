@@ -1,4 +1,4 @@
-import axios from 'axios';
+import httpClient from '../utils/httpClient.js';
 import { loadConfig } from '../utils/config.js';
 import { withoutJsonContentType } from '../utils/httpHeaders.js';
 
@@ -26,7 +26,7 @@ function getApiBaseUrl(apiUrl: string): string {
 export async function agentConfigList(): Promise<any> {
   const config = getConfigOrThrow();
   const apiBaseUrl = getApiBaseUrl(config.apiUrl);
-  const response = await axios.get(
+  const response = await httpClient.get(
     `${apiBaseUrl}/api/projects/${config.projectId}/agent-configs`,
     { headers: getHeaders(config.apiKey) }
   );
@@ -36,7 +36,7 @@ export async function agentConfigList(): Promise<any> {
 export async function agentConfigGet(id: string): Promise<any> {
   const config = getConfigOrThrow();
   const apiBaseUrl = getApiBaseUrl(config.apiUrl);
-  const response = await axios.get(
+  const response = await httpClient.get(
     `${apiBaseUrl}/api/projects/${config.projectId}/agent-configs/${id}`,
     { headers: getHeaders(config.apiKey) }
   );
@@ -46,7 +46,7 @@ export async function agentConfigGet(id: string): Promise<any> {
 export async function agentConfigDelete(id: string): Promise<any> {
   const config = getConfigOrThrow();
   const apiBaseUrl = getApiBaseUrl(config.apiUrl);
-  const response = await axios.delete(
+  const response = await httpClient.delete(
     `${apiBaseUrl}/api/projects/${config.projectId}/agent-configs/${id}`,
     { headers: withoutJsonContentType(getHeaders(config.apiKey)) }
   );

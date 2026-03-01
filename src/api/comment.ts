@@ -1,4 +1,4 @@
-import axios from 'axios';
+import httpClient from '../utils/httpClient.js';
 import { withoutJsonContentType } from '../utils/httpHeaders.js';
 
 export async function listComments(
@@ -13,7 +13,7 @@ export async function listComments(
     ? { headers, params }
     : { headers };
 
-  const response = await axios.get(baseUrl, requestConfig);
+  const response = await httpClient.get(baseUrl, requestConfig);
   return response.data;
 }
 
@@ -24,7 +24,7 @@ export async function getComment(
   commentId: string
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/comments/${commentId}`;
-  const response = await axios.get(baseUrl, { headers });
+  const response = await httpClient.get(baseUrl, { headers });
   return response.data;
 }
 
@@ -40,7 +40,7 @@ export async function createComment(
   }
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/plans/${planId}/comments`;
-  const response = await axios.post(baseUrl, body, { headers });
+  const response = await httpClient.post(baseUrl, body, { headers });
   return response.data;
 }
 
@@ -55,7 +55,7 @@ export async function updateComment(
   }
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/comments/${commentId}`;
-  const response = await axios.put(baseUrl, body, { headers });
+  const response = await httpClient.put(baseUrl, body, { headers });
   return response.data;
 }
 
@@ -66,7 +66,7 @@ export async function deleteComment(
   commentId: string
 ): Promise<any> {
   const baseUrl = `${apiUrl}/api/projects/${projectId}/comments/${commentId}`;
-  const response = await axios.delete(baseUrl, {
+  const response = await httpClient.delete(baseUrl, {
     headers: withoutJsonContentType(headers),
   });
   return response.data;

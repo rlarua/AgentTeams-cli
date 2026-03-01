@@ -1,4 +1,4 @@
-import axios from 'axios';
+import httpClient from '../utils/httpClient.js';
 import { loadConfig } from '../utils/config.js';
 import { withoutJsonContentType } from '../utils/httpHeaders.js';
 
@@ -26,7 +26,7 @@ function getApiBaseUrl(apiUrl: string): string {
 export async function dependencyList(planId: string): Promise<any> {
   const config = getConfigOrThrow();
   const apiBaseUrl = getApiBaseUrl(config.apiUrl);
-  const response = await axios.get(
+  const response = await httpClient.get(
     `${apiBaseUrl}/api/projects/${config.projectId}/plans/${planId}/dependencies`,
     { headers: getHeaders(config.apiKey) }
   );
@@ -39,7 +39,7 @@ export async function dependencyCreate(
 ): Promise<any> {
   const config = getConfigOrThrow();
   const apiBaseUrl = getApiBaseUrl(config.apiUrl);
-  const response = await axios.post(
+  const response = await httpClient.post(
     `${apiBaseUrl}/api/projects/${config.projectId}/plans/${planId}/dependencies`,
     { blockingPlanId },
     { headers: getHeaders(config.apiKey) }
@@ -53,7 +53,7 @@ export async function dependencyDelete(
 ): Promise<any> {
   const config = getConfigOrThrow();
   const apiBaseUrl = getApiBaseUrl(config.apiUrl);
-  const response = await axios.delete(
+  const response = await httpClient.delete(
     `${apiBaseUrl}/api/projects/${config.projectId}/plans/${planId}/dependencies/${depId}`,
     { headers: withoutJsonContentType(getHeaders(config.apiKey)) }
   );
