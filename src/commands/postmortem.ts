@@ -8,7 +8,7 @@ import {
   updatePostMortem,
 } from '../api/postmortem.js';
 import { findProjectConfig } from '../utils/config.js';
-import { isCreatedByRequiredValidationError, resolveLegacyCreatedBy } from '../utils/legacyCompat.js';
+
 import { splitCsv, toPositiveInteger, toSafeFileName } from '../utils/parsers.js';
 import { printFileInfo, withSpinner } from '../utils/spinner.js';
 
@@ -69,25 +69,7 @@ export async function executePostMortemCommand(
 
       return withSpinner(
         'Creating post-mortem...',
-        async () => {
-          try {
-            return await createPostMortem(apiUrl, options.projectId, headers, body);
-          } catch (error) {
-            if (!isCreatedByRequiredValidationError(error)) {
-              throw error;
-            }
-
-            const legacyCreatedBy = resolveLegacyCreatedBy(options);
-            if (!legacyCreatedBy) {
-              throw error;
-            }
-
-            return createPostMortem(apiUrl, options.projectId, headers, {
-              ...body,
-              createdBy: legacyCreatedBy,
-            });
-          }
-        },
+        () => createPostMortem(apiUrl, options.projectId, headers, body),
         'Post-mortem created',
       );
     }

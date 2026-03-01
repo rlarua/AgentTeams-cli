@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path';
 import { createReport, deleteReport, getReport, listReports, updateReport } from '../api/report.js';
 import { collectGitMetrics } from '../utils/git.js';
 import { findProjectConfig } from '../utils/config.js';
-import { isCreatedByRequiredValidationError, resolveLegacyCreatedBy } from '../utils/legacyCompat.js';
+
 import { toNonEmptyString, toNonNegativeInteger, toPositiveInteger, toSafeFileName } from '../utils/parsers.js';
 import { printFileInfo, withSpinner } from '../utils/spinner.js';
 
@@ -100,25 +100,7 @@ export async function executeReportCommand(
 
       return withSpinner(
         'Creating report...',
-        async () => {
-          try {
-            return await createReport(apiUrl, options.projectId, headers, body);
-          } catch (error) {
-            if (!isCreatedByRequiredValidationError(error)) {
-              throw error;
-            }
-
-            const legacyCreatedBy = resolveLegacyCreatedBy(options);
-            if (!legacyCreatedBy) {
-              throw error;
-            }
-
-            return createReport(apiUrl, options.projectId, headers, {
-              ...body,
-              createdBy: legacyCreatedBy,
-            });
-          }
-        },
+        () => createReport(apiUrl, options.projectId, headers, body),
         'Report created',
       );
     }
