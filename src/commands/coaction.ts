@@ -221,7 +221,7 @@ export async function executeCoActionCommand(
           const response = await getCoAction(apiUrl, options.projectId, headers, options.id);
           const coAction = response.data;
 
-          const downloadDir = join(projectRoot, '.agentteams', 'active-plan');
+          const downloadDir = join(projectRoot, '.agentteams', 'active-coaction');
           if (!existsSync(downloadDir)) {
             mkdirSync(downloadDir, { recursive: true });
           }
@@ -239,22 +239,55 @@ export async function executeCoActionCommand(
           }
 
           const filePath = join(downloadDir, fileName);
-          const frontmatter = [
+          const linkedPlans = (coAction.linkedPlans ?? []) as Array<{ id: string; title: string }>;
+          const linkedCRs = (coAction.linkedCompletionReports ?? []) as Array<{ id: string; title: string }>;
+          const linkedPMs = (coAction.linkedPostMortems ?? []) as Array<{ id: string; title: string }>;
+          const goals = (coAction.linkedGoals ?? []) as Array<{ id: string; content: string; createdByName?: string; createdAt: string }>;
+
+          const frontmatterLines = [
             '---',
             `coActionId: ${coAction.id}`,
             `title: ${coAction.title}`,
             `status: ${coAction.status}`,
             `visibility: ${coAction.visibility}`,
-            `downloadedAt: ${new Date().toISOString()}`,
-            '---',
-          ].join('\n');
+            `createdBy: ${coAction.createdByName ?? '-'}`,
+            `goals: ${goals.length}`,
+          ];
+          if (linkedPlans.length > 0) {
+            frontmatterLines.push('linkedPlans:');
+            for (const p of linkedPlans) {
+              frontmatterLines.push(`  - id: ${p.id}`);
+              frontmatterLines.push(`    title: ${p.title}`);
+            }
+          }
+          if (linkedCRs.length > 0) {
+            frontmatterLines.push('linkedCompletionReports:');
+            for (const cr of linkedCRs) {
+              frontmatterLines.push(`  - id: ${cr.id}`);
+              frontmatterLines.push(`    title: ${cr.title}`);
+            }
+          }
+          if (linkedPMs.length > 0) {
+            frontmatterLines.push('linkedPostMortems:');
+            for (const pm of linkedPMs) {
+              frontmatterLines.push(`  - id: ${pm.id}`);
+              frontmatterLines.push(`    title: ${pm.title}`);
+            }
+          }
+          frontmatterLines.push(`downloadedAt: ${new Date().toISOString()}`);
+          frontmatterLines.push('---');
+          const frontmatter = frontmatterLines.join('\n');
+
+          const goalsSection = goals.length > 0
+            ? '\n## Goals\n\n' + goals.map((g, i) => `${i + 1}. ${g.content} _(${g.createdByName ?? '-'}, ${g.createdAt})_`).join('\n') + '\n'
+            : '';
 
           const content = coAction.content ?? '';
-          writeFileSync(filePath, `${frontmatter}\n\n${content}`, 'utf-8');
+          writeFileSync(filePath, `${frontmatter}\n${goalsSection}\n${content}`, 'utf-8');
 
           return {
             message: `Co-action downloaded to ${fileName}`,
-            filePath: `.agentteams/active-plan/${fileName}`,
+            filePath: `.agentteams/active-coaction/${fileName}`,
           };
         },
         'Co-action downloaded',
