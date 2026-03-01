@@ -88,3 +88,55 @@ export async function unlinkPlanFromCoAction(
   });
   return response.data;
 }
+
+export async function linkCompletionReportToCoAction(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  coActionId: string,
+  completionReportId: string
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions`;
+  const response = await httpClient.post(`${baseUrl}/${coActionId}/completion-reports/${completionReportId}`, {}, { headers });
+  return response.data;
+}
+
+export async function unlinkCompletionReportFromCoAction(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  coActionId: string,
+  completionReportId: string
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions`;
+  const response = await httpClient.delete(`${baseUrl}/${coActionId}/completion-reports/${completionReportId}`, {
+    headers: withoutJsonContentType(headers),
+  });
+  return response.data;
+}
+
+export async function linkPostMortemToCoAction(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  coActionId: string,
+  postMortemId: string
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions`;
+  const response = await httpClient.post(`${baseUrl}/${coActionId}/post-mortems/${postMortemId}`, {}, { headers });
+  return response.data;
+}
+
+export async function unlinkPostMortemFromCoAction(
+  apiUrl: string,
+  projectId: string,
+  headers: any,
+  coActionId: string,
+  postMortemId: string
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/projects/${projectId}/co-actions`;
+  const response = await httpClient.delete(`${baseUrl}/${coActionId}/post-mortems/${postMortemId}`, {
+    headers: withoutJsonContentType(headers),
+  });
+  return response.data;
+}

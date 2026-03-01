@@ -392,9 +392,11 @@ program
 program
   .command('coaction')
   .description('Manage co-actions (session context dumps)')
-  .argument('<action>', 'Action to perform (list, get, create, update, delete, download, link-plan, unlink-plan)')
+  .argument('<action>', 'Action to perform (list, get, create, update, delete, download, link-plan, unlink-plan, link-completion-report, unlink-completion-report, link-post-mortem, unlink-post-mortem)')
   .option('--id <id>', 'Co-action ID')
   .option('--plan-id <id>', 'Plan ID (for link-plan/unlink-plan)')
+  .option('--completion-report-id <id>', 'Completion report ID for linking/unlinking')
+  .option('--post-mortem-id <id>', 'Post-mortem ID for linking/unlinking')
   .option('--title <title>', 'Co-action title')
   .option('--content <content>', 'Co-action content (short text; use --file for long content)')
   .option('--file <path>', 'Read co-action content from a local file (create/update)')
@@ -418,6 +420,8 @@ program
       const result = await executeCommand('coaction', action, {
         id: options.id,
         planId: options.planId,
+        completionReportId: options.completionReportId,
+        postMortemId: options.postMortemId,
         title: options.title,
         content: options.content,
         file: options.file,

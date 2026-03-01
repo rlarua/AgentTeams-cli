@@ -8,6 +8,10 @@ import {
   updateCoAction,
   linkPlanToCoAction,
   unlinkPlanFromCoAction,
+  linkCompletionReportToCoAction,
+  unlinkCompletionReportFromCoAction,
+  linkPostMortemToCoAction,
+  unlinkPostMortemFromCoAction,
 } from '../api/coaction.js';
 import { findProjectConfig } from '../utils/config.js';
 import { toPositiveInteger, toSafeFileName } from '../utils/parsers.js';
@@ -171,6 +175,46 @@ export async function executeCoActionCommand(
         'Unlinking plan...',
         () => unlinkPlanFromCoAction(apiUrl, options.projectId, headers, options.id, options.planId),
         'Plan unlinked',
+      );
+    }
+    case 'link-completion-report': {
+      if (!options.id) throw new Error('--id is required for coaction link-completion-report');
+      if (!options.completionReportId) throw new Error('--completion-report-id is required for coaction link-completion-report');
+
+      return withSpinner(
+        'Linking completion report...',
+        () => linkCompletionReportToCoAction(apiUrl, options.projectId, headers, options.id, options.completionReportId),
+        'Completion report linked',
+      );
+    }
+    case 'unlink-completion-report': {
+      if (!options.id) throw new Error('--id is required for coaction unlink-completion-report');
+      if (!options.completionReportId) throw new Error('--completion-report-id is required for coaction unlink-completion-report');
+
+      return withSpinner(
+        'Unlinking completion report...',
+        () => unlinkCompletionReportFromCoAction(apiUrl, options.projectId, headers, options.id, options.completionReportId),
+        'Completion report unlinked',
+      );
+    }
+    case 'link-post-mortem': {
+      if (!options.id) throw new Error('--id is required for coaction link-post-mortem');
+      if (!options.postMortemId) throw new Error('--post-mortem-id is required for coaction link-post-mortem');
+
+      return withSpinner(
+        'Linking post-mortem...',
+        () => linkPostMortemToCoAction(apiUrl, options.projectId, headers, options.id, options.postMortemId),
+        'Post-mortem linked',
+      );
+    }
+    case 'unlink-post-mortem': {
+      if (!options.id) throw new Error('--id is required for coaction unlink-post-mortem');
+      if (!options.postMortemId) throw new Error('--post-mortem-id is required for coaction unlink-post-mortem');
+
+      return withSpinner(
+        'Unlinking post-mortem...',
+        () => unlinkPostMortemFromCoAction(apiUrl, options.projectId, headers, options.id, options.postMortemId),
+        'Post-mortem unlinked',
       );
     }
     default:
