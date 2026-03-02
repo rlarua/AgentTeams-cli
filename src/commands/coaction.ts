@@ -22,6 +22,12 @@ import { findProjectConfig } from '../utils/config.js';
 import { deleteIfTempFile, toPositiveInteger, toSafeFileName } from '../utils/parsers.js';
 import { printFileInfo, withSpinner } from '../utils/spinner.js';
 
+function findProjectRoot(): string | null {
+  const configPath = findProjectConfig(process.cwd());
+  if (!configPath) return null;
+  return resolve(configPath, '..', '..');
+}
+
 export async function executeCoActionCommand(
   apiUrl: string,
   headers: any,
@@ -48,11 +54,19 @@ export async function executeCoActionCommand(
       if (page !== undefined) params.page = page;
       if (pageSize !== undefined) params.pageSize = pageSize;
 
-      return listCoActions(apiUrl, options.projectId, headers, params);
+      return withSpinner(
+        'Loading co-actions...',
+        () => listCoActions(apiUrl, options.projectId, headers, params),
+        'Co-actions loaded',
+      );
     }
     case 'get': {
       if (!options.id) throw new Error('--id is required for coaction get');
-      return getCoAction(apiUrl, options.projectId, headers, options.id);
+      return withSpinner(
+        'Loading co-action...',
+        () => getCoAction(apiUrl, options.projectId, headers, options.id),
+        'Co-action loaded',
+      );
     }
     case 'takeaway-list': {
       if (!options.id) throw new Error('--id is required for coaction takeaway-list');
@@ -186,7 +200,7 @@ export async function executeCoActionCommand(
           const data = await createCoAction(apiUrl, options.projectId, headers, body);
           if (options.file) deleteIfTempFile(options.file);
           const id = (data as any)?.data?.id ?? options.id;
-          if (id) process.stdout.write(`Tip: Add a takeaway — agentteams coaction takeaway-create --id ${id}\n`);
+          if (id) process.stderr.write(`Tip: Add a takeaway — agentteams coaction takeaway-create --id ${id}\n`);
           return data;
         },
         'Co-action created',
@@ -214,7 +228,7 @@ export async function executeCoActionCommand(
 
       const updateResult = await updateCoAction(apiUrl, options.projectId, headers, options.id, body);
       if (options.file) deleteIfTempFile(options.file);
-      if (options.id) process.stdout.write(`Tip: Add a takeaway — agentteams coaction takeaway-create --id ${options.id}\n`);
+      if (options.id) process.stderr.write(`Tip: Add a takeaway — agentteams coaction takeaway-create --id ${options.id}\n`);
       return updateResult;
     }
     case 'delete': {
@@ -224,11 +238,7 @@ export async function executeCoActionCommand(
     }
     case 'download': {
       if (!options.id) throw new Error('--id is required for coaction download');
-      const projectRoot = (() => {
-        const configPath = findProjectConfig(process.cwd());
-        if (!configPath) return null;
-        return resolve(configPath, '..', '..');
-      })();
+      const projectRoot = findProjectRoot();
       if (!projectRoot) {
         throw new Error("Project root not found. Run 'agentteams init' first.");
       }
