@@ -18,6 +18,8 @@ import {
   linkPostMortemToCoAction,
   unlinkPostMortemFromCoAction,
 } from '../api/coaction.js';
+import { checkConventionFreshness } from './convention.js';
+import { buildFreshnessNoticeLines } from './plan.js';
 import { findProjectConfig } from '../utils/config.js';
 import { deleteIfTempFile, toPositiveInteger, toSafeFileName } from '../utils/parsers.js';
 import { printFileInfo, withSpinner } from '../utils/spinner.js';
@@ -26,6 +28,29 @@ function findProjectRoot(): string | null {
   const configPath = findProjectConfig(process.cwd());
   if (!configPath) return null;
   return resolve(configPath, '..', '..');
+}
+
+async function runFreshnessCheckSilent(
+  apiUrl: string,
+  projectId: string,
+  headers: Record<string, string>
+): Promise<void> {
+  const projectRoot = findProjectRoot();
+  if (!projectRoot) return;
+
+  try {
+    const freshness = await checkConventionFreshness(apiUrl, projectId, headers, projectRoot);
+    const hasChanges = freshness.platformGuidesChanged || freshness.conventionChanges.length > 0;
+    if (!hasChanges) return;
+
+    const noticeLines = buildFreshnessNoticeLines(freshness);
+    for (const line of noticeLines) {
+      process.stderr.write(`${line}\n`);
+    }
+    process.stderr.write('Run agentteams convention download to sync latest conventions.\n');
+  } catch (error) {
+    void error;
+  }
 }
 
 export async function executeCoActionCommand(
@@ -40,6 +65,8 @@ export async function executeCoActionCommand(
 
   switch (action) {
     case 'list': {
+      await runFreshnessCheckSilent(apiUrl, options.projectId, headers);
+
       const params: Record<string, string | number> = {};
       if (options.status) params.status = options.status;
       if (options.search) params.search = options.search;
@@ -62,6 +89,8 @@ export async function executeCoActionCommand(
     }
     case 'get': {
       if (!options.id) throw new Error('--id is required for coaction get');
+      await runFreshnessCheckSilent(apiUrl, options.projectId, headers);
+
       return withSpinner(
         'Loading co-action...',
         () => getCoAction(apiUrl, options.projectId, headers, options.id),

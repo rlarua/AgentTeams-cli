@@ -1,7 +1,6 @@
-import { createInterface } from 'node:readline/promises';
 import { existsSync, mkdirSync, writeFileSync, rmSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { checkConventionFreshness, conventionDownload } from './convention.js';
+import { checkConventionFreshness } from './convention.js';
 import { findProjectConfig } from '../utils/config.js';
 import { collectGitMetrics } from '../utils/git.js';
 import { withSpinner, printFileInfo } from '../utils/spinner.js';
@@ -63,6 +62,29 @@ export function buildFreshnessNoticeLines(freshness: {
   return lines;
 }
 
+async function runFreshnessCheckSilent(
+  apiUrl: string,
+  projectId: string,
+  headers: Record<string, string>
+): Promise<void> {
+  const projectRoot = findProjectRoot();
+  if (!projectRoot) return;
+
+  try {
+    const freshness = await checkConventionFreshness(apiUrl, projectId, headers, projectRoot);
+    const hasChanges = freshness.platformGuidesChanged || freshness.conventionChanges.length > 0;
+    if (!hasChanges) return;
+
+    const noticeLines = buildFreshnessNoticeLines(freshness);
+    for (const line of noticeLines) {
+      process.stderr.write(`${line}\n`);
+    }
+    process.stderr.write('Run agentteams convention download to sync latest conventions.\n');
+  } catch (error) {
+    void error;
+  }
+}
+
 export function buildUniquePlanRunbookFileName(title: string, planId: string, existingFileNames: string[]): string {
   const idPrefix = planId.slice(0, 8);
   const safeName = toSafeFileName(title) || 'plan';
@@ -79,21 +101,6 @@ export function buildUniquePlanRunbookFileName(title: string, planId: string, ex
   return fileName;
 }
 
-
-async function promptConventionDownload(): Promise<boolean> {
-  const rl = createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  try {
-    const answer = await rl.question('Download now? (y/N) ');
-    const normalized = answer.trim().toLowerCase();
-    return normalized === 'y' || normalized === 'yes';
-  } finally {
-    rl.close();
-  }
-}
 
 function minimalPlanRefactorChecklistTemplate(): string {
   return [
@@ -143,6 +150,8 @@ export async function executePlanCommand(
 ): Promise<any> {
   switch (action) {
     case 'list': {
+      await runFreshnessCheckSilent(apiUrl, projectId, headers);
+
       const params: Record<string, string | number> = {};
 
       if (options.title) params.title = options.title;
@@ -159,6 +168,8 @@ export async function executePlanCommand(
     }
     case 'get': {
       if (!options.id) throw new Error('--id is required for plan get');
+      await runFreshnessCheckSilent(apiUrl, projectId, headers);
+
       const response = await getPlan(apiUrl, projectId, headers, options.id);
 
       if (options.includeDeps) {
@@ -177,6 +188,8 @@ export async function executePlanCommand(
     }
     case 'show': {
       if (!options.id) throw new Error('--id is required for plan show');
+      await runFreshnessCheckSilent(apiUrl, projectId, headers);
+
       const response = await getPlan(apiUrl, projectId, headers, options.id);
 
       if (options.includeDeps) {
@@ -405,50 +418,6 @@ export async function executePlanCommand(
         );
       }
 
-      let conventionUpdates: {
-        hasChanges: boolean;
-        changes: string[];
-        suggestion: string;
-      } | undefined;
-
-      try {
-        const freshness = await checkConventionFreshness(apiUrl, projectId, headers, projectRoot);
-        const hasChanges = freshness.platformGuidesChanged || freshness.conventionChanges.length > 0;
-
-        if (hasChanges) {
-          const changeLabels: string[] = [];
-          if (freshness.platformGuidesChanged) {
-            changeLabels.push('platform guides (shared)');
-          }
-          for (const change of freshness.conventionChanges) {
-            changeLabels.push(formatFreshnessChangeLabel(change));
-          }
-
-          conventionUpdates = {
-            hasChanges: true,
-            changes: changeLabels,
-            suggestion: "Run 'agentteams convention download' to sync latest conventions.",
-          };
-
-          const isTty = process.stdin.isTTY === true && process.stdout.isTTY === true;
-          if (isTty) {
-            const noticeLines = buildFreshnessNoticeLines(freshness);
-            for (const line of noticeLines) {
-              process.stderr.write(`${line}\n`);
-            }
-
-            const confirmed = await promptConventionDownload();
-            if (confirmed) {
-              await conventionDownload();
-              console.log('✔ Convention download completed');
-            }
-          }
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        process.stderr.write(`[warn] Convention freshness check failed: ${message}\n`);
-      }
-
       const result = await withSpinner(
         'Downloading plan...',
         async () => {
@@ -477,16 +446,10 @@ export async function executePlanCommand(
           const markdown = plan.contentMarkdown ?? '';
           writeFileSync(filePath, `${frontmatter}\n\n${markdown}`, 'utf-8');
 
-          const downloadResult: Record<string, unknown> = {
+          return {
             message: `Plan downloaded to ${fileName}`,
             filePath: `.agentteams/active-plan/${fileName}`,
           };
-
-          if (conventionUpdates) {
-            downloadResult.conventionUpdates = conventionUpdates;
-          }
-
-          return downloadResult;
         },
         'Plan downloaded',
       );

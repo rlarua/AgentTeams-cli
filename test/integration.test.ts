@@ -235,7 +235,15 @@ describe('CLI Integration Tests', () => {
 
     it('plan CRUD/assign: should use project-scoped plan endpoints', async () => {
       axiosPostSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
-      axiosGetSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
+      axiosGetSpy.mockImplementation(async (url: string) => {
+        if (url === `${API_URL}/api/platform/guides/hash`) {
+          return { data: { data: { hash: 'platform-guides-hash-1' } } } as any;
+        }
+        if (url === `${API_URL}/api/projects/${PROJECT_ID}/conventions`) {
+          return { data: { data: [] } } as any;
+        }
+        return { data: { data: { id: 't1' } } } as any;
+      });
       axiosPutSpy.mockResolvedValue({ data: { data: { id: 't1' } } } as any);
       axiosDeleteSpy.mockResolvedValue({ status: 204 } as any);
 
@@ -261,20 +269,21 @@ describe('CLI Integration Tests', () => {
         }),
         { headers: authHeaders() }
       );
-      expect(axiosGetSpy).toHaveBeenNthCalledWith(
-        1,
+      expect(axiosGetSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/plans`,
         { headers: authHeaders() }
       );
-      expect(axiosGetSpy).toHaveBeenNthCalledWith(
-        2,
+      expect(axiosGetSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
         { headers: authHeaders() }
       );
-      expect(axiosGetSpy).toHaveBeenNthCalledWith(
-        3,
-        `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/platform/guides/hash`,
         { headers: authHeaders() }
+      );
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/projects/${PROJECT_ID}/conventions`,
+        expect.objectContaining({ headers: authHeaders() })
       );
       expect(axiosPutSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
@@ -294,24 +303,37 @@ describe('CLI Integration Tests', () => {
     });
 
     it('plan get with include-deps: should fetch dependency endpoint and merge data', async () => {
-      axiosGetSpy
-        .mockResolvedValueOnce({
-          data: {
+      axiosGetSpy.mockImplementation(async (url: string) => {
+        if (url === `${API_URL}/api/platform/guides/hash`) {
+          return { data: { data: { hash: 'platform-guides-hash-1' } } } as any;
+        }
+        if (url === `${API_URL}/api/projects/${PROJECT_ID}/conventions`) {
+          return { data: { data: [] } } as any;
+        }
+        if (url === `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`) {
+          return {
             data: {
-              id: 'plan-1',
-              title: 'Main Plan',
-              status: 'IN_PROGRESS',
+              data: {
+                id: 'plan-1',
+                title: 'Main Plan',
+                status: 'IN_PROGRESS',
+              },
             },
-          },
-        } as any)
-        .mockResolvedValueOnce({
-          data: {
+          } as any;
+        }
+        if (url === `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/dependencies`) {
+          return {
             data: {
-              blocking: [{ id: 'p-2', title: 'Blocker', status: 'PENDING' }],
-              dependents: [{ id: 'p-3', title: 'Dependent', status: 'PENDING' }],
+              data: {
+                blocking: [{ id: 'p-2', title: 'Blocker', status: 'PENDING' }],
+                dependents: [{ id: 'p-3', title: 'Dependent', status: 'PENDING' }],
+              },
             },
-          },
-        } as any);
+          } as any;
+        }
+
+        throw new Error(`Unhandled axios.get URL in test: ${url}`);
+      });
 
       const result = await executeCommand('plan', 'get', {
         id: 'plan-1',
@@ -319,13 +341,11 @@ describe('CLI Integration Tests', () => {
         format: 'json',
       });
 
-      expect(axiosGetSpy).toHaveBeenNthCalledWith(
-        1,
+      expect(axiosGetSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
         { headers: authHeaders() }
       );
-      expect(axiosGetSpy).toHaveBeenNthCalledWith(
-        2,
+      expect(axiosGetSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/dependencies`,
         { headers: authHeaders() }
       );
@@ -336,17 +356,30 @@ describe('CLI Integration Tests', () => {
     });
 
     it('plan show with include-deps and text: should render dependency section', async () => {
-      axiosGetSpy
-        .mockResolvedValueOnce({
-          data: {
+      axiosGetSpy.mockImplementation(async (url: string) => {
+        if (url === `${API_URL}/api/platform/guides/hash`) {
+          return { data: { data: { hash: 'platform-guides-hash-1' } } } as any;
+        }
+        if (url === `${API_URL}/api/projects/${PROJECT_ID}/conventions`) {
+          return { data: { data: [] } } as any;
+        }
+        if (url === `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`) {
+          return {
             data: {
-              id: 'plan-1',
-              title: 'Main Plan',
-              status: 'IN_PROGRESS',
+              data: {
+                id: 'plan-1',
+                title: 'Main Plan',
+                status: 'IN_PROGRESS',
+              },
             },
-          },
-        } as any)
-        .mockResolvedValueOnce({ data: { data: { blocking: [], dependents: [] } } } as any);
+          } as any;
+        }
+        if (url === `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/dependencies`) {
+          return { data: { data: { blocking: [], dependents: [] } } } as any;
+        }
+
+        throw new Error(`Unhandled axios.get URL in test: ${url}`);
+      });
 
       const result = await executeCommand('plan', 'show', {
         id: 'plan-1',
@@ -354,13 +387,11 @@ describe('CLI Integration Tests', () => {
         format: 'text',
       });
 
-      expect(axiosGetSpy).toHaveBeenNthCalledWith(
-        1,
+      expect(axiosGetSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1`,
         { headers: authHeaders() }
       );
-      expect(axiosGetSpy).toHaveBeenNthCalledWith(
-        2,
+      expect(axiosGetSpy).toHaveBeenCalledWith(
         `${API_URL}/api/projects/${PROJECT_ID}/plans/plan-1/dependencies`,
         { headers: authHeaders() }
       );
