@@ -9,7 +9,7 @@ import { formatOutput } from './utils/formatter.js';
 import { handleError } from './utils/errors.js';
 import { createSummaryLines, shouldPrintSummary, type OutputFormat } from './utils/outputPolicy.js';
 import { printInitResult } from './utils/initOutput.js';
-import { startUpdateCheck } from './utils/updateCheck.js';
+import { startUpdateCheck, readCache, compareVersions, formatUpdateMessage } from './utils/updateCheck.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json') as { version: string };
@@ -627,12 +627,13 @@ program
     }
   });
 
-const updateCheckPromise = startUpdateCheck(pkg.version);
+startUpdateCheck(pkg.version);
 
 program.parse();
 
 process.on('beforeExit', () => {
-  updateCheckPromise.then((message) => {
-    if (message) process.stderr.write(message);
-  }).catch(() => {});
+  const cache = readCache();
+  if (cache && compareVersions(pkg.version, cache.latestVersion)) {
+    process.stderr.write(formatUpdateMessage(pkg.version, cache.latestVersion));
+  }
 });

@@ -58,7 +58,7 @@ async function fetchLatestVersion(): Promise<string | null> {
   }
 }
 
-function compareVersions(current: string, latest: string): boolean {
+export function compareVersions(current: string, latest: string): boolean {
   const parse = (v: string) => v.replace(/^v/, '').split('.').map(Number);
   const c = parse(current);
   const l = parse(latest);
@@ -102,7 +102,7 @@ export function startUpdateCheck(currentVersion: string): Promise<string | null>
   })().catch(() => null);
 }
 
-function formatUpdateMessage(current: string, latest: string): string {
+export function formatUpdateMessage(current: string, latest: string): string {
   return [
     '',
     chalk.yellow('╭─────────────────────────────────────────────────────────────╮'),
