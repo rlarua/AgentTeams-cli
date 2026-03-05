@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import {
   createCoAction,
@@ -349,6 +349,51 @@ export async function executeCoActionCommand(
         },
         'Co-action downloaded',
       );
+    }
+    case 'cleanup': {
+      const projectRoot = findProjectRoot();
+      if (!projectRoot) {
+        throw new Error("Project root not found. Run 'agentteams init' first.");
+      }
+
+      const activeCoActionDir = join(projectRoot, '.agentteams', 'active-coaction');
+      if (!existsSync(activeCoActionDir)) {
+        return { message: 'No active-coaction directory found.', deletedFiles: [] };
+      }
+
+      const deletedFiles = await withSpinner(
+        'Cleaning up co-action files...',
+        async () => {
+          const allFiles = readdirSync(activeCoActionDir).filter((f) => f.endsWith('.md'));
+          const deleted: string[] = [];
+
+          if (options.id) {
+            for (const file of allFiles) {
+              const content = readFileSync(join(activeCoActionDir, file), 'utf-8');
+              const match = content.match(/^coActionId:\s*(.+)$/m);
+              if (match && match[1].trim() === options.id) {
+                rmSync(join(activeCoActionDir, file));
+                deleted.push(file);
+              }
+            }
+          } else {
+            for (const file of allFiles) {
+              rmSync(join(activeCoActionDir, file));
+              deleted.push(file);
+            }
+          }
+
+          return deleted;
+        },
+        'Cleaned up co-action files',
+      );
+
+      return {
+        message: deletedFiles.length > 0
+          ? `Deleted ${deletedFiles.length} file(s).`
+          : 'No matching files found.',
+        deletedFiles,
+      };
     }
     case 'link-plan': {
       if (!options.id) throw new Error('--id is required for coaction link-plan');
