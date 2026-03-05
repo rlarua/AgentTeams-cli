@@ -123,7 +123,7 @@ export async function executePostMortemCommand(
           const response = await getPostMortem(apiUrl, options.projectId, headers, options.id);
           const pm = response.data;
 
-          const downloadDir = join(projectRoot, '.agentteams', 'active-plan');
+          const downloadDir = join(projectRoot, '.agentteams', 'cli', 'active-plan');
           if (!existsSync(downloadDir)) {
             mkdirSync(downloadDir, { recursive: true });
           }
@@ -158,7 +158,7 @@ export async function executePostMortemCommand(
 
           return {
             message: `Post-mortem downloaded to ${fileName}`,
-            filePath: `.agentteams/active-plan/${fileName}`,
+            filePath: `.agentteams/cli/active-plan/${fileName}`,
           };
         },
         'Post-mortem downloaded',

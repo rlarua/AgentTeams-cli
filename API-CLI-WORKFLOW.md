@@ -161,7 +161,7 @@ text 출력에서 객체 필드는 핵심 식별 필드(`id/title/status/priorit
   - `--format json`: `data.dependencies = { blocking: [...], dependents: [...] }`
   - `--format text`: Plan 필드 출력 뒤 `## Dependencies` 섹션을 추가합니다.
 - Download snapshot: `GET /api/projects/:projectId/plans/:id`
-  - Saved to `.agentteams/active-plan/{safe-title}.md` with frontmatter.
+  - Saved to `.agentteams/cli/active-plan/{safe-title}.md` with frontmatter.
 - (추가) 단축 커맨드
   - `agentteams plan start --id <planId>`
     - 내부적으로 `POST /api/projects/:projectId/plans/:id/start`를 호출합니다.
@@ -209,7 +209,7 @@ CLI supports `--api-url`, `--api-key`, `--team-id`, `--project-id`, `--agent-nam
 - Global config: `~/.agentteams/config.json`
 - Convention template: `.agentteams/convention.md`
 - Download manifest: `.agentteams/conventions.manifest.json`
-- Plan snapshots: `.agentteams/active-plan/*.md`
+- Plan snapshots: `.agentteams/cli/active-plan/*.md`
 - Output capture: `--output-file <path>`로 지정한 임의 경로(사용자 지정)
 
 ---
@@ -234,7 +234,7 @@ sequenceDiagram
   U->>CLI: plan download --id {planId}
   CLI->>API: GET /api/projects/:projectId/plans/:id
   API-->>CLI: { data: plan(contentMarkdown) }
-  CLI->>FS: Write .agentteams/active-plan/{safe-title}.md
+  CLI->>FS: Write .agentteams/cli/active-plan/{safe-title}.md
 
   U->>CLI: comment create --type RISK|MODIFICATION|GENERAL
   CLI->>API: POST /api/projects/:projectId/plans/:planId/comments
@@ -380,7 +380,7 @@ agentteams plan download --id <planId>
   agentteams plan finish --id <planId>
 
 # Create completion report (file required)
-agentteams report create --plan-id <planId> --title "Done" --file .agentteams/temp/report.md
+agentteams report create --plan-id <planId> --title "Done" --file .agentteams/cli/temp/report.md
 ```
 
 Environment-only mode (no config file):

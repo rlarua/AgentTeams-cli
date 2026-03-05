@@ -169,7 +169,7 @@ export async function executeReportCommand(
           const response = await getReport(apiUrl, options.projectId, headers, options.id);
           const report = response.data;
 
-          const downloadDir = join(projectRoot, '.agentteams', 'active-plan');
+          const downloadDir = join(projectRoot, '.agentteams', 'cli', 'active-plan');
           if (!existsSync(downloadDir)) {
             mkdirSync(downloadDir, { recursive: true });
           }
@@ -203,7 +203,7 @@ export async function executeReportCommand(
 
           return {
             message: `Report downloaded to ${fileName}`,
-            filePath: `.agentteams/active-plan/${fileName}`,
+            filePath: `.agentteams/cli/active-plan/${fileName}`,
           };
         },
         'Report downloaded',

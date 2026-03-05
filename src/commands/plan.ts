@@ -424,7 +424,7 @@ export async function executePlanCommand(
           const response = await getPlan(apiUrl, projectId, headers, options.id);
           const plan = response.data;
 
-          const activePlanDir = join(projectRoot, '.agentteams', 'active-plan');
+          const activePlanDir = join(projectRoot, '.agentteams', 'cli', 'active-plan');
           if (!existsSync(activePlanDir)) {
             mkdirSync(activePlanDir, { recursive: true });
           }
@@ -448,7 +448,7 @@ export async function executePlanCommand(
 
           return {
             message: `Plan downloaded to ${fileName}`,
-            filePath: `.agentteams/active-plan/${fileName}`,
+            filePath: `.agentteams/cli/active-plan/${fileName}`,
           };
         },
         'Plan downloaded',
@@ -464,7 +464,7 @@ export async function executePlanCommand(
         );
       }
 
-      const activePlanDir = join(projectRoot, '.agentteams', 'active-plan');
+      const activePlanDir = join(projectRoot, '.agentteams', 'cli', 'active-plan');
       if (!existsSync(activePlanDir)) {
         return { message: 'No active-plan directory found.', deletedFiles: [] };
       }

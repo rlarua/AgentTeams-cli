@@ -278,7 +278,7 @@ export async function executeCoActionCommand(
           const response = await getCoAction(apiUrl, options.projectId, headers, options.id);
           const coAction = response.data;
 
-          const downloadDir = join(projectRoot, '.agentteams', 'active-coaction');
+          const downloadDir = join(projectRoot, '.agentteams', 'cli', 'active-coaction');
           if (!existsSync(downloadDir)) {
             mkdirSync(downloadDir, { recursive: true });
           }
@@ -344,7 +344,7 @@ export async function executeCoActionCommand(
 
           return {
             message: `Co-action downloaded to ${fileName}`,
-            filePath: `.agentteams/active-coaction/${fileName}`,
+            filePath: `.agentteams/cli/active-coaction/${fileName}`,
           };
         },
         'Co-action downloaded',
@@ -356,7 +356,7 @@ export async function executeCoActionCommand(
         throw new Error("Project root not found. Run 'agentteams init' first.");
       }
 
-      const activeCoActionDir = join(projectRoot, '.agentteams', 'active-coaction');
+      const activeCoActionDir = join(projectRoot, '.agentteams', 'cli', 'active-coaction');
       if (!existsSync(activeCoActionDir)) {
         return { message: 'No active-coaction directory found.', deletedFiles: [] };
       }

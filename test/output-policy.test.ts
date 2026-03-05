@@ -81,7 +81,7 @@ describe('outputPolicy', () => {
     const lines = createSummaryLines(
       {
         message: 'Plan downloaded',
-        filePath: '.agentteams/active-plan/a.md',
+        filePath: '.agentteams/cli/active-plan/a.md',
       },
       { resource: 'plan', action: 'download' }
     );

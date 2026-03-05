@@ -70,13 +70,13 @@ export function toSafeFileName(input: string): string {
 }
 
 /**
- * 업로드에 사용된 파일이 .agentteams/temp/ 경로에 있을 경우 삭제합니다.
+ * 업로드에 사용된 파일이 .agentteams/cli/temp/ 경로에 있을 경우 삭제합니다.
  * convention 파일 등 실제 소스 파일은 삭제하지 않습니다.
  */
 export function deleteIfTempFile(fileInput: string): void {
   const resolved = resolve(fileInput);
   const normalized = resolved.replace(/\\/g, '/');
-  if (normalized.includes('/.agentteams/temp/') && existsSync(resolved)) {
+  if (normalized.includes('/.agentteams/cli/temp/') && existsSync(resolved)) {
     try {
       unlinkSync(resolved);
     } catch {
