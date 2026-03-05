@@ -1,6 +1,7 @@
 import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { constants, createCipheriv, publicEncrypt, randomBytes } from 'node:crypto';
+import { multiselect, isCancel, cancel } from '@clack/prompts';
 import httpClient from '../utils/httpClient.js';
 import open from 'open';
 import { startLocalAuthServer } from '../utils/authServer.js';
@@ -10,6 +11,13 @@ import { conventionDownload } from './convention.js';
 import type { Config } from '../types/index.js';
 
 const AUTH_BASE_URL = process.env.AGENTTEAMS_WEB_URL || 'https://agentteams.run';
+
+const AGENT_ENTRY_POINT_FILES = [
+  { value: 'CLAUDE.md',                    label: 'CLAUDE.md',                    hint: 'Claude Code' },
+  { value: 'AGENTS.md',                    label: 'AGENTS.md',                    hint: 'OpenCode / Codex' },
+  { value: 'GEMINI.md',                    label: 'GEMINI.md',                    hint: 'Antigravity' },
+  { value: '.cursor/rules/agentteams.mdc', label: '.cursor/rules/agentteams.mdc', hint: 'Cursor' },
+] as const;
 const CONFIG_DIR = '.agentteams';
 const CONFIG_FILE = 'config.json';
 const CONVENTION_FILE = 'convention.md';
@@ -160,11 +168,40 @@ async function fetchConventionTemplate(authResult: {
   return content;
 }
 
-function generateAgentEntryPointFiles(cwd: string): void {
+async function promptAgentFileSelection(): Promise<string[]> {
+  if (!process.stdin.isTTY) {
+    return AGENT_ENTRY_POINT_FILES.map((f) => f.value);
+  }
+
+  const selected = await multiselect({
+    message: 'Select agent entry point files to create:',
+    options: AGENT_ENTRY_POINT_FILES.map((f) => ({
+      value: f.value,
+      label: f.label,
+      hint: f.hint,
+    })),
+    initialValues: AGENT_ENTRY_POINT_FILES.map((f) => f.value),
+    required: false,
+  });
+
+  if (isCancel(selected)) {
+    cancel('Init cancelled.');
+    process.exit(0);
+  }
+
+  return selected as string[];
+}
+
+function generateAgentEntryPointFiles(cwd: string, selectedFiles: string[]): void {
+  if (selectedFiles.length === 0) {
+    console.log('No agent entry point files selected. Skipping.');
+    return;
+  }
+
   const DEFAULT_CONVENTION_REFERENCE = `---
 alwaysApply: true
 agentInstruction: |
-**Always refer to \`.agentteams/convention.md\`.**
+**Before starting any task, always refer to \`.agentteams/convention.md\`.**
 ---
 
 # AgentTeams Convention
@@ -172,14 +209,7 @@ agentInstruction: |
 **Before starting any task, always refer to \`.agentteams/convention.md\`.**
 `;
 
-  const files = [
-    'CLAUDE.md',
-    'AGENTS.md',
-    'GEMINI.md',
-    '.cursor/rules/agentteams.mdc'
-  ];
-
-  for (const relativePath of files) {
+  for (const relativePath of selectedFiles) {
     const fullPath = join(cwd, relativePath);
     if (!existsSync(fullPath)) {
       const dir = dirname(fullPath);
@@ -235,7 +265,8 @@ export async function executeInitCommand(options?: InitOptions): Promise<InitRes
     saveConfig(configPath, config);
     writeFileSync(conventionPath, conventionContent, 'utf-8');
     await conventionDownload({ cwd, config });
-    generateAgentEntryPointFiles(cwd);
+    const selectedFiles = await promptAgentFileSelection();
+    generateAgentEntryPointFiles(cwd, selectedFiles);
 
     return {
       success: true,
