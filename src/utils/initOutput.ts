@@ -1,11 +1,14 @@
+import chalk from 'chalk';
 import { formatOutput } from './formatter.js';
 import type { OutputFormat } from './outputPolicy.js';
+import type { AgentFileEntry } from '../commands/init.js';
 
 interface InitResultShape {
   success: true;
   agentName: string;
   configPath: string;
   conventionPath: string;
+  agentFiles?: AgentFileEntry[];
 }
 
 function isInitResult(result: unknown): result is InitResultShape {
@@ -38,29 +41,23 @@ export function printInitResult(result: unknown, format: OutputFormat): void {
   console.log(`✓ Config saved:      ${result.configPath}`);
   console.log(`✓ Convention saved:  ${result.conventionPath}`);
   console.log(`✓ Conventions synced to .agentteams/`);
+
+  if (result.agentFiles && result.agentFiles.length > 0) {
+    for (const file of result.agentFiles) {
+      if (file.type === 'created') {
+        console.log(`✓ Agent file created: ${file.relativePath}`);
+      } else {
+        console.log(`✓ Example file created: ${file.relativePath}`);
+      }
+    }
+  }
+
   console.log('');
   console.log('Next steps:');
   console.log('  1. Add .agentteams/ to .gitignore');
-  console.log('  2. Add the following to your AI agent\'s convention file:');
-  console.log('');
-  console.log('       ---');
-  console.log('       alwaysApply: true');
-  console.log('       agentInstruction: |');
-  console.log('         Always refer to `.agentteams/convention.md`.');
-  console.log('       ---');
-  console.log('');
-  console.log('       # AgentTeams Convention');
-  console.log('');
-  console.log('       **Before starting any task, always refer to `.agentteams/convention.md`.**');
-  console.log('');
-  console.log('     AI Agent     Convention File');
-  console.log('     Claude Code  CLAUDE.md');
-  console.log('     OpenCode     AGENTS.md');
-  console.log('     Codex        AGENTS.md');
-  console.log('     Cursor       .cursor/rules/*.mdc');
-  console.log('     Antigravity  GEMINI.md');
-  console.log('');
+  console.log('  2. Check the generated agent files (CLAUDE.md, AGENTS.md, etc.)');
+  console.log('     If a -example file was created, merge it into your existing file.');
   console.log('  3. Try saying to your AI agent:');
-  console.log('       Analyze the codebase and create conventions.');
-  console.log('       Create a plan to improve test coverage for this project.');
+  console.log(chalk.cyan('       Analyze the codebase and create conventions.'));
+  console.log(chalk.cyan('       Create a plan to improve test coverage for this project.'));
 }

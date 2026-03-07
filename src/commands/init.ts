@@ -6,7 +6,7 @@ import httpClient from '../utils/httpClient.js';
 import open from 'open';
 import { startLocalAuthServer } from '../utils/authServer.js';
 import { saveConfig } from '../utils/config.js';
-import { withSpinner } from '../utils/spinner.js';
+import { createSpinner, withSpinner } from '../utils/spinner.js';
 import { conventionDownload } from './convention.js';
 import type { Config } from '../types/index.js';
 
@@ -36,6 +36,11 @@ type InitOptions = {
   cwd?: string;
 };
 
+export type AgentFileEntry = {
+  relativePath: string;
+  type: 'created' | 'example';
+};
+
 type InitResult = {
   success: true;
   authUrl: string;
@@ -44,6 +49,7 @@ type InitResult = {
   teamId: string;
   projectId: string;
   agentName: string;
+  agentFiles: AgentFileEntry[];
 };
 
 function isSshEnvironment(): boolean {
@@ -211,10 +217,9 @@ async function promptAgentFileSelection(): Promise<string[]> {
   return selected as string[];
 }
 
-function generateAgentEntryPointFiles(cwd: string, selectedFiles: string[]): void {
+function generateAgentEntryPointFiles(cwd: string, selectedFiles: string[]): AgentFileEntry[] {
   if (selectedFiles.length === 0) {
-    console.log('No agent entry point files selected. Skipping.');
-    return;
+    return [];
   }
 
   const DEFAULT_CONVENTION_REFERENCE = `---
@@ -228,19 +233,33 @@ agentInstruction: |
 **Before starting any task, always refer to \`.agentteams/convention.md\`.**
 `;
 
+  const entries: AgentFileEntry[] = [];
+
   for (const relativePath of selectedFiles) {
     const fullPath = join(cwd, relativePath);
+    const dir = dirname(fullPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+
     if (!existsSync(fullPath)) {
-      const dir = dirname(fullPath);
-      if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
-      }
       writeFileSync(fullPath, DEFAULT_CONVENTION_REFERENCE, 'utf-8');
-      console.log(`✅ Agent integration file created: ${relativePath}`);
+      entries.push({ relativePath, type: 'created' });
     } else {
-      console.log(`⏭️ Agent integration file skipped (already exists): ${relativePath}`);
+      const ext = relativePath.includes('.') ? `.${relativePath.split('.').pop()}` : '';
+      const base = ext ? relativePath.slice(0, -ext.length) : relativePath;
+      const exampleRelativePath = `${base}-example${ext}`;
+      const exampleFullPath = join(cwd, exampleRelativePath);
+      const exampleDir = dirname(exampleFullPath);
+      if (!existsSync(exampleDir)) {
+        mkdirSync(exampleDir, { recursive: true });
+      }
+      writeFileSync(exampleFullPath, DEFAULT_CONVENTION_REFERENCE, 'utf-8');
+      entries.push({ relativePath: exampleRelativePath, type: 'example' });
     }
   }
+
+  return entries;
 }
 
 export async function executeInitCommand(options?: InitOptions): Promise<InitResult> {
@@ -270,11 +289,48 @@ export async function executeInitCommand(options?: InitOptions): Promise<InitRes
   const authUrl = buildAuthorizeUrl(authContext.port, projectName, authPathEnc, detectOsType());
   await tryOpenBrowser(authUrl);
 
+  const authSpinner = createSpinner('Waiting for authentication... (Ctrl+C to cancel)');
+
+  const cleanup = () => {
+    if (authContext.server.listening) {
+      authContext.server.close();
+    }
+  };
+
   try {
-    const authResult = await withSpinner(
-      'Waiting for authentication...',
-      () => authContext.waitForCallback(),
-    );
+    const authResult = await new Promise<Awaited<ReturnType<typeof authContext.waitForCallback>>>((resolve, reject) => {
+      const onSigint = () => {
+        authSpinner?.fail('Init cancelled.');
+        cleanup();
+        process.exit(0);
+      };
+
+      process.on('SIGINT', onSigint);
+
+      if (process.stdin.isTTY) {
+        process.stdin.setRawMode(true);
+        process.stdin.resume();
+        process.stdin.on('data', (key: Buffer) => {
+          if (key[0] === 0x03) {
+            process.stdin.setRawMode(false);
+            process.stdin.pause();
+            onSigint();
+          }
+        });
+      }
+
+      authContext.waitForCallback().then((result) => {
+        process.removeListener('SIGINT', onSigint);
+        if (process.stdin.isTTY) {
+          process.stdin.setRawMode(false);
+          process.stdin.pause();
+          process.stdin.removeAllListeners('data');
+        }
+        resolve(result);
+      }).catch(reject);
+    });
+
+    authSpinner?.succeed();
     const config = toConfig(authResult);
     const conventionContent = await withSpinner(
       'Fetching convention template...',
@@ -285,7 +341,7 @@ export async function executeInitCommand(options?: InitOptions): Promise<InitRes
     writeFileSync(conventionPath, conventionContent, 'utf-8');
     await conventionDownload({ cwd, config });
     const selectedFiles = await promptAgentFileSelection();
-    generateAgentEntryPointFiles(cwd, selectedFiles);
+    const agentFiles = generateAgentEntryPointFiles(cwd, selectedFiles);
 
     return {
       success: true,
@@ -295,11 +351,11 @@ export async function executeInitCommand(options?: InitOptions): Promise<InitRes
       teamId: authResult.teamId,
       projectId: authResult.projectId,
       agentName: authResult.agentName,
+      agentFiles,
     };
   } catch (error) {
-    if (authContext.server.listening) {
-      authContext.server.close();
-    }
+    authSpinner?.fail();
+    cleanup();
 
     throw new Error(
       `Initialization failed: ${error instanceof Error ? error.message : String(error)}`

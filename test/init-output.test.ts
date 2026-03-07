@@ -13,6 +13,10 @@ const MOCK_INIT_RESULT = {
   teamId: 'team-abc',
   projectId: 'proj-xyz',
   agentName: 'claude-main',
+  agentFiles: [
+    { relativePath: 'CLAUDE.md', type: 'created' as const },
+    { relativePath: 'AGENTS-example.md', type: 'example' as const },
+  ],
 };
 
 describe('printInitResult', () => {
@@ -62,20 +66,20 @@ describe('printInitResult', () => {
       expect(output).toContain('.gitignore');
     });
 
-    it('Claude Code / opencode 연동 힌트를 출력한다', () => {
+    it('에이전트 파일 생성 결과를 출력한다', () => {
       printInitResult(MOCK_INIT_RESULT, 'text');
 
       const output = captureOutput(logSpy);
-      expect(output).toContain('CLAUDE.md');
-      expect(output).toContain('AGENTS.md');
+      expect(output).toContain('Agent file created: CLAUDE.md');
+      expect(output).toContain('Example file created: AGENTS-example.md');
     });
 
-    it('agentInstruction 프론트메터 블록 안내를 출력한다', () => {
+    it('에이전트 파일 확인 및 example 병합 안내를 출력한다', () => {
       printInitResult(MOCK_INIT_RESULT, 'text');
 
       const output = captureOutput(logSpy);
-      expect(output).toContain('agentInstruction');
-      expect(output).toContain('.agentteams/convention.md');
+      expect(output).toContain('Check the generated agent files');
+      expect(output).toContain('-example');
     });
   });
 
