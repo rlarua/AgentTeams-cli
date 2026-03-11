@@ -18,11 +18,13 @@ import {
   linkPostMortemToCoAction,
   unlinkPostMortemFromCoAction,
 } from '../api/coaction.js';
+import { getMemberQuota } from '../api/member.js';
 import { checkConventionFreshness } from './convention.js';
 import { buildFreshnessNoticeLines } from './plan.js';
 import { findProjectConfig } from '../utils/config.js';
 import { deleteIfTempFile, toPositiveInteger, toSafeFileName } from '../utils/parsers.js';
 import { printFileInfo, withSpinner } from '../utils/spinner.js';
+import { isAxiosError } from 'axios';
 
 function findProjectRoot(): string | null {
   const configPath = findProjectConfig(process.cwd());
@@ -51,6 +53,14 @@ async function runFreshnessCheckSilent(
   } catch (error) {
     void error;
   }
+}
+
+function formatQuotaExceededMessage(coAction: NonNullable<Awaited<ReturnType<typeof getMemberQuota>>["coAction"]>): string {
+  if (coAction.daily.used >= coAction.daily.limit) {
+    return `Daily limit reached: ${coAction.daily.used}/${coAction.daily.limit} used. Resets tomorrow (UTC).`;
+  }
+
+  return `Monthly limit reached: ${coAction.monthly.used}/${coAction.monthly.limit} used. Resets next month (UTC).`;
 }
 
 export async function executeCoActionCommand(
@@ -223,17 +233,36 @@ export async function executeCoActionCommand(
         visibility: options.visibility,
       };
 
-      return withSpinner(
-        'Creating co-action...',
-        async () => {
-          const data = await createCoAction(apiUrl, options.projectId, headers, body);
-          if (options.file) deleteIfTempFile(options.file);
-          const id = (data as any)?.data?.id ?? options.id;
-          if (id) process.stderr.write(`Tip: Add a takeaway to capture key insights or knowledge for the next reader — agentteams coaction takeaway-create --id ${id}\n`);
-          return data;
-        },
-        'Co-action created',
-      );
+      try {
+        return await withSpinner(
+          'Creating co-action...',
+          async () => {
+            const data = await createCoAction(apiUrl, options.projectId, headers, body);
+            if (options.file) deleteIfTempFile(options.file);
+            const id = (data as any)?.data?.id ?? options.id;
+            if (id) process.stderr.write(`Tip: Add a takeaway to capture key insights or knowledge for the next reader — agentteams coaction takeaway-create --id ${id}\n`);
+            return data;
+          },
+          'Co-action created',
+        );
+      } catch (error) {
+        if (options.file) deleteIfTempFile(options.file);
+
+        if (
+          isAxiosError(error) &&
+          error.response?.status === 403 &&
+          error.response.data &&
+          typeof error.response.data === 'object' &&
+          (error.response.data as { errorCode?: unknown }).errorCode === 'QUOTA_EXCEEDED'
+        ) {
+          const quota = await getMemberQuota(apiUrl, headers);
+          if (quota.coAction) {
+            return formatQuotaExceededMessage(quota.coAction);
+          }
+        }
+
+        throw error;
+      }
     }
     case 'update': {
       if (!options.id) throw new Error('--id is required for coaction update');
