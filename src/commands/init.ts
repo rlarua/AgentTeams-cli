@@ -219,7 +219,7 @@ async function promptAgentFileSelection(): Promise<string[]> {
 
 function ensureGitignore(cwd: string): void {
   const gitignorePath = join(cwd, '.gitignore');
-  const entry = '.agentteams/';
+  const entry = '.agentteams';
 
   const block = `# AgentTeams local config\n${entry}\n`;
 
