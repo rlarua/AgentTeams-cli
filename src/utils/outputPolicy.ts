@@ -13,6 +13,7 @@ const summaryDefaultActions: Record<string, Set<string>> = {
   plan: new Set(['create', 'update', 'start', 'finish']),
   report: new Set(['create']),
   postmortem: new Set(['create']),
+  coaction: new Set(['create']),
 };
 
 const nextActionHints: Record<string, Record<string, string>> = {
@@ -64,6 +65,11 @@ export function createSummaryLines(result: unknown, context: Pick<OutputPolicyCo
     lines.push(`title: ${title}`);
   } else if (typeof count === 'number') {
     lines.push(`count: ${count}`);
+  }
+
+  const webUrl = extractString(result, 'webUrl');
+  if (webUrl) {
+    lines.push(`webUrl: ${webUrl}`);
   }
 
   const hint = resolveNextActionHint(id, result, context);

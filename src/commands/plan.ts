@@ -439,9 +439,10 @@ export async function executePlanCommand(
             `title: ${plan.title}`,
             `status: ${plan.status}`,
             `priority: ${plan.priority}`,
+            plan.webUrl ? `webUrl: ${plan.webUrl}` : null,
             `downloadedAt: ${new Date().toISOString()}`,
             '---',
-          ].join('\n');
+          ].filter(Boolean).join('\n');
 
           const markdown = plan.contentMarkdown ?? '';
           writeFileSync(filePath, `${frontmatter}\n\n${markdown}`, 'utf-8');

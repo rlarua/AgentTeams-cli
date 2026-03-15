@@ -149,6 +149,7 @@ export async function executePostMortemCommand(
             pm.planId ? `planId: ${pm.planId}` : null,
             pm.planTitle ? `planTitle: ${pm.planTitle}` : null,
             pm.actionItems ? `actionItems: ${JSON.stringify(pm.actionItems)}` : null,
+            pm.webUrl ? `webUrl: ${pm.webUrl}` : null,
             `downloadedAt: ${new Date().toISOString()}`,
             '---',
           ].filter(Boolean).join('\n');

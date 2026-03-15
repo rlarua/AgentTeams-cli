@@ -194,6 +194,7 @@ export async function executeReportCommand(
             `status: ${report.status}`,
             report.planId ? `planId: ${report.planId}` : null,
             report.planTitle ? `planTitle: ${report.planTitle}` : null,
+            report.webUrl ? `webUrl: ${report.webUrl}` : null,
             `downloadedAt: ${new Date().toISOString()}`,
             '---',
           ].filter(Boolean).join('\n');

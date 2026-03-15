@@ -338,7 +338,8 @@ export async function executeCoActionCommand(
             `visibility: ${coAction.visibility}`,
             `createdBy: ${coAction.createdByName ?? '-'}`,
             `takeaways: ${takeaways.length}`,
-          ];
+            coAction.webUrl ? `webUrl: ${coAction.webUrl}` : null,
+          ].filter((line): line is string => line !== null);
           if (linkedPlans.length > 0) {
             frontmatterLines.push('linkedPlans:');
             for (const p of linkedPlans) {
