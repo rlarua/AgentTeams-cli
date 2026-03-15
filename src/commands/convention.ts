@@ -786,6 +786,7 @@ export async function conventionCreate(options: ConventionCreateOptions): Promis
     const created = response.data?.data as Record<string, unknown> | undefined;
     const createdId = typeof created?.id === "string" ? created.id : "unknown";
     const createdUpdatedAt = typeof created?.updatedAt === "string" ? created.updatedAt : undefined;
+    const createdWebUrl = typeof created?.webUrl === "string" ? created.webUrl : undefined;
 
     const now = new Date().toISOString();
     manifest.generatedAt = now;
@@ -804,6 +805,9 @@ export async function conventionCreate(options: ConventionCreateOptions): Promis
     writeManifest(projectRoot, manifest);
 
     results.push(`[OK] ${fileRelativePath}: Created. (conventionId=${createdId})`);
+    if (createdWebUrl) {
+      results.push(`webUrl: ${createdWebUrl}`);
+    }
     results.push(`[OK] ${CONVENTION_DIR}/${CONVENTION_MANIFEST_FILE}: Updated.`);
     results.push(`[NEXT] Run 'agentteams convention download' to refresh convention.md and canonical markdown.`);
   }
@@ -908,6 +912,9 @@ export async function conventionUpdate(options: ConventionUploadOptions): Promis
     );
 
     const newUpdatedAt = updatedResponse.data?.data?.updatedAt;
+    const newWebUrl = typeof updatedResponse.data?.data?.webUrl === "string"
+      ? updatedResponse.data.data.webUrl
+      : undefined;
     const now = new Date().toISOString();
     manifestEntry.lastUploadedAt = now;
     if (typeof newUpdatedAt === "string") {
@@ -916,6 +923,9 @@ export async function conventionUpdate(options: ConventionUploadOptions): Promis
     writeManifest(projectRoot, manifest);
 
     results.push(`[OK] ${fileRelativePath}: Update applied. (conventionId=${conventionId})`);
+    if (newWebUrl) {
+      results.push(`webUrl: ${newWebUrl}`);
+    }
   }
 
   return results.join("\n\n");

@@ -885,7 +885,7 @@ describe('CLI Integration Tests', () => {
         .mockResolvedValueOnce({ data: '# server version\n' } as any);
 
       axiosPutSpy.mockResolvedValueOnce({
-        data: { data: { id: 'cv-1', updatedAt: '2026-02-01T00:00:00.000Z' } },
+        data: { data: { id: 'cv-1', updatedAt: '2026-02-01T00:00:00.000Z', webUrl: 'https://app.example/conventions/cv-1' } },
       } as any);
 
       const originalCwd = process.cwd();
@@ -961,6 +961,7 @@ describe('CLI Integration Tests', () => {
 
         expect(typeof result).toBe('string');
         expect(result).toContain('[OK]');
+        expect(result).toContain('webUrl: https://app.example/conventions/cv-1');
 
         expect(axiosPutSpy).toHaveBeenCalledWith(
           `${API_URL}/api/projects/${PROJECT_ID}/conventions/cv-1`,
@@ -1251,7 +1252,7 @@ describe('CLI Integration Tests', () => {
 
     it('convention create: should POST and update manifest immediately', async () => {
       axiosPostSpy.mockResolvedValueOnce({
-        data: { data: { id: 'cv-new', updatedAt: '2026-02-19T00:00:00.000Z' } },
+        data: { data: { id: 'cv-new', updatedAt: '2026-02-19T00:00:00.000Z', webUrl: 'https://app.example/conventions/cv-new' } },
       } as any);
 
       const originalCwd = process.cwd();
@@ -1285,10 +1286,12 @@ describe('CLI Integration Tests', () => {
         );
 
         process.chdir(tempCwd);
-        await executeCommand('convention', 'create', {
+        const result = await executeCommand('convention', 'create', {
           cwd: tempCwd,
           file: ['.agentteams/rules/new-rule.md'],
         });
+
+        expect(result).toContain('webUrl: https://app.example/conventions/cv-new');
 
         expect(axiosPostSpy).toHaveBeenCalledWith(
           `${API_URL}/api/projects/${PROJECT_ID}/conventions`,

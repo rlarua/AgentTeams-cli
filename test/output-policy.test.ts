@@ -77,6 +77,55 @@ describe('outputPolicy', () => {
     ]);
   });
 
+  it('prints summary by default for report/postmortem/coaction update', () => {
+    expect(
+      shouldPrintSummary({
+        resource: 'report',
+        action: 'update',
+        format: 'json',
+        formatExplicit: false,
+      })
+    ).toBe(true);
+
+    expect(
+      shouldPrintSummary({
+        resource: 'postmortem',
+        action: 'update',
+        format: 'json',
+        formatExplicit: false,
+      })
+    ).toBe(true);
+
+    expect(
+      shouldPrintSummary({
+        resource: 'coaction',
+        action: 'update',
+        format: 'json',
+        formatExplicit: false,
+      })
+    ).toBe(true);
+  });
+
+  it('adds webUrl to summary lines when present', () => {
+    const lines = createSummaryLines(
+      {
+        data: {
+          id: 'plan-123',
+          title: 'CLI output fix',
+          webUrl: 'https://agentteams.example/plans/plan-123',
+        },
+      },
+      { resource: 'plan', action: 'create' }
+    );
+
+    expect(lines).toEqual([
+      'Success: plan create',
+      'id: plan-123, title: CLI output fix',
+      'webUrl: https://agentteams.example/plans/plan-123',
+      'Next: agentteams plan start --id plan-123',
+    ]);
+  });
+
   it('uses message when available', () => {
     const lines = createSummaryLines(
       {
@@ -133,4 +182,3 @@ describe('outputPolicy', () => {
     expect(lines.some((line) => line.startsWith('Next:'))).toBe(false);
   });
 });
-
