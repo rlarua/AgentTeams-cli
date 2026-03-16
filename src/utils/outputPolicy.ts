@@ -72,6 +72,11 @@ export function createSummaryLines(result: unknown, context: Pick<OutputPolicyCo
     lines.push(`webUrl: ${webUrl}`);
   }
 
+  const planWebUrl = extractTopLevelString(result, 'planWebUrl');
+  if (planWebUrl) {
+    lines.push(`planWebUrl: ${planWebUrl}`);
+  }
+
   const hint = resolveNextActionHint(id, result, context);
   if (hint) {
     lines.push(hint);
@@ -130,6 +135,13 @@ function extractDeepId(result: unknown): string | undefined {
       }
     }
   }
+  return undefined;
+}
+
+function extractTopLevelString(result: unknown, key: string): string | undefined {
+  if (!result || typeof result !== 'object') return undefined;
+  const value = (result as Record<string, unknown>)[key];
+  if (typeof value === 'string' && value.length > 0) return value;
   return undefined;
 }
 
