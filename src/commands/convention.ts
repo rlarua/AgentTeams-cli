@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, unlinkSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, unlinkSync } from "node:fs";
+import { atomicWriteFileSync } from "../utils/atomicWrite.js";
 import { basename, join, relative, resolve } from "node:path";
 import httpClient from "../utils/httpClient.js"
 import { isAxiosError } from "axios";
@@ -179,7 +180,7 @@ function loadManifestOrCreate(projectRoot: string): ConventionDownloadManifestV1
 
 function writeManifest(projectRoot: string, manifest: ConventionDownloadManifestV1) {
   const manifestPath = buildManifestPath(projectRoot);
-  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n", "utf-8");
+  atomicWriteFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n", "utf-8");
 }
 
 function toFileList(input: string | string[]): string[] {
@@ -549,7 +550,7 @@ async function downloadPlatformGuides(
         : baseFileName.replace(/\.md$/, `-${seenCount + 1}.md`);
 
       const filePath = join(baseDir, fileName);
-      writeFileSync(filePath, guide.content, 'utf-8');
+      atomicWriteFileSync(filePath, guide.content, 'utf-8');
       written += 1;
     }
 
@@ -595,7 +596,7 @@ async function downloadReportingTemplate(
   }
 
   const conventionPath = join(projectRoot, CONVENTION_DIR, CONVENTION_INDEX_FILE);
-  writeFileSync(conventionPath, content, "utf-8");
+  atomicWriteFileSync(conventionPath, content, "utf-8");
   return true;
 }
 
@@ -671,7 +672,7 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
           ? baseFileName
           : baseFileName.replace(/\.md$/, `-${seenCount + 1}.md`);
         const filePath = join(projectRoot, CONVENTION_DIR, categoryDir, fileName);
-        writeFileSync(filePath, contentMarkdown, "utf-8");
+        atomicWriteFileSync(filePath, contentMarkdown, "utf-8");
 
         manifest.entries.push({
           conventionId: String(convention.id),
