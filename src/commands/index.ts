@@ -10,6 +10,7 @@ import { executeCoActionCommand } from './coaction.js';
 import { executeReportCommand } from './report.js';
 import { executeFeedbackCommand } from './feedback.js';
 import { executeSearchCommand } from './search.js';
+import { executeLinearCommand } from './linear.js';
 import { loadConfig } from '../utils/config.js';
 import { attachErrorContext } from '../utils/errors.js';
 import type { Config } from '../types/index.js';
@@ -131,6 +132,11 @@ export async function executeCommand(
       const config = loadRequiredConfig(buildConfigOverrides(options));
       const { apiUrl, headers } = resolveApiContext(config);
       return withApiErrorContext(apiUrl, () => executeSearchCommand(apiUrl, config.projectId, headers, options));
+    }
+    case 'linear': {
+      const config = loadRequiredConfig(buildConfigOverrides(options));
+      const { apiUrl, headers } = resolveApiContext(config);
+      return withApiErrorContext(apiUrl, () => executeLinearCommand(apiUrl, headers, action, options));
     }
     default:
       throw new Error(`Unknown resource: ${resource}`);

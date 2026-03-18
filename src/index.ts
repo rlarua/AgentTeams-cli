@@ -672,6 +672,101 @@ program
     }
   });
 
+const linearCommand = program
+  .command('linear')
+  .description('Read Linear issues and add comments through the AgentTeams API')
+  .addHelpText('after', CONVENTION_HINT);
+
+linearCommand
+  .command('issue')
+  .description('Read a Linear issue')
+  .argument('<action>', 'Action to perform (get)')
+  .option('--issue-id <id>', 'Linear issue ID')
+  .option('--api-url <url>', 'Override API URL (optional)')
+  .option('--api-key <key>', 'Override API key (optional)')
+  .option('--project-id <id>', 'Override project ID (optional)')
+  .option('--team-id <id>', 'Override team ID (optional)')
+  .option('--agent-name <name>', 'Override agent name (optional)')
+  .option('--format <format>', 'Output format (json, text)', 'text')
+  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
+  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
+  .action(async (action, options) => {
+    try {
+      if (action !== 'get') {
+        throw new Error(`Unknown action: ${action}`);
+      }
+
+      const normalizedFormat = normalizeFormat(options.format, 'text');
+      const result = await executeCommand('linear', 'issue-get', {
+        issueId: options.issueId,
+        apiUrl: options.apiUrl,
+        apiKey: options.apiKey,
+        projectId: options.projectId,
+        teamId: options.teamId,
+        agentName: options.agentName,
+      });
+
+      printCommandResult({
+        result,
+        format: normalizedFormat,
+        outputFile: options.outputFile,
+        verbose: options.verbose,
+        resource: 'linear',
+        action: 'issue-get',
+        formatExplicit: typeof options.format === 'string',
+      });
+    } catch (error) {
+      console.error(handleError(error));
+      process.exit(1);
+    }
+  });
+
+linearCommand
+  .command('comment')
+  .description('Create a comment on a Linear issue')
+  .argument('<action>', 'Action to perform (create)')
+  .option('--issue-id <id>', 'Linear issue ID')
+  .option('--body <text>', 'Comment body')
+  .option('--api-url <url>', 'Override API URL (optional)')
+  .option('--api-key <key>', 'Override API key (optional)')
+  .option('--project-id <id>', 'Override project ID (optional)')
+  .option('--team-id <id>', 'Override team ID (optional)')
+  .option('--agent-name <name>', 'Override agent name (optional)')
+  .option('--format <format>', 'Output format (json, text)', 'json')
+  .option('--output-file <path>', 'Write full output to a file (stdout prints a short summary)')
+  .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
+  .action(async (action, options) => {
+    try {
+      if (action !== 'create') {
+        throw new Error(`Unknown action: ${action}`);
+      }
+
+      const normalizedFormat = normalizeFormat(options.format, 'json');
+      const result = await executeCommand('linear', 'comment-create', {
+        issueId: options.issueId,
+        body: options.body,
+        apiUrl: options.apiUrl,
+        apiKey: options.apiKey,
+        projectId: options.projectId,
+        teamId: options.teamId,
+        agentName: options.agentName,
+      });
+
+      printCommandResult({
+        result,
+        format: normalizedFormat,
+        outputFile: options.outputFile,
+        verbose: options.verbose,
+        resource: 'linear',
+        action: 'comment-create',
+        formatExplicit: typeof options.format === 'string',
+      });
+    } catch (error) {
+      console.error(handleError(error));
+      process.exit(1);
+    }
+  });
+
 startUpdateCheck(pkg.version);
 
 program.parse();

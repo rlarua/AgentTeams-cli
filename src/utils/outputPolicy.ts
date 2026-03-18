@@ -14,6 +14,7 @@ const summaryDefaultActions: Record<string, Set<string>> = {
   report: new Set(['create', 'update']),
   postmortem: new Set(['create', 'update']),
   coaction: new Set(['create', 'update']),
+  linear: new Set(['comment-create']),
 };
 
 const nextActionHints: Record<string, Record<string, string>> = {

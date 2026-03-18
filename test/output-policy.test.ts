@@ -181,4 +181,15 @@ describe('outputPolicy', () => {
 
     expect(lines.some((line) => line.startsWith('Next:'))).toBe(false);
   });
+
+  it('prints summary by default for linear comment create', () => {
+    expect(
+      shouldPrintSummary({
+        resource: 'linear',
+        action: 'comment-create',
+        format: 'json',
+        formatExplicit: false,
+      })
+    ).toBe(true);
+  });
 });

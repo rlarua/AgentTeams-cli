@@ -289,6 +289,62 @@ describe('CLI Integration Tests', () => {
       );
     });
 
+    it('linear issue get: should call the linear issue endpoint', async () => {
+      axiosGetSpy.mockResolvedValue({
+        data: {
+          data: {
+            id: 'issue-1',
+            identifier: 'AGE-5',
+            title: 'Linear issue',
+          },
+        },
+      } as any);
+
+      const result = await executeCommand('linear', 'issue-get', {
+        issueId: 'issue-1',
+      });
+
+      expect(result).toEqual({
+        data: {
+          id: 'issue-1',
+          identifier: 'AGE-5',
+          title: 'Linear issue',
+        },
+      });
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/linear/issues/issue-1`,
+        { headers: authHeaders() }
+      );
+    });
+
+    it('linear comment create: should post to the linear comment endpoint', async () => {
+      axiosPostSpy.mockResolvedValue({
+        data: {
+          data: {
+            id: 'comment-1',
+            body: 'Created from CLI',
+          },
+        },
+      } as any);
+
+      const result = await executeCommand('linear', 'comment-create', {
+        issueId: 'issue-1',
+        body: 'Created from CLI',
+      });
+
+      expect(result).toEqual({
+        data: {
+          id: 'comment-1',
+          body: 'Created from CLI',
+        },
+      });
+      expect(axiosPostSpy).toHaveBeenCalledWith(
+        `${API_URL}/api/linear/issues/issue-1/comments`,
+        { body: 'Created from CLI' },
+        { headers: authHeaders() }
+      );
+    });
+
     it('plan get with include-deps: should fetch dependency endpoint and merge data', async () => {
       axiosGetSpy.mockImplementation(async (url: string) => {
         if (url === `${API_URL}/api/platform/guides/hash`) {
