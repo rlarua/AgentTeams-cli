@@ -22,9 +22,12 @@ import {
   getPlan,
   getPlanDependencies,
   getPlanStatus,
+  linkExternalIssue,
+  listExternalIssues,
   listPlans,
   patchPlanStatus,
   startPlanLifecycle,
+  unlinkExternalIssue,
   updatePlan,
 } from '../api/plan.js';
 
@@ -597,6 +600,53 @@ export async function executePlanCommand(
         create: createResult,
         finish: finishResult,
       };
+    }
+    case 'link-issue': {
+      const planId = toNonEmptyString(options.id);
+      if (!planId) throw new Error('--id is required for plan link-issue');
+      const provider = toNonEmptyString(options.provider)?.toUpperCase();
+      if (!provider) throw new Error('--provider is required for plan link-issue');
+      const externalId = toNonEmptyString(options.externalId);
+      if (!externalId) throw new Error('--external-id is required for plan link-issue');
+      const externalUrl = toNonEmptyString(options.externalUrl);
+      if (!externalUrl) throw new Error('--external-url is required for plan link-issue');
+
+      if (!['GITHUB', 'GITLAB', 'LINEAR'].includes(provider)) {
+        throw new Error('--provider must be one of: GITHUB, GITLAB, LINEAR');
+      }
+
+      const body: {
+        provider: string;
+        externalId: string;
+        externalUrl: string;
+        externalTitle?: string;
+        metadata?: Record<string, unknown>;
+      } = { provider, externalId, externalUrl };
+
+      if (options.title) body.externalTitle = options.title;
+      if (options.metadata) {
+        try {
+          body.metadata = JSON.parse(options.metadata);
+        } catch {
+          throw new Error('--metadata must be valid JSON');
+        }
+      }
+
+      return linkExternalIssue(apiUrl, projectId, headers, planId, body);
+    }
+    case 'unlink-issue': {
+      const planId = toNonEmptyString(options.id);
+      if (!planId) throw new Error('--id is required for plan unlink-issue');
+      const issueId = toNonEmptyString(options.issueId);
+      if (!issueId) throw new Error('--issue-id is required for plan unlink-issue');
+
+      return unlinkExternalIssue(apiUrl, projectId, headers, planId, issueId);
+    }
+    case 'list-issues': {
+      const planId = toNonEmptyString(options.id);
+      if (!planId) throw new Error('--id is required for plan list-issues');
+
+      return listExternalIssues(apiUrl, projectId, headers, planId);
     }
     default:
       throw new Error(`Unknown action: ${action}`);
