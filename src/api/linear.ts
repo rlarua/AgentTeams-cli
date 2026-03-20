@@ -26,6 +26,17 @@ export async function createLinearIssue(
   return response.data;
 }
 
+export async function updateLinearIssue(
+  apiUrl: string,
+  headers: any,
+  issueId: string,
+  state: string
+): Promise<any> {
+  const baseUrl = `${apiUrl}/api/linear/issues/${issueId}`;
+  const response = await httpClient.patch(baseUrl, { state }, { headers });
+  return response.data;
+}
+
 export async function createLinearComment(
   apiUrl: string,
   headers: any,

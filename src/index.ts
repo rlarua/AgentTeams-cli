@@ -679,13 +679,13 @@ const linearCommand = program
 
 linearCommand
   .command('issue')
-  .description('Read or create a Linear issue')
-  .argument('<action>', 'Action to perform (get, create)')
-  .option('--issue-id <id>', 'Linear issue ID (required for get)')
-  .option('--team-id <id>', 'Linear team ID (required for create, optional override for other commands)')
+  .description('Read, create, or update a Linear issue')
+  .argument('<action>', 'Action to perform (get, create, update)')
+  .option('--issue-id <id>', 'Linear issue ID (required for get, update)')
+  .option('--team-id <id>', 'Linear team ID (required for create)')
   .option('--title <text>', 'Issue title (required for create)')
   .option('--description <text>', 'Issue description (optional, for create)')
-  .option('--state <name>', 'Issue state name, e.g. "Done", "Todo" (optional, for create)')
+  .option('--state <name>', 'Issue state name, e.g. "Done", "Todo" (required for update, optional for create)')
   .option('--api-url <url>', 'Override API URL (optional)')
   .option('--api-key <key>', 'Override API key (optional)')
   .option('--project-id <id>', 'Override project ID (optional)')
@@ -695,11 +695,12 @@ linearCommand
   .option('--verbose', 'Print full output to stdout (useful with --output-file)', false)
   .action(async (action, options) => {
     try {
-      if (action !== 'get' && action !== 'create') {
+      if (action !== 'get' && action !== 'create' && action !== 'update') {
         throw new Error(`Unknown action: ${action}`);
       }
 
-      const commandAction = action === 'get' ? 'issue-get' : 'issue-create';
+      const actionMap: Record<string, string> = { get: 'issue-get', create: 'issue-create', update: 'issue-update' };
+      const commandAction = actionMap[action];
       const normalizedFormat = normalizeFormat(options.format, action === 'get' ? 'text' : 'json');
       const result = await executeCommand('linear', commandAction, {
         issueId: options.issueId,

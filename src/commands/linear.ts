@@ -1,4 +1,4 @@
-import { createLinearComment, createLinearIssue, getLinearIssue } from '../api/linear.js';
+import { createLinearComment, createLinearIssue, getLinearIssue, updateLinearIssue } from '../api/linear.js';
 
 export async function executeLinearCommand(
   apiUrl: string,
@@ -23,6 +23,16 @@ export async function executeLinearCommand(
       }
 
       return createLinearIssue(apiUrl, headers, options.teamId, options.title, options.description, options.state);
+    }
+    case 'issue-update': {
+      if (!options.issueId) {
+        throw new Error('--issue-id is required for linear issue update');
+      }
+      if (!options.state) {
+        throw new Error('--state is required for linear issue update');
+      }
+
+      return updateLinearIssue(apiUrl, headers, options.issueId, options.state);
     }
     case 'comment-create': {
       if (!options.issueId) {
