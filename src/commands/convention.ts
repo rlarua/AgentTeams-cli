@@ -31,6 +31,7 @@ type ConventionDownloadManifestV1 = {
     categoryDir: string;
     title?: string;
     category?: string;
+    scope?: string;
     updatedAt?: string;
     downloadedAt: string;
     lastUploadedAt?: string;
@@ -63,6 +64,7 @@ type ConventionListItem = {
 
 type ConventionDownloadItem = ConventionListItem & {
   contentMarkdown?: string;
+  scope?: string;
 };
 
 type ConventionManifestEntry = ConventionDownloadManifestV1["entries"][number];
@@ -689,6 +691,7 @@ export async function conventionDownload(options?: ConventionCommandOptions): Pr
           categoryDir,
           title: toOptionalString(convention.title),
           category: toOptionalString(convention.category),
+          scope: toOptionalString(convention.scope),
           updatedAt: toOptionalString(convention.updatedAt),
           downloadedAt: new Date().toISOString(),
         });
